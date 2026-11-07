@@ -95,14 +95,15 @@ class StartMatchUseCaseTest {
         val calledUpIds = (1..8).map { "p$it" }
         coEvery { matchRepository.getCallUpsForMatch(matchId) } returns calledUpIds.map { callUp(it) }
         coEvery { matchRepository.addLineupChange(matchId, any()) } returns Unit
-        coEvery { matchRepository.startMatch(matchId, any(), 30, any()) } returns true
+        coEvery { matchRepository.startMatch(matchId, any(), 30, any(), any()) } returns true
         coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
 
         val starting = calledUpIds.take(7)
         val result = useCase(coach.id, matchId, StartMatchRequest(starting, 30))
 
         assertEquals(true, result)
-        coVerify { matchRepository.startMatch(matchId, starting, 30, "2-3-1") }
+        // Whoever kicks off manages the game.
+        coVerify { matchRepository.startMatch(matchId, starting, 30, "2-3-1", managerUserId = coach.id) }
         // Nobody placed on the pitch (an app from before the pitch view): the starters still fill it.
         coVerify { matchRepository.addLineupChange(matchId, match { it.slots.values.toSet() == starting.toSet() && it.slots.keys == (0 until 7).toSet() }) }
         coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.KICKOFF, causedBy = any()) }
@@ -161,7 +162,7 @@ class StartMatchUseCaseTest {
         val calledUpIds = (1..7).map { "p$it" }
         coEvery { matchRepository.getCallUpsForMatch(matchId) } returns calledUpIds.map { callUp(it) }
         coEvery { matchRepository.addLineupChange(matchId, any()) } returns Unit
-        coEvery { matchRepository.startMatch(matchId, calledUpIds, 30, any()) } returns true
+        coEvery { matchRepository.startMatch(matchId, calledUpIds, 30, any(), any()) } returns true
         coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
 
         val result = useCase(staff.id, matchId, StartMatchRequest(calledUpIds, 30))
@@ -193,12 +194,12 @@ class StartMatchUseCaseTest {
         val ids = (1..7).map { "p$it" }
         coEvery { matchRepository.getCallUpsForMatch(matchId) } returns ids.mapIndexed { i, id -> callUp(id, pitchSlot = i) }
         coEvery { matchRepository.addLineupChange(matchId, any()) } returns Unit
-        coEvery { matchRepository.startMatch(matchId, any(), 30, any()) } returns true
+        coEvery { matchRepository.startMatch(matchId, any(), 30, any(), any()) } returns true
         coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
 
         useCase(coach.id, matchId, StartMatchRequest(ids, 30, formation = "3-2-1"))
 
-        coVerify { matchRepository.startMatch(matchId, ids, 30, "3-2-1") }
+        coVerify { matchRepository.startMatch(matchId, ids, 30, "3-2-1", any()) }
         // The side as placed is the timeline's first entry.
         coVerify {
             matchRepository.addLineupChange(matchId, match { it.minute == 0 && it.period == 1 && it.formation == "3-2-1" && it.slots == ids.mapIndexed { i, id -> i to id }.toMap() })
@@ -221,6 +222,6 @@ class StartMatchUseCaseTest {
         assertFailsWith<ValidationException> {
             useCase(coach.id, matchId, StartMatchRequest(ids.take(6) + "p8", 30))
         }
-        coVerify(exactly = 0) { matchRepository.startMatch(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { matchRepository.startMatch(any(), any(), any(), any(), any()) }
     }
 }

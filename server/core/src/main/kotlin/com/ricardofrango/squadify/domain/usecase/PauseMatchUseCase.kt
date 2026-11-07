@@ -34,6 +34,8 @@ class PauseMatchUseCase(
 
         accessPolicy.requireManageLiveMatch(userId, match.scope, "Only admins, coordinators, coaches, or team staff can pause a match")
 
+        match.requireLiveManager(userId)
+
         if (match.status != MatchStatus.LIVE) {
             throw ValidationException("Can only pause a match that is currently live")
         }

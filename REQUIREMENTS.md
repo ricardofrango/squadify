@@ -354,6 +354,10 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - **A match's Stats tab:** both sides compared (shots, shots on goal, corners, fouls; the opponent's shots show "–", since they aren't recorded), then Shots, On goal and Fouls columns in the player table.
         - **The season:** each player's season card and Full stats (Shots, On goal, Fouls); the team's and age group's records (corners and fouls, ours and against).
         - **Not corrected after the game** for now: the match record keeps them as recorded live.
+    - [x] **One person manages a game while it's on** (the developer, 2026-11-07), both apps (`TECHNICAL_DECISIONS.md` §80):
+        - Whoever kicks off manages the game: only they log goals, cards and substitutions, change the pitch, run the clock and call half time and full time, until full time.
+        - Anyone else who may manage the live game (clubs app: coordinators, admins and the age group's staff; coach app: the owner and the age group's staff) follows it read-only, sees who's managing it, and can **take it over** (with a confirmation), for when that person can't go on. Club members outside the age group never could.
+        - Before kickoff (placing the starters) and after the game (the record) stay as they were.
     - [/] Payments (Google Play Billing and Apple In-App Purchase, directly, no RevenueCat) and ads on the Free plan (AdMob).
         - [x] Google Play (2026-11-03): Basic and Pro, monthly and yearly, bought on Plans; the coach server checks each purchase with Google and follows its notifications; staging takes test purchases only, through its own Play Console app (`.stg`, never published; the developer, 2026-11-04), production real ones (`TECHNICAL_DECISIONS.md` §72). To set up in Play Console and Google Cloud before it works (§72, Payments, as built).
         - [ ] Apple In-App Purchase (StoreKit, App Store Server Notifications); until then iOS asks for plans. On hold (the developer, 2026-11-04): Android first; iOS (the Apple Developer Program, $99 a year) only after seeing the results on Android.

@@ -1018,8 +1018,16 @@ data class Match(
     val teamSize: Int = 11,
     // The sport it's played in, its club's when it was created (V33): the live match and the Timeline
     // draw a futsal court or a football pitch from it. Defaulted for an older server.
-    val sport: SportType = SportType.FOOTBALL
+    val sport: SportType = SportType.FOOTBALL,
+    // Who manages the game while it's on (V34): whoever kicked it off, or whoever took it over since
+    // (TakeOverLiveMatchUseCase). During the game only they log events, change the pitch and run the
+    // clock; the others with the permission watch and can take over. Null before kickoff and for
+    // matches kicked off before this, which anyone with the permission manages, as before.
+    val liveManagerUserId: String? = null
 )
+
+/** The game is on: kicked off and not over (live or at half time). */
+val Match.isInPlay: Boolean get() = status == MatchStatus.LIVE || status == MatchStatus.HALF_TIME
 
 /**
  * Whether the match's team size can still change: before kickoff, or for a game whose result was
@@ -1267,7 +1275,12 @@ data class MatchDetails(
     val teamSizeOptions: List<Int> = emptyList(),
     // The Stats tab's players' lines are on the club's plan: false only on the coach server's Free plan
     // (REQUIREMENTS §5c), where the tab says what the plan allows instead.
-    val statsInPlan: Boolean = true
+    val statsInPlan: Boolean = true,
+    // During the game, for someone with [canManageLiveMatch]: another person manages it
+    // (Match.liveManagerUserId), so this phone only watches and offers to take over. [liveManagerName]
+    // is theirs. False otherwise, and from a server that predates it.
+    val liveManagedByOther: Boolean = false,
+    val liveManagerName: String? = null
 )
 
 @Serializable

@@ -494,10 +494,47 @@ private class LivePitch(val formation: List<Int>, val slots: Map<Int, String>, v
 private fun firstHalfLabel(halfLength: Int, endMinute: Int): String =
     if (endMinute > halfLength) "$halfLength+${endMinute - halfLength}'" else "$endMinute'"
 
+/** Who manages the game, for someone else who may, with Take over: beside it, or under it when [stacked]. */
+@Composable
+private fun TakeOverRow(managerName: String?, enabled: Boolean, stacked: Boolean, onTakeOver: () -> Unit) {
+    val text: @Composable (Modifier) -> Unit = { m ->
+        Text(
+            if (managerName != null) stringResource(Res.string.lm_managed_by, managerName) else stringResource(Res.string.lm_managed_by_someone),
+            color = Color.White.copy(alpha = 0.8f),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = m
+        )
+    }
+    val button: @Composable (Modifier) -> Unit = { m ->
+        OutlinedButton(
+            onClick = onTakeOver,
+            enabled = enabled,
+            modifier = m,
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+        ) { Text(stringResource(Res.string.btn_take_over), fontWeight = FontWeight.Bold) }
+    }
+    if (stacked) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            text(Modifier)
+            button(Modifier.fillMaxWidth().height(46.dp))
+        }
+    } else {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            text(Modifier.weight(1f))
+            button(Modifier.height(46.dp))
+        }
+    }
+}
+
 @Composable
 private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchActions, onNavigateBack: () -> Unit) {
     val details = state.details
-    val canManage = details.canManageLiveMatch
+    // During the game only the person managing it acts; anyone else with the permission watches and
+    // can take it over (MatchDetails.liveManagedByOther).
+    val canManage = details.canManageLiveMatch && !details.liveManagedByOther
+    val canTakeOver = details.canManageLiveMatch && details.liveManagedByOther
     val status = details.match.status
 
     // The clock is derived from the match's persisted kickoffAt/secondHalfStartedAt timestamps (see
@@ -508,6 +545,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
     var showClockSheet by remember { mutableStateOf(false) }
     var showHalfTimeConfirm by remember { mutableStateOf(false) }
     var showFullTimeConfirm by remember { mutableStateOf(false) }
+    var showTakeOverConfirm by remember { mutableStateOf(false) }
     var actionSheet by remember { mutableStateOf<ActionSheet?>(null) }
     var deletingEvent by remember { mutableStateOf<DisplayEvent?>(null) }
     var tick by remember { mutableStateOf(0) }
@@ -732,6 +770,9 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
             }
+            if (canTakeOver) {
+                TakeOverRow(details.liveManagerName, enabled = !state.isSubmitting, stacked = stacked) { showTakeOverConfirm = true }
+            }
             if (canManage) {
                 if (stacked) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -787,6 +828,17 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                 showClockSheet = false
             },
             onDismiss = { showClockSheet = false }
+        )
+    }
+    if (showTakeOverConfirm) {
+        val name = details.liveManagerName
+        ConfirmDialog(
+            title = stringResource(Res.string.msg_take_over_title),
+            body = if (name != null) stringResource(Res.string.msg_take_over_body, name) else stringResource(Res.string.msg_take_over_body_someone),
+            onConfirm = { showTakeOverConfirm = false; actions.onTakeOver() },
+            onDismiss = { showTakeOverConfirm = false },
+            confirmLabel = stringResource(Res.string.btn_take_over),
+            destructive = false
         )
     }
     if (showHalfTimeConfirm) {
@@ -1415,6 +1467,7 @@ private object PreviewLiveMatchActions : LiveMatchActions {
     override fun onResumeSecondHalf() {}
     override fun onSetMinute(minute: Int) {}
     override fun onSubstitute(outPlayerId: String, inPlayerId: String, minute: Int) {}
+    override fun onTakeOver() {}
     override fun onTabSelected(tab: LiveMatchTab) {}
 }
 

@@ -2076,6 +2076,27 @@ graph TD
 
 A manual correction to the running clock (the touchline coach nudging it to match the referee's watch) — server-persisted and broadcast like every other clock mutation above, replacing an earlier client-only version that applied the correction as a local overlay never sent to the server at all (see `TECHNICAL_DECISIONS.md` §29's addendum for the bug report and full rationale). Solves for an absolute target rather than a relative shift (§8.2d solves "shift forward by however long the pause lasted"; this solves "make `elapsedMatchSeconds` equal to `minute` right now") — using `match.pausedAt` in place of `now` when paused, so a frozen display can be corrected without accidentally resuming it. `adjustMatchClock` is a distinct repository method from `resumeMatch` specifically because it must leave `pausedAt` untouched, unlike resuming.
 
+### 8.2g Who Manages the Game, and Taking It Over (`TakeOverLiveMatchUseCase`)
+
+During the game (LIVE or HALF_TIME) one person manages it, `matches.live_manager_user_id`: `StartMatchUseCase` sets it to whoever kicks off. Every live action (§8.0b during the game, §8.1, §8.1b, §8.2, §8.2c, §8.2d, §8.2e), after its permission check, calls `Match.requireLiveManager(userId)`: someone else managing it throws `ConflictException` (409). No manager (a game kicked off before this) lets anyone with the permission act, as before. `GetMatchDetailsUseCase` adds, per caller, `liveManagedByOther` (they may manage the live game, it's on, and someone else manages it) and `liveManagerName`.
+
+```mermaid
+graph TD
+    A[Start: userId, matchId] --> B[Fetch Match by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C["AccessPolicy.requireManageLiveMatch (clubs: coordinators/admins, the age group's staff per MANAGE_LIVE_MATCH; coach: the owner, the age group's staff)"]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D{"status LIVE or HALF_TIME?"}
+    D -- No --> V(["Throw ValidationException"])
+    D -- Yes --> E{"Already the manager?"}
+    E -- Yes --> Z(["Return"])
+    E -- No --> G["MatchRepository.setLiveManager(matchId, userId)"]
+    G --> H["Publish LiveMatchUpdate(score, match with the new manager) via LiveMatchBus"]
+    H --> Z
+```
+
+The phones on the live socket see the match's manager change and fetch the details again (§8.4): the previous manager's phone goes to watching, with Take over.
+
 ### 8.3 Subscribe to Live Match Updates (`GetLiveMatchUpdatesUseCase`)
 
 ```mermaid
@@ -2096,9 +2117,11 @@ Together, §8.0–§8.2 (the writers) and §8.3 (the reader) implement the hybri
 
 `LiveMatchScreen` (design canvas artboard "16") is one screen whose layout is entirely driven by `Match.status`:
 
+- **Who acts during the game (§8.2g):** the person managing it. Anyone else who may manage it sees the read-only screen with "Ana Silva is managing this game" and Take over (with a confirmation); when the socket brings a match whose manager changed (a kickoff or a take-over), the details are fetched again.
+
 - **SCHEDULED** — pre-kickoff, straight on the pitch (the live pitch view; there's no separate set-up screen, and no app bar: the system back leaves). Every position starts empty:
   - Tapping an empty one picks a called-up player for it. Tapping a placed player offers Take off the pitch, Put in instead (a bench player) or Swap places with (another placed player). Tapping a bench player puts them in the first empty position; with every position taken, it opens a sheet to pick who they come in for (that player goes to the bench). A sheet about a player (a placed one, or a bench one being put in) is headed with their photo, name and number.
-  - Holding a player (a short vibration as they're picked up) and dragging moves them: bench → a position places them (whoever stood there goes to the bench), position → position swaps, position → a bench player replaces, position → the bench takes them off.
+  - Dragging a player moves them, straight away with no hold (a short vibration as they're picked up; on the bench a sideways swipe scrolls the row instead): bench → a position places them (whoever stood there goes to the bench), position → position swaps, position → a bench player replaces, position → the bench takes them off.
   - Each change is saved at once (§8.0b) and shown on every device; a refused save puts the pitch back.
   - The formation chip sits in a corner of the pitch, always at the bottom: upright the bottom-right corner, lying down the bottom corner at our goal's end; tapping it opens a sheet ("Futebol 9" beside the title): type "D-M-A" (each digit gets its dash added, "2" → "2-", and the dash can be deleted) or pick one of the formations listed in order (2-3-3 before 3-2-3); it can't be applied unless it adds up, and the error says so. The half-length chip ("30 min": 20 / 25 / 30 / 40 / 45) sits in the other corner at our end (bottom-left upright, top corner lying down).
   - On top, the matchup: home crest and name, "vs" over the kickoff date and time, away name and crest (lying down, home over away at the top of the column beside the pitch).
@@ -2651,6 +2674,7 @@ erDiagram
         boolean entered_after_game "default false -- the result was entered afterwards, not followed live; minutes typed in, no substitutions or timeline (V27)"
         integer team_size "not null -- how many a side this match is played; the team's count unless another was picked (V29, filled from teams.team_size and made NOT NULL in V30)"
         varchar sport "not null -- FOOTBALL or FUTSAL, the club's when the match was created; the pitch or court drawn (V33, filled from clubs.sport)"
+        uuid live_manager_user_id FK "nullable -- who manages the game while it's on: whoever kicked off, or took it over since (V34); null before kickoff and for older games; SET NULL when the user is deleted"
     }
     MATCH_CALL_UPS {
         uuid id PK

@@ -42,6 +42,8 @@ interface MatchRepository {
     suspend fun startMatch(matchId: String, request: StartMatchRequest)
     suspend fun setLineup(matchId: String, request: SetMatchLineupRequest): MatchLineup
     suspend fun pauseMatch(matchId: String)
+    // Takes the game over from whoever manages it (Match.liveManagerUserId).
+    suspend fun takeOverLiveMatch(matchId: String)
     suspend fun resumeMatch(matchId: String)
     suspend fun setMatchMinute(matchId: String, minute: Int)
     suspend fun manageCallUps(matchId: String, playerIds: List<String>)

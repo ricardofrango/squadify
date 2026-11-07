@@ -34,6 +34,7 @@ class AddMatchEventUseCase(
 
             // 2. Single granular permission check using metadata from match
             accessPolicy.requireManageLiveMatch(userId, match.scope, "Insufficient permissions to add match events")
+            match.requireLiveManager(userId)
 
             // Events only exist while the match is being played. Once it's FINISHED its player stats
             // are frozen from these events (see UpdateMatchStatusUseCase), so they can't change after.

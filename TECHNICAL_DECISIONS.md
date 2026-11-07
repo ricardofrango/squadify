@@ -3056,7 +3056,7 @@ Per the developer, 2026-10-23, from the "Squadify Pitch View" design canvas (htt
 - **Saving before kickoff is optimistic** (`LiveMatchViewModel.onSetLineup`): placing players is many quick taps, so the pitch changes at once and a refused save puts it back with the error. The other console actions keep waiting on their response.
 - **Save, beside Kick off** (the developer, 2026-10-25): every change is already saved as it's made, so Save adds no new write: `onSaveLineup` runs after any pending lineup save and leaves only if it wasn't refused (a flag, `lineupRefused`, not the error text, which may fail to load). It's there so a coach can set the starting team ahead of the game and leave knowing it's kept. It's off until the pitch differs from how the screen opened (`LiveMatchUiState.Idle.openedLineup`): reopening with no change, or undoing every change, leaves nothing to save. Picking a player up to drag gives a short vibration: `rememberPickUpHaptic` (expect/actual) vibrates directly, 30ms through Android's `Vibrator` (the `VIBRATE` permission), a medium `UIImpactFeedbackGenerator` on iOS, the Vibration API in the browser (Android browsers only), nothing on desktop. Compose's own `HapticFeedbackType.LongPress` was tried first and didn't vibrate on the developer's phone: on Android it goes through the system's touch-feedback setting. The formation sheet (the developer, 2026-10-25) drops the "Defenders-midfielders-attackers" and "Adds up to N + goalkeeper" lines (the error still explains a wrong sum), lists its formations under "Formations" in order, with chips their own height (no 48dp touch area each), and types the dash for you (`withAutoDash`). Before kickoff, a sheet about one player is headed with their photo (`PitchPickSheet(player = …)`), and a bench player tapped with no position free opens "Comes in for" instead of doing nothing. The live console's sheets do the same (`SheetPlayerHeader`): substitution, the goal's assist and Change position are headed with the player's photo, and the players to pick from show theirs. A player removed from the call-up loses their position with their `match_call_ups` row, leaving it empty. The pre-kickoff pitch also gets a matchup header (`MatchupCard`) and loses the "Fill N more positions… N-minute halves" line under the button (the half-length chip on the pitch already shows the halves).
 - **Light outside the live console** (the developer, 2026-10-25: only the live match is dark): the full-time summary leaves `OnDarkSurface` for the grey screen: a "Final result" top bar, a `ClubChrome` band with the crests and score, the goals in a `SectionCard` split by side, and the match's own `MatchReportCard` (the WIN badge, the "Full time" label and the minutes table are gone, the report carries the minutes), and a finished match's Timeline tab is on `ScreenBackground` too, with `LocalPitchOnLight` turning the bench's names (black, bold) and the sent-off line dark around the same green pitch; the step ("1 of 6") and the slider's minutes are black too.
-- **Drag and drop** is an extra: tapping does everything. Holding a player starts a drag (`detectDragGesturesAfterLongPress`, so the bench row still scrolls); drop places are registered by their window bounds and a copy of the photo follows the finger (`PitchDragState`). During the game, a bench player onto a pitch player (or the reverse) is a substitution, and two pitch players swap.
+- **Drag and drop** is an extra: tapping does everything. Touching a player and moving the finger drags them straight away, no hold first (the developer, 2026-11-07; it was a long press before): past the touch slop it's a drag and a tap stays a tap. On the bench, whose row scrolls sideways, a sideways swipe still scrolls it and any other direction picks the player up (`pitchDrag`'s `sideways`); drop places are registered by their window bounds and a copy of the photo follows the finger (`PitchDragState`). During the game, a bench player onto a pitch player (or the reverse) is a substitution, and two pitch players swap.
 - **Direction:** the scoreboard keeps the app's rule (§63). Upright the pitch has our goal at the bottom; lying down, our goal is on our scoreboard side, left at home or neutral, right away. The flip button (landscape only) turns the pitch round on that device; it's local, never saved, and never touches the scoreboard. Turning it round, not mirroring it, keeps a left-back on our left.
 - **The report's tactic** shows the starting formation until the report is first saved.
 - **Tabs:** Pitch first, then Squad (the minutes list) and Events. The Pitch tab shows no substitution confirmation line (the developer's call); the Squad tab keeps its own.
@@ -3554,3 +3554,31 @@ The developer, 2026-11-04: Player Details splits its body into tabs under the da
 - **Landscape:** the two-column layout (totals beside the match list, design 30e) is gone; the tabs do that job in either orientation.
 - **Headline tiles** (the season stats card and the summary): each value and its label centred in their column.
 - **Tests:** `PlayerTabsTest` (including the overall rating), and `TrainingSessionUseCasesTest` checks the session list, Absent and not rated included.
+
+## 80. One Person Manages a Game While It's On
+
+The developer, 2026-11-07, both apps: two phones changing the same game at once (a substitution on one,
+a swap on the other) is how a game gets into a state nobody meant. So during the game (live or at half
+time) one person manages it: whoever kicked it off, kept on the match (`matches.live_manager_user_id`,
+`Match.liveManagerUserId`, clubs V34 and coach V10). Only they log events (goals, cards, shots, corners,
+fouls, substitutions), delete them, change the pitch (swaps, formation), run the clock (pause, resume,
+set the minute) and call half time, the second half and full time. Every one of those use cases calls
+`Match.requireLiveManager(userId)` after its permission check, which refuses anyone else with a
+`ConflictException` (409). Before kickoff and after full time it doesn't apply: placing the starters,
+and editing the record after the game, stay as they were.
+
+**Taking over.** Whoever kicked off may not be able to go on (a dead phone, they left), so anyone else
+who may manage the live game can take it over (`TakeOverLiveMatchUseCase`, `POST
+/v1/matches/{id}/take-over`), behind a confirmation. "Who may" is the existing permission, unchanged:
+in the clubs app the club's coordinators and admins and the age group's staff (the club's
+`MANAGE_LIVE_MATCH` setting); in the coach app the space's owner and the age group's staff. Anyone else
+in the club never could. The take-over is broadcast on the live socket with the match; every phone
+whose game shows a different manager fetches the details again, since who may act depends on who's
+asking: `MatchDetails.liveManagedByOther` and `liveManagerName` are worked out per caller. A phone that
+isn't managing gets the live screen's view-only mode (the one people without the permission already
+had), with "Ana Silva is managing this game" and Take over.
+
+**Older games and apps.** A game kicked off before this has no manager: anyone with the permission
+manages it, as before. An older app doesn't know the new fields, so it shows its usual controls; the
+server still refuses its actions while someone else manages the game, and it shows that as an error.
+

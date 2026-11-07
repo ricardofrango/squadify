@@ -11,7 +11,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.drag as dragPointer
 import com.ricardofrango.squadify.presentation.haptics.rememberPickUpHaptic
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -70,6 +73,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
@@ -374,9 +378,12 @@ internal fun pitchNames(players: List<Player>): Map<String, String> {
 }
 
 /**
- * Registers a token as a drop place and, when [player] is set and dragging is on, lets it be held and
- * dragged. [onDrop] gets where it came from and where it landed (null: nowhere). Picking a player up
- * gives a short vibration, so the coach feels the hold took (none where the platform has no haptics).
+ * Registers a token as a drop place and, when [player] is set and dragging is on, lets it be dragged
+ * straight away, no hold first (the developer, 2026-11-07): the player is picked up as soon as the
+ * finger moves, and a tap without moving stays a tap. [sideways]: the token is in a row that scrolls
+ * sideways (the bench), where a sideways swipe scrolls the row and any other picks the player up.
+ * [onDrop] gets where it came from and where it landed (null: nowhere). Picking a player up gives a
+ * short vibration, so the coach feels it (none where the platform has no haptics).
  */
 @Composable
 private fun Modifier.pitchDrag(
@@ -384,7 +391,8 @@ private fun Modifier.pitchDrag(
     key: PitchDropKey,
     player: Player?,
     enabled: Boolean,
-    onDrop: (PitchDropKey, PitchDropKey?) -> Unit
+    onDrop: (PitchDropKey, PitchDropKey?) -> Unit,
+    sideways: Boolean = false
 ): Modifier {
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val latestDrop by rememberUpdatedState(onDrop)
@@ -395,21 +403,22 @@ private fun Modifier.pitchDrag(
         drag.targets[key] = it.boundsInWindow()
     }
     if (!enabled || player == null) return positioned
-    return positioned.pointerInput(key, player.id) {
-        detectDragGesturesAfterLongPress(
-            onDragStart = { offset ->
-                coordinates?.let {
-                    pickUpHaptic()
-                    drag.start(key, player, it.localToWindow(offset))
-                }
-            },
-            onDrag = { change, amount ->
+    return positioned.pointerInput(key, player.id, sideways) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            // Past the touch slop it's a drag, unless it's sideways in the bench's row: left to scroll it.
+            val moved = awaitTouchSlopOrCancellation(down.id) { change, over ->
+                if (!sideways || abs(over.y) >= abs(over.x)) change.consume()
+            } ?: return@awaitEachGesture
+            val origin = coordinates ?: return@awaitEachGesture
+            pickUpHaptic()
+            drag.start(key, player, origin.localToWindow(moved.position))
+            val finished = dragPointer(moved.id) { change ->
+                drag.pointer += change.positionChange()
                 change.consume()
-                drag.pointer += amount
-            },
-            onDragEnd = { drag.end()?.let { (from, to) -> latestDrop(from, to) } },
-            onDragCancel = { drag.cancel() }
-        )
+            }
+            if (finished) drag.end()?.let { (from, to) -> latestDrop(from, to) } else drag.cancel()
+        }
     }
 }
 
@@ -625,7 +634,7 @@ internal fun PitchPanel(
             highlighted = hovered == key,
             dimmed = drag.source == key,
             onClick = onBenchTap?.let { { it(player) } },
-            modifier = Modifier.pitchDrag(drag, key, player, dragEnabled, onDrop)
+            modifier = Modifier.pitchDrag(drag, key, player, dragEnabled, onDrop, sideways = true)
         )
     }
     val sentOffLine: @Composable () -> Unit = {

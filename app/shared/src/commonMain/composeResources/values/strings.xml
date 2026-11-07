@@ -408,6 +408,12 @@
     <string name="btn_half_time">Half time</string>
     <string name="btn_start_second_half">Start 2nd half</string>
     <string name="btn_full_time">Full time</string>
+    <string name="lm_managed_by">%1$s is managing this game</string>
+    <string name="lm_managed_by_someone">Someone else is managing this game</string>
+    <string name="btn_take_over">Take over</string>
+    <string name="msg_take_over_title">Take over the game?</string>
+    <string name="msg_take_over_body">From now on, goals, cards, substitutions, the pitch and the clock are managed from this phone. %1$s can only follow along.</string>
+    <string name="msg_take_over_body_someone">From now on, goals, cards, substitutions, the pitch and the clock are managed from this phone. The other person can only follow along.</string>
     <string name="msg_confirm_half_time_title">End the first half?</string>
     <string name="msg_confirm_half_time_body">You can still log events during the break.</string>
     <string name="msg_confirm_full_time_title">End the match?</string>

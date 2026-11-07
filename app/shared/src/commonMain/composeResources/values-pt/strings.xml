@@ -406,6 +406,12 @@
     <string name="btn_half_time">Intervalo</string>
     <string name="btn_start_second_half">Iniciar 2ª parte</string>
     <string name="btn_full_time">Fim do jogo</string>
+    <string name="lm_managed_by">%1$s está a gerir este jogo</string>
+    <string name="lm_managed_by_someone">Outra pessoa está a gerir este jogo</string>
+    <string name="btn_take_over">Assumir o jogo</string>
+    <string name="msg_take_over_title">Assumir o jogo?</string>
+    <string name="msg_take_over_body">A partir de agora, os golos, cartões, substituições, o campo e o cronómetro são geridos neste telemóvel. %1$s passa a só poder acompanhar.</string>
+    <string name="msg_take_over_body_someone">A partir de agora, os golos, cartões, substituições, o campo e o cronómetro são geridos neste telemóvel. A outra pessoa passa a só poder acompanhar.</string>
     <string name="msg_confirm_half_time_title">Terminar a primeira parte?</string>
     <string name="msg_confirm_half_time_body">Ainda pode registar eventos durante o intervalo.</string>
     <string name="msg_confirm_full_time_title">Terminar o jogo?</string>
