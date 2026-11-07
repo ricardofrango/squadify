@@ -99,18 +99,31 @@ fun autoArrangeSlots(formation: List<Int>, players: List<Pair<String, PlayerPosi
 }
 
 /**
- * Who stands where right now. [stored] is the arrangement the coach last saved, [onPitch] who is on
- * the pitch now (from the starters and the events, see playerMinutes). A substitution logged since that
- * arrangement puts the player coming on in the slot of the one going off; anyone gone off (a red
- * card) leaves their slot empty; and anyone on the pitch still without a slot takes the first free one.
- * Every device works this out from the same saved data, so they all show the same pitch.
+ * Who stands where right now. [stored] is the arrangement the coach last saved, at [savedAt], and
+ * [onPitch] who is on the pitch now (from the starters and the events, see playerMinutes). A
+ * substitution logged since that arrangement puts the player coming on in the slot of the one going
+ * off; anyone gone off (a red card) leaves their slot empty; and anyone on the pitch still without a
+ * slot takes the first free one. Every device works this out from the same saved data, so they all
+ * show the same pitch.
+ *
+ * Only the substitutions logged after [savedAt] are applied: one saved during the game already has
+ * the earlier ones in it, and applying those again moves other players (a rolling substitution's player
+ * back on, then a swap, put a third player in the wrong place). Null (no arrangement saved during the
+ * game, or a server that predates [MatchDetails.lineupSavedAt]): all of them.
  */
-fun currentPitchSlots(teamSize: Int, stored: Map<Int, String>, onPitch: Set<String>, events: List<MatchEvent>): Map<Int, String> {
+fun currentPitchSlots(
+    teamSize: Int,
+    stored: Map<Int, String>,
+    onPitch: Set<String>,
+    events: List<MatchEvent>,
+    savedAt: kotlin.time.Instant? = null
+): Map<Int, String> {
     val slots = stored.filterKeys { it in 0 until teamSize }.toMutableMap()
+    val since = if (savedAt == null) events else events.filter { it.createdAt > savedAt }
     // A substitution is a SUBSTITUTION_OUT and a SUBSTITUTION_IN logged together at the same minute.
-    val outs = events.filter { it.type == EventType.SUBSTITUTION_OUT && !it.isOpponent && it.playerId != null }
+    val outs = since.filter { it.type == EventType.SUBSTITUTION_OUT && !it.isOpponent && it.playerId != null }
         .sortedWith(compareBy<MatchEvent> { it.minute }.thenBy { it.createdAt })
-    val ins = events.filter { it.type == EventType.SUBSTITUTION_IN && !it.isOpponent && it.playerId != null }
+    val ins = since.filter { it.type == EventType.SUBSTITUTION_IN && !it.isOpponent && it.playerId != null }
         .sortedBy { it.createdAt }.toMutableList()
     for (out in outs) {
         val into = ins.firstOrNull { it.minute == out.minute } ?: continue

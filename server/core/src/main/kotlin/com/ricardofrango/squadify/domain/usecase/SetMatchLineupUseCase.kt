@@ -76,17 +76,22 @@ class SetMatchLineupUseCase(
         matchRepository.setLineup(matchId, lineup.formation, slots)
         // During the game each arrangement is kept, at the match clock's minute, for the finished
         // match's timeline. Its half is worked out like an event's (AddMatchEventUseCase).
-        if (match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME) {
+        val savedAt = clock.now()
+        val duringTheGame = match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME
+        if (duringTheGame) {
             val secondHalf = match.status == MatchStatus.LIVE && match.secondHalfStartedAt != null
             val minute = if (match.status == MatchStatus.HALF_TIME) {
                 match.firstHalfEndMinute ?: match.halfLengthMinutes ?: 0
             } else {
                 elapsedMatchSeconds(match, clock.now()) / 60
             }
-            matchRepository.addLineupChange(matchId, MatchLineupChange(maxOf(0, minute), if (secondHalf) 2 else 1, lineup.formation, slots, clock.now()))
+            matchRepository.addLineupChange(matchId, MatchLineupChange(maxOf(0, minute), if (secondHalf) 2 else 1, lineup.formation, slots, savedAt))
         }
         val score = matchEventRepository.getScoreByMatch(matchId)
-        liveMatchBus.publish(matchId, LiveMatchUpdate(score = score, match = sized.copy(formation = lineup.formation), lineup = lineup))
+        liveMatchBus.publish(
+            matchId,
+            LiveMatchUpdate(score = score, match = sized.copy(formation = lineup.formation), lineup = lineup, lineupSavedAt = savedAt.takeIf { duringTheGame })
+        )
         lineup
     }
 }

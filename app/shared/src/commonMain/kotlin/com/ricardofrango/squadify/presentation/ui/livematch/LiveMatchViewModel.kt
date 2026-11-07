@@ -222,7 +222,7 @@ class LiveMatchViewModel(
                 next = next.copy(details = next.details.copy(match = match.copy(formation = formation)))
             }
             update.lineup?.takeIf { !staleLineup }?.let { lineup ->
-                next = next.copy(details = next.details.withLineup(lineup))
+                next = next.copy(details = next.details.withLineup(lineup, update.lineupSavedAt))
             }
             next
         }
@@ -317,7 +317,10 @@ class LiveMatchViewModel(
         val lineup = MatchLineup(formation, slots)
         _state.update {
             (it as? LiveMatchUiState.Idle)?.let { idle ->
-                val details = idle.details.withLineup(lineup)
+                // During the game the arrangement already has every event this phone has: only later
+                // ones apply on top (currentPitchSlots) until the server's own time comes back.
+                val savedAt = if (idle.details.match.kickoffAt == null) null else idle.events.maxOfOrNull { e -> e.createdAt }
+                val details = idle.details.withLineup(lineup, savedAt)
                 idle.copy(details = if (teamSize != null) details.withTeamSize(teamSize) else details, error = null)
             } ?: it
         }

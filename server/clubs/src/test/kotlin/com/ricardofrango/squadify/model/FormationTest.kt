@@ -92,6 +92,32 @@ class FormationTest {
     }
 
     @Test
+    fun aSwapAfterRollingSubstitutionsStands() {
+        // a -> c, c -> d, b -> a on one side; e -> g, g -> h, f -> e on the other; then the coach swapped
+        // a and e. The saved arrangement already has every substitution in it.
+        val events = listOf(
+            event(EventType.SUBSTITUTION_OUT, "a", 10, 1), event(EventType.SUBSTITUTION_IN, "c", 10, 2),
+            event(EventType.SUBSTITUTION_OUT, "c", 12, 3), event(EventType.SUBSTITUTION_IN, "d", 12, 4),
+            event(EventType.SUBSTITUTION_OUT, "b", 14, 5), event(EventType.SUBSTITUTION_IN, "a", 14, 6),
+            event(EventType.SUBSTITUTION_OUT, "e", 16, 7), event(EventType.SUBSTITUTION_IN, "g", 16, 8),
+            event(EventType.SUBSTITUTION_OUT, "g", 18, 9), event(EventType.SUBSTITUTION_IN, "h", 18, 10),
+            event(EventType.SUBSTITUTION_OUT, "f", 20, 11), event(EventType.SUBSTITUTION_IN, "e", 20, 12)
+        )
+        val onPitch = setOf("gk", "d", "a", "h", "e")
+        val kickoff = mapOf(0 to "gk", 1 to "a", 2 to "b", 3 to "e", 4 to "f")
+        val beforeSwap = currentPitchSlots(5, kickoff, onPitch, events)
+        assertEquals(mapOf(0 to "gk", 1 to "d", 2 to "a", 3 to "h", 4 to "e"), beforeSwap)
+
+        val swapped = mapOf(0 to "gk", 1 to "d", 2 to "e", 3 to "h", 4 to "a")
+        val savedAt = Instant.fromEpochMilliseconds(13)
+        assertEquals(swapped, currentPitchSlots(5, swapped, onPitch, events, savedAt))
+
+        // A substitution after the swap still applies: b comes back on for a.
+        val later = events + listOf(event(EventType.SUBSTITUTION_OUT, "a", 25, 14), event(EventType.SUBSTITUTION_IN, "b", 25, 15))
+        assertEquals(swapped + (4 to "b"), currentPitchSlots(5, swapped, onPitch - "a" + "b", later, savedAt))
+    }
+
+    @Test
     fun aRedCardLeavesTheSlotEmptyAndAnUnplacedPlayerTakesAFreeOne() {
         val stored = mapOf(0 to "gk", 1 to "a")
         val events = listOf(event(EventType.RED_CARD, "a", 15, 1))

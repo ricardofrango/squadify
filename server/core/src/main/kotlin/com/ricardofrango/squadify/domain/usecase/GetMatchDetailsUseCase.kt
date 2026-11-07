@@ -100,7 +100,8 @@ class GetMatchDetailsUseCase(
             // Ratings count once the report is completed, as everywhere else.
             if (saved?.completedAt != null) lines else lines.map { it.copy(rating = null) }
         }
-        val lineupChanges = if (canReadReport) matchRepository.getLineupChanges(matchId) else emptyList()
+        val allLineupChanges = matchRepository.getLineupChanges(matchId)
+        val lineupChanges = if (canReadReport) allLineupChanges else emptyList()
 
         val club = clubRepository.getClubById(match.clubId)
         MatchDetails(
@@ -124,6 +125,7 @@ class GetMatchDetailsUseCase(
             tallies = if (finished) matchTallies(allEvents) else null,
             playerStats = playerStats,
             lineupChanges = lineupChanges,
+            lineupSavedAt = allLineupChanges.maxOfOrNull { it.createdAt },
             teamSizeOptions = club?.sport?.teamSizes.orEmpty(),
             // The players' lines stay (editing the record afterwards needs them); the Stats tab shows them only on a plan with stats.
             statsInPlan = allowed { accessPolicy.requireStatsInPlan(match.clubId) }
