@@ -592,6 +592,7 @@ fun ScreenRegistry.sharedScreens(navigator: AppNavigator) {
             onEnterLiveMatch = { matchId -> navigator.navigate(Screen.LiveMatch(matchId)) },
             onOpenReport = { matchId, edit -> navigator.navigate(Screen.MatchReport(matchId, edit)) },
             onOpenRecord = { matchId -> navigator.navigate(Screen.MatchRecord(matchId)) },
+            onOpenPlayer = { playerId, seasonId -> navigator.navigate(Screen.PlayerDetails(playerId, seasonId = seasonId)) },
             onRedirectToLiveMatch = { matchId ->
                 // Replace this entry rather than push on top of it -- otherwise back from
                 // LiveMatch lands back on this screen, which immediately redirects again.
