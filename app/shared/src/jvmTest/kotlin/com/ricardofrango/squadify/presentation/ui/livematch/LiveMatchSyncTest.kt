@@ -270,6 +270,23 @@ class LiveMatchSyncTest {
     }
 
     @Test
+    fun aSwapAfterRollingSubstitutionsMovesOnlyTheTwo() = runTest {
+        // The mix-up seen in a real game (2026-11-07): players going off and back on, then a swap that
+        // moved a third player too, because the substitutions already in it were applied again.
+        viewModel.load("m1")
+        listOf("p1" to "p8", "p8" to "p9", "p2" to "p1", "p3" to "p8", "p8" to "p2", "p4" to "p3")
+            .forEachIndexed { i, (out, into) -> viewModel.onSubstitute(outPlayerId = out, inPlayerId = into, minute = 10 + 2 * i) }
+        val onPitch = setOf("p9", "p1", "p2", "p3", "p5", "p6", "p7")
+        val before = idle.details.currentSlots(idle.events, onPitch)
+        assertEquals(listOf("p9", "p1", "p2", "p3"), (0..3).map { before[it] })
+
+        // p1 and p3 swap; p2 stays where it was.
+        val swapped = before.swapped(1, 3)
+        viewModel.onSetLineup("2-3-1", swapped)
+        assertEquals(swapped, idle.details.currentSlots(idle.events, onPitch))
+    }
+
+    @Test
     fun aRefusedSaveShowsTheServersPitchNotAnOldCopy() = runTest {
         viewModel.load("m1")
         val first = swap(1, 2)

@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.model.autoArrangeSlots
 import com.ricardofrango.squadify.model.currentPitchSlots
 import com.ricardofrango.squadify.model.formationText
 import com.ricardofrango.squadify.model.matchFormation
+import kotlin.time.Instant
 
 // The live pitch view's arrangement, read from and written onto MatchDetails: the formation is on the
 // match and each player's position on their call-up (see Formation.kt), so one refetch or one socket
@@ -27,17 +28,19 @@ internal fun MatchDetails.storedLineup() = MatchLineup(formation().formationText
 /** The match played [size] a side. */
 internal fun MatchDetails.withTeamSize(size: Int): MatchDetails = copy(match = match.copy(teamSize = size))
 
-internal fun MatchDetails.withLineup(lineup: MatchLineup): MatchDetails {
+/** [lineup] saved at [savedAt] (MatchDetails.lineupSavedAt); null keeps the time it had. */
+internal fun MatchDetails.withLineup(lineup: MatchLineup, savedAt: Instant? = null): MatchDetails {
     val slotOf = lineup.slots.entries.associate { (slot, playerId) -> playerId to slot }
     return copy(
         match = match.copy(formation = lineup.formation),
+        lineupSavedAt = savedAt ?: lineupSavedAt,
         callUps = callUps.map { it.copy(callUp = it.callUp.copy(pitchSlot = slotOf[it.callUp.playerId])) }
     )
 }
 
 /**
  * Who stands where right now. Before kickoff that's the saved arrangement. During the game it also
- * takes in the substitutions and red cards since (currentPitchSlots). A match kicked off before the
+ * takes in the substitutions and red cards logged since it was saved (currentPitchSlots). A match kicked off before the
  * pitch view has no arrangement, so its starters are placed by their positions.
  */
 internal fun MatchDetails.currentSlots(events: List<MatchEvent>, onPitch: Set<String>): Map<Int, String> {
@@ -46,7 +49,7 @@ internal fun MatchDetails.currentSlots(events: List<MatchEvent>, onPitch: Set<St
     val base = stored.ifEmpty {
         autoArrangeSlots(formation(), callUps.filter { it.callUp.isStarting }.map { it.callUp.playerId to it.player.position })
     }
-    return currentPitchSlots(teamSize, base, onPitch, events)
+    return currentPitchSlots(teamSize, base, onPitch, events, lineupSavedAt)
 }
 
 // Rearranging slots (slot -> player id). Each returns a new arrangement to save.

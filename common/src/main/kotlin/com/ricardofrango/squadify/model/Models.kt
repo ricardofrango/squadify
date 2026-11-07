@@ -239,7 +239,9 @@ data class LiveMatchUpdate(
     // DeleteMatchEventUseCase) -- listeners drop it from their local event list.
     val deletedEventId: String? = null,
     // Set when the coach rearranges the pitch (SetMatchLineupUseCase): the whole new arrangement.
-    val lineup: MatchLineup? = null
+    val lineup: MatchLineup? = null,
+    // With [lineup] during the game: when the server saved it (MatchDetails.lineupSavedAt).
+    val lineupSavedAt: Instant? = null
 )
 
 /**
@@ -1252,6 +1254,11 @@ data class MatchDetails(
     val events: List<MatchEvent> = emptyList(),
     val playerStats: List<MatchPlayerStats> = emptyList(),
     val lineupChanges: List<MatchLineupChange> = emptyList(),
+    // When the pitch's arrangement was last saved during the game (kickoff, a formation change or a swap,
+    // the latest MatchLineupChange), for everyone who sees the live pitch: it already has the
+    // substitutions logged before, so the live pitch applies only the ones after (currentPitchSlots).
+    // Null before kickoff, and from a server that predates it.
+    val lineupSavedAt: Instant? = null,
     // A FINISHED match's shots, fouls and corners of each side (MatchTallies.kt), for everyone who
     // sees the match's stats; null before it finishes.
     val tallies: MatchTallies? = null,
