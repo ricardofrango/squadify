@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.navigation.PushLinkInbox
 import com.ricardofrango.squadify.push.PushNotifications
-import com.ricardofrango.squadify.push.RequestNotificationPermission
+import com.ricardofrango.squadify.push.RequestAppPermissions
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity(), KoinComponent {
         if (savedInstanceState == null) PushNotifications.takePushLink(intent, pushLinkInbox)
 
         setContent {
-            RequestNotificationPermission()
+            RequestAppPermissions()
             // The keyboard resizes the app instead of sliding the window up (adjustResize in the
             // manifest; without it Android panned the whole window, pushing the top bar under the status
             // bar and re-panning on every new field): everything is laid out above the keyboard. The

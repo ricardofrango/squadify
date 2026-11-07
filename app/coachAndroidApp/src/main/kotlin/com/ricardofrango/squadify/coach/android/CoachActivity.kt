@@ -3,7 +3,7 @@ package com.ricardofrango.squadify.coach.android
 import android.content.Intent
 import com.ricardofrango.squadify.presentation.navigation.PushLinkInbox
 import com.ricardofrango.squadify.push.PushNotifications
-import com.ricardofrango.squadify.push.RequestNotificationPermission
+import com.ricardofrango.squadify.push.RequestAppPermissions
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import android.os.Bundle
@@ -26,7 +26,7 @@ class CoachActivity : ComponentActivity(), KoinComponent {
         // A tapped notification's link; not after a rotation or process restore (the same intent).
         if (savedInstanceState == null) PushNotifications.takePushLink(intent, pushLinkInbox)
         setContent {
-            RequestNotificationPermission()
+            RequestAppPermissions()
             // The keyboard resizes the app (adjustResize), and its whole height is consumed here, as
             // in the clubs app's MainActivity.
             Box(Modifier.fillMaxSize().imePadding()) {

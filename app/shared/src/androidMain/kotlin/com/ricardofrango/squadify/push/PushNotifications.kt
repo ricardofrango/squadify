@@ -22,7 +22,7 @@ import com.ricardofrango.squadify.presentation.navigation.PushLinkInbox
 /**
  * Push notifications on Android, for both apps (TECHNICAL_DECISIONS §72). Each app calls [configure] in
  * its Application.onCreate with what's its own, and its activity calls [takePushLink] and shows
- * [RequestNotificationPermission]; the receiving is [SquadifyMessagingService].
+ * [RequestAppPermissions]; the receiving is [SquadifyMessagingService].
  */
 object PushNotifications {
     /** The activity a tapped notification opens (the app's only one). */
@@ -93,22 +93,40 @@ object PushNotifications {
 }
 
 /**
- * POST_NOTIFICATIONS is a runtime permission on API 33+ (declaring it in the manifest alone doesn't
- * grant it) -- without this, FCM registration and delivery still work exactly the same, but
- * SquadifyMessagingService's notify() call is a silent no-op (see its areNotificationsEnabled() guard),
- * so nothing ever actually shows. Requested once per app launch; the system itself remembers a prior
- * grant/denial and won't re-prompt if the user already decided.
+ * The permissions the app asks for when it opens, in one request (Android shows one permission dialog at
+ * a time, and a second request made meanwhile is refused at once):
+ * - POST_NOTIFICATIONS, a runtime permission on API 33+ (declaring it in the manifest alone doesn't
+ *   grant it). Without it FCM registration and delivery still work, but SquadifyMessagingService's
+ *   notify() is a silent no-op (see its areNotificationsEnabled() guard), so nothing ever shows.
+ * - ACCESS_LOCAL_NETWORK, Android 17's permission for reaching devices on the same network, only where
+ *   the app declares it: the dev builds, which talk to the server on the developer's machine over Wi-Fi.
+ *   A fresh install lost it, and the app then couldn't reach the server (the developer, 2026-11-07).
+ *   Staging and production talk to public addresses and don't declare it.
+ * Asked on every launch; the system remembers a grant or a denial and doesn't ask again once decided.
  */
 @Composable
-fun RequestNotificationPermission() {
+fun RequestAppPermissions() {
     val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {}
 
     LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-                PackageManager.PERMISSION_GRANTED
-            if (!granted) launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        val wanted = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
+            if (Build.VERSION.SDK_INT >= ANDROID_17 && declares(context, LOCAL_NETWORK)) add(LOCAL_NETWORK)
         }
+        val missing = wanted.filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isNotEmpty()) launcher.launch(missing.toTypedArray())
     }
 }
+
+/** Whether the app's manifest asks for [permission] (the dev builds' local network one). */
+private fun declares(context: Context, permission: String): Boolean = try {
+    context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
+        .requestedPermissions?.contains(permission) == true
+} catch (e: PackageManager.NameNotFoundException) {
+    false
+}
+
+// Android 17's local network permission, by name: the SDK constants the app compiles against may not have it.
+private const val LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
+private const val ANDROID_17 = 37
