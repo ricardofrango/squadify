@@ -362,7 +362,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [x] Google Play (2026-11-03): Basic and Pro, monthly and yearly, bought on Plans; the coach server checks each purchase with Google and follows its notifications; staging takes test purchases only, through its own Play Console app (`.stg`, never published; the developer, 2026-11-04), production real ones (`TECHNICAL_DECISIONS.md` §72). To set up in Play Console and Google Cloud before it works (§72, Payments, as built).
         - [ ] Apple In-App Purchase (StoreKit, App Store Server Notifications); until then iOS asks for plans. On hold (the developer, 2026-11-04): Android first; iOS (the Apple Developer Program, $99 a year) only after seeing the results on Android.
         - [ ] Referrals (§5c).
-        - [ ] Ads on Free (AdMob, after the consent form).
+        - [x] Ads on Free (AdMob, after the consent form; 2026-11-06): a banner at the bottom of Home, an age group, a team and player details, for spaces on Free, never in a live game, a form or Plans; the consent form first (only once a space has ads), and Privacy options in the menu. The coach server says which spaces show ads, and Plans says so on each plan. Google's test ids until the developer's AdMob account has its own (`TECHNICAL_DECISIONS.md` §72).
     - [ ] **Plans: still open** (2026-11-03, after PR #188):
         - [x] Asking for a plan in the app (2026-11-03), the stopgap: tap a plan on Plans and Subscribe, the request emailed to the platform admins, who set it (§5c).
         - [x] Locally, choosing a plan changes it at once (2026-11-03).

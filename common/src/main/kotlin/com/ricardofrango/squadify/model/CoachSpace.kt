@@ -153,6 +153,10 @@ object PlanFeature {
     // moments' notifications.
     const val FOLLOWING_LIVE = "FOLLOWING_LIVE"
     const val TRAINING = "TRAINING"
+    // The plan's ads: shown (Free, never in a live game) or none (the paid plans); whether a space shows
+    // them is SpaceAgeGroups.showsAds.
+    const val ADS = "ADS"
+    const val NO_ADS = "NO_ADS"
 }
 
 /**
@@ -182,7 +186,10 @@ data class SpaceAgeGroups(
     // The owner's: how many age groups the space has this season (My Space's Plan card), and how many more
     // the plan allows (Create age group); null: no limit. 0 and null for staff.
     val ageGroupsThisSeason: Int = 0,
-    val ageGroupsLeft: Int? = null
+    val ageGroupsLeft: Int? = null,
+    // Whether the app shows ads on this space's screens: its plan's, decided by the coach server (Free).
+    // False from an older server.
+    val showsAds: Boolean = false
 )
 
 /** A space the signed-in coach belongs to, and whether they own it. */

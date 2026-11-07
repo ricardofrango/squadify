@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.presentation.navigation
 
+import com.ricardofrango.squadify.presentation.ui.components.LocalAdBanner
+import com.ricardofrango.squadify.coach.presentation.ads.CoachAdBanner
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -110,12 +112,15 @@ fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
     val plansResponse by ownSpacePlan.plans.collectAsStateWithLifecycle()
     // Everyone gets See plans; with no space of their own, Plans marks none as theirs.
     val seePlans: () -> Unit = { navigator.navigate(Screen.Plans) }
+    val adBanner: @Composable (String?) -> Unit = { spaceId -> CoachAdBanner(spaceId) }
 
     CompositionLocalProvider(
         LocalViewModelStoreOwner provides parentOwner,
         LocalOwnSpace provides ownSpace,
         LocalPlans provides plansResponse?.plans.orEmpty(),
-        LocalSeePlans provides seePlans
+        LocalSeePlans provides seePlans,
+        // The Free plan's banner, for the shared screens' ad slot (AdBanner).
+        LocalAdBanner provides adBanner
     ) {
         NavDisplay(
             backStack = navigator.backStack,

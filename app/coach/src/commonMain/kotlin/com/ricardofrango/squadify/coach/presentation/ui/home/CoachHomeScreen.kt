@@ -1,5 +1,10 @@
 package com.ricardofrango.squadify.coach.presentation.ui.home
 
+import com.ricardofrango.squadify.coach.domain.CoachAds
+import squadify.app.shared.generated.resources.ic_lock
+import org.koin.compose.koinInject
+import com.ricardofrango.squadify.presentation.ui.components.AdBanner
+import com.ricardofrango.squadify.coach.presentation.ads.rememberPrivacyOptions
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -99,6 +104,7 @@ import squadify.app.coach.generated.resources.coach_home_empty_title
 import squadify.app.coach.generated.resources.coach_home_join
 import squadify.app.coach.generated.resources.coach_home_title
 import squadify.app.coach.generated.resources.coach_menu_account
+import squadify.app.coach.generated.resources.coach_menu_privacy_options
 import squadify.app.coach.generated.resources.ic_join
 import squadify.app.coach.generated.resources.ic_menu
 import squadify.app.coach.generated.resources.msg_coach_home_failed
@@ -135,6 +141,8 @@ fun CoachHomeScreen(
     viewModel: CoachHomeViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    // The Free plan's banner stands for the coach's own space here (CoachAds.homeSpaceId).
+    val adSpaceId by koinInject<CoachAds>().homeSpaceId.collectAsStateWithLifecycle()
 
     LaunchedEffect(refresh) {
         if (refresh) {
@@ -165,7 +173,9 @@ fun CoachHomeScreen(
         onJoinWithCode = onJoinWithCode,
         onOpenAccount = onOpenAccount,
         onOpenMySpace = onOpenMySpace,
-        onOpenPlans = onOpenPlans
+        onOpenPlans = onOpenPlans,
+        adSpaceId = adSpaceId,
+        onPrivacyOptions = rememberPrivacyOptions()
     )
 }
 
@@ -180,6 +190,9 @@ private fun CoachHomeContent(
     onOpenAccount: () -> Unit = {},
     onOpenMySpace: () -> Unit = {},
     onOpenPlans: () -> Unit = {},
+    adSpaceId: String? = null,
+    // The ads' consent form again, where the user must be able to change it (the EU and UK); null otherwise.
+    onPrivacyOptions: (() -> Unit)? = null,
     drawerState: DrawerState = rememberDrawerState(DrawerValue.Closed)
 ) {
     val scope = rememberCoroutineScope()
@@ -218,6 +231,7 @@ private fun CoachHomeContent(
                     MenuItem(Res.drawable.ic_plans, stringResource(Res.string.plans_title), fromMenu(onOpenPlans))
                 }
                 MenuItem(SharedRes.drawable.ic_account, stringResource(Res.string.coach_menu_account), fromMenu(onOpenAccount))
+                onPrivacyOptions?.let { MenuItem(SharedRes.drawable.ic_lock, stringResource(Res.string.coach_menu_privacy_options), fromMenu(it)) }
                 MenuItem(SharedRes.drawable.ic_logout, stringResource(SharedRes.string.btn_logout), fromMenu(onSignOut))
                 }
             }
@@ -226,6 +240,8 @@ private fun CoachHomeContent(
         Scaffold(
             contentWindowInsets = ScreenWindowInsets,
             containerColor = ScreenBackground,
+            // The Free plan's banner, at the bottom.
+            bottomBar = { AdBanner(spaceId = adSpaceId, alone = true) },
             topBar = {
                 SquadifyTopBar(
                     title = stringResource(Res.string.coach_home_title),

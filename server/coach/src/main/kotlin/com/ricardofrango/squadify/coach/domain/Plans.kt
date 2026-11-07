@@ -27,11 +27,13 @@ object PlanLimits {
         PlanFeature.HISTORY to ("Match history" to "Histórico de jogos"),
         PlanFeature.STATS to ("Stats: age group, team, player, full stats and match stats" to "Estatísticas: escalão, equipa, jogador, estatísticas completas e de jogo"),
         PlanFeature.FOLLOWING_LIVE to ("Live game results and notifications" to "Resultados e notificações dos jogos ao vivo"),
-        PlanFeature.TRAINING to ("Training: sessions, exercises, player ratings, training stats and plans" to "Treino: sessões, exercícios, avaliação dos jogadores, estatísticas de treino e planeamento")
+        PlanFeature.TRAINING to ("Training: sessions, exercises, player ratings, training stats and plans" to "Treino: sessões, exercícios, avaliação dos jogadores, estatísticas de treino e planeamento"),
+        PlanFeature.ADS to ("With ads (never during a live game)" to "Com anúncios (nunca durante um jogo ao vivo)"),
+        PlanFeature.NO_ADS to ("No ads" to "Sem anúncios")
     )
 
     /** On Google Play each paid plan is a subscription ([googleProduct]) with a monthly and a yearly base plan. */
-    private class Plan(val plan: SpacePlan, val name: String, val features: List<String>, val ageGroups: Int?, val people: Int?, val googleProduct: String? = null) {
+    private class Plan(val plan: SpacePlan, val name: String, val features: List<String>, val ageGroups: Int?, val people: Int?, val googleProduct: String? = null, val ads: Boolean = false) {
         val storeProducts: List<StoreProduct> = googleProduct?.let { id ->
             listOf(StoreProduct(BillingPeriod.MONTHLY, id, "monthly"), StoreProduct(BillingPeriod.YEARLY, id, "yearly"))
         }.orEmpty()
@@ -42,9 +44,12 @@ object PlanLimits {
 
     /** Cheapest first, each with all it has. */
     private val plans = listOf(
-        Plan(FREE, "Free", freeFeatures, ageGroups = 1, people = 1),
-        Plan(BASIC, "Basic", basicFeatures, ageGroups = 3, people = 3, googleProduct = "coach_basic"),
-        Plan(PRO, "Pro", basicFeatures + PlanFeature.FOLLOWING_LIVE + PlanFeature.TRAINING, ageGroups = null, people = null, googleProduct = "coach_pro")
+        // The ads line is each plan's own (the developer, 2026-11-06): Free's says it has them, but never
+        // in a live game; the paid ones, none. The Plans card lists what a plan adds to the one before, so
+        // Basic shows "No ads" and Pro has it from Basic.
+        Plan(FREE, "Free", freeFeatures + PlanFeature.ADS, ageGroups = 1, people = 1, ads = true),
+        Plan(BASIC, "Basic", basicFeatures + PlanFeature.NO_ADS, ageGroups = 3, people = 3, googleProduct = "coach_basic"),
+        Plan(PRO, "Pro", basicFeatures + PlanFeature.NO_ADS + PlanFeature.FOLLOWING_LIVE + PlanFeature.TRAINING, ageGroups = null, people = null, googleProduct = "coach_pro")
     )
 
     private fun planFor(plan: SpacePlan): Plan = plans.firstOrNull { it.plan == plan } ?: plans.first { it.plan == FREE }
@@ -72,6 +77,9 @@ object PlanLimits {
             )
         }
     }
+
+    /** Whether a space on [plan] shows ads in the app (Free; REQUIREMENTS §5c). */
+    fun showsAds(plan: SpacePlan): Boolean = planFor(plan).ads
 
     /** Age groups a season; null: no limit. */
     fun ageGroups(plan: SpacePlan): Int? = planFor(plan).ageGroups

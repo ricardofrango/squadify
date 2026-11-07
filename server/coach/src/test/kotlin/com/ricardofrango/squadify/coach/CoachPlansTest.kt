@@ -218,6 +218,11 @@ class CoachPlansTest {
         assertEquals(listOf(1, 3, null), plans.map { it.peoplePerAgeGroupLimit })
         assertEquals(listOf(false, true, true), plans.map { it.has(PlanFeature.STATS) })
         assertEquals(listOf(false, false, true), plans.map { it.has(PlanFeature.FOLLOWING_LIVE) })
+        // Ads on Free only, each plan saying so on Plans; and the space list tells the app.
+        assertEquals(listOf(true, false, false), plans.map { it.has(PlanFeature.ADS) })
+        assertEquals(listOf(false, true, true), plans.map { it.has(PlanFeature.NO_ADS) })
+        assertEquals(listOf(true, false, false), plans.map { PlanLimits.showsAds(it.plan) })
+        assertEquals(listOf(true), api.get("/v1/spaces") { bearerAuth(owner) }.body<List<SpaceAgeGroups>>().map { it.showsAds })
         // Sold on Google Play: the paid plans each a subscription, monthly and yearly.
         assertEquals(
             listOf(emptyList(), listOf("coach_basic/monthly", "coach_basic/yearly"), listOf("coach_pro/monthly", "coach_pro/yearly")),

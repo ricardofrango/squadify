@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach
 
+import com.ricardofrango.squadify.coach.domain.CoachAds
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.LoadPlansUseCase
 import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
@@ -64,7 +65,7 @@ class OwnSpacePlanTest {
                 SpaceAgeGroups(space("anas"), isOwner = false, ageGroups = emptyList(), plan = SpacePlan("FREE"))
             )
         )
-        val getSpaces = GetSpacesUseCase(repository, ownPlan, LoadPlansUseCase(repository, ownPlan))
+        val getSpaces = GetSpacesUseCase(repository, ownPlan, LoadPlansUseCase(repository, ownPlan), CoachAds())
         assertNull(ownPlan.space.value)
 
         // The own space as the server counts it, and the server's plans.
@@ -84,12 +85,41 @@ class OwnSpacePlanTest {
     }
 
     @Test
+    fun eachLoadKeepsWhichSpacesShowAdsAsTheServerSays() = runTest {
+        val ownPlan = OwnSpacePlan()
+        val ads = CoachAds()
+        val repository = Spaces(
+            listOf(
+                SpaceAgeGroups(space("anas"), isOwner = false, ageGroups = emptyList(), plan = SpacePlan("PRO"), showsAds = false),
+                SpaceAgeGroups(space("mine"), isOwner = true, ageGroups = emptyList(), plan = SpacePlan("FREE"), showsAds = true)
+            )
+        )
+        val getSpaces = GetSpacesUseCase(repository, ownPlan, LoadPlansUseCase(repository, ownPlan), ads)
+
+        getSpaces()
+        assertEquals(setOf("mine"), ads.spacesWithAds.value)
+        // Home stands for the coach's own space.
+        assertEquals("mine", ads.homeSpaceId.value)
+
+        // The plan goes up: no more ads, from the server's answer, not a rule in the app.
+        repository.spaces = repository.spaces.map { it.copy(showsAds = false) }
+        getSpaces()
+        assertEquals(emptySet(), ads.spacesWithAds.value)
+
+        // Staff only: Home stands for the first space they're in.
+        repository.spaces = listOf(SpaceAgeGroups(space("anas"), isOwner = false, ageGroups = emptyList(), plan = SpacePlan("FREE"), showsAds = true))
+        getSpaces()
+        assertEquals("anas", ads.homeSpaceId.value)
+        assertEquals(setOf("anas"), ads.spacesWithAds.value)
+    }
+
+    @Test
     fun aPlanAskedForShowsAsTheServerAnswers() = runTest {
         val ownPlan = OwnSpacePlan()
         val repository = Spaces(emptyList())
         val loadPlans = LoadPlansUseCase(repository, ownPlan)
         loadPlans()
-        val requestPlan = RequestPlanUseCase(repository, ownPlan, GetSpacesUseCase(repository, ownPlan, loadPlans))
+        val requestPlan = RequestPlanUseCase(repository, ownPlan, GetSpacesUseCase(repository, ownPlan, loadPlans, CoachAds()))
 
         // Not sent: nothing changes.
         repository.requestFails = true

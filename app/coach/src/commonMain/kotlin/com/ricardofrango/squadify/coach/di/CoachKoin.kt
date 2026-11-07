@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.di
 
+import com.ricardofrango.squadify.coach.domain.CoachAds
 import com.ricardofrango.squadify.coach.data.AccountDeletionRepositoryImpl
 import com.ricardofrango.squadify.coach.data.SpaceRepositoryImpl
 import com.ricardofrango.squadify.coach.domain.AccountDeletionRepository
@@ -43,7 +44,8 @@ val coachModule = module {
     factory { GetAccountDeletionSummaryUseCase(get()) }
     factory { DeleteAccountUseCase(get()) }
     single { OwnSpacePlan() }
-    factory { GetSpacesUseCase(get(), get(), get()) }
+    single { CoachAds() }
+    factory { GetSpacesUseCase(get(), get(), get(), get()) }
     factory { LoadPlansUseCase(get(), get()) }
     factory { RequestPlanUseCase(get(), get(), get()) }
     factory { SaveStorePurchaseUseCase(get(), get(), get()) }
