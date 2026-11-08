@@ -1,0 +1,45 @@
+name: Android checks
+
+# On every pull request to develop: the release build of each Android app the change touches
+# (.github/scripts/android_apps_changed.py) is built and opened on an emulator (android-release-check.yml).
+# A pull request that touches neither app (docs, servers, web, iOS) runs only the first, short job.
+
+on:
+  pull_request:
+    branches: [develop]
+
+# A newer push to the same pull request replaces a check still running.
+concurrency:
+  group: android-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      clubs: ${{ steps.apps.outputs.clubs }}
+      coach: ${{ steps.apps.outputs.coach }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - id: apps
+        run: >-
+          python3 .github/scripts/android_apps_changed.py
+          ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
+          | tee -a "$GITHUB_OUTPUT"
+
+  clubs:
+    needs: changes
+    if: needs.changes.outputs.clubs == 'true'
+    uses: ./.github/workflows/android-release-check.yml
+    with:
+      app: clubs
+
+  coach:
+    needs: changes
+    if: needs.changes.outputs.coach == 'true'
+    uses: ./.github/workflows/android-release-check.yml
+    with:
+      app: coach

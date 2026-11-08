@@ -10,25 +10,26 @@ name: Deploy staging
 on:
   push:
     branches: [develop]
-    # Only Android/shared-KMP changes actually affect what this workflow builds and distributes --
-    # without this, a server-only or web-only push still rebuilds and redistributes an unchanged APK
-    # to every tester. Keep in sync with what app/androidApp's build actually depends on: app/clubs, app/shared
-    # and core (KMP modules it consumes), the version catalog/wrapper/root build files, and this
-    # workflow file itself (so an edit to the filter/steps takes effect on the same push).
-    paths:
-      - "app/androidApp/**"
-      - "app/shared/**"
-      - "app/clubs/**"
-      - "core/**"
-      - "gradle/libs.versions.toml"
-      - "gradle/wrapper/**"
-      - "build.gradle.kts"
-      - "settings.gradle.kts"
-      - "gradle.properties"
-      - ".github/workflows/deploy-staging.yml"
 
 jobs:
+  # Only when the push changes what the clubs app's APK is built from (.github/scripts/android_apps_changed.py:
+  # its modules and the shared ones, the catalog entries they use, the root build files, the CI that builds
+  # it) -- without this, a push of docs, servers or only the coach app would rebuild and redistribute an
+  # unchanged APK to every tester.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      clubs: ${{ steps.apps.outputs.clubs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: apps
+        run: python3 .github/scripts/android_apps_changed.py ${{ github.event.before }} ${{ github.sha }} | tee -a "$GITHUB_OUTPUT"
+
   test:
+    needs: changes
+    if: needs.changes.outputs.clubs == 'true'
     runs-on: ubuntu-latest
     # ApplicationTest boots the real Application.module(), which unconditionally connects to Postgres
     # via DatabaseFactory.init() -- matches docker-compose.yml's local dev credentials exactly, so
@@ -56,8 +57,17 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - run: ./gradlew :server:core:test :server:data:test :server:web:test :server:clubs:test :server:coach:test --no-daemon
 
+  # The release build opened on an emulator first: one that crashes on start never reaches testers.
+  release-check:
+    needs: changes
+    if: needs.changes.outputs.clubs == 'true'
+    uses: ./.github/workflows/android-release-check.yml
+    with:
+      app: clubs
+
   firebase-distribute-android-staging:
-    needs: test
+    needs: [changes, test, release-check]
+    if: needs.changes.outputs.clubs == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
