@@ -49,6 +49,10 @@ kotlin {
             // Ads on the Free plan, after the consent form (REQUIREMENTS §5c).
             implementation(libs.google.ads)
             implementation(libs.google.ump)
+            // The ads library brings WorkManager 2.7.0 with Room 2.2.5, whose R8 rule keeps WorkManager's
+            // database class but not its constructor: AGP 9's full-mode R8 drops it and the release app
+            // crashed on start. A newer WorkManager brings a Room whose rule keeps it.
+            implementation(libs.androidx.work.runtime)
         }
         commonMain.dependencies {
             api(project(":app:shared"))
