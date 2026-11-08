@@ -26,6 +26,12 @@ jobs:
       MODULE: ${{ inputs.app == 'coach' && 'coachAndroidApp' || 'androidApp' }}
       APP_ID: ${{ inputs.app == 'coach' && 'com.ricardofrango.squadify.coach.stg' || 'com.ricardofrango.squadify.stg' }}
     steps:
+      # The emulator's data partition needs about 7.4 GB the runner doesn't have free after the build:
+      # remove toolchains this job doesn't use (.NET, Haskell, CodeQL, Swift).
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/share/swift
+          df -h /
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
@@ -54,5 +60,7 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
+          # The app only needs room to install and start.
+          disk-size: 3G
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           script: bash .github/scripts/start-release-apk.sh app/$MODULE/build/outputs/apk/staging/release/$MODULE-staging-release.apk $APP_ID
