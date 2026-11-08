@@ -384,6 +384,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [/] Store requirements (§5c): account deletion in the app, Google's UMP consent form before ads, a privacy policy and data-safety form.
             - [x] Account deletion in the app (2026-10-30): from Account, with the password, at once; an owner's space goes with everything in it (`TECHNICAL_DECISIONS.md` §72).
             - [ ] An email address for deletion requests from outside the app, in the Play Store listing (the developer chooses it).
+            - [/] The privacy policy (English and Portuguese) and the Play Console data-safety answers, drafted (2026-11-07, `legal/coach/`): the account, the players' data the coach records, purchases, pushes, Crashlytics and AdMob. Still to do: the publisher's name, the contact email and the date filled in, and the policy hosted at a public URL (Play needs it, and a web page for deletion requests).
         - [ ] Production: the coach server, its database and the push credentials on Railway production.
         - [x] Emails (the developer, 2026-10-30): in the language of the user's device, not only English, and a designed template with better lettering and the app's logo. Done on both servers (2026-11-06): one layout with the app's mark and name, in English or Portuguese from the app's `Accept-Language` (the user's own for the account emails, the admin's for the club ones; `TECHNICAL_DECISIONS.md` §14).
     - [ ] Later: moving an age group from the coach app to a club.
