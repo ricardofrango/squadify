@@ -50,6 +50,7 @@ import com.ricardofrango.squadify.model.PlayerSeasonStats
 import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
+import com.ricardofrango.squadify.presentation.ui.components.shortWindow
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -151,6 +152,9 @@ private fun PlayerDetailsContent(
     var tab by rememberSaveable { mutableStateOf(PlayerTab.GENERAL) }
     // Training can go (a refresh that no longer returns it): fall back to General.
     val selectedTab = tab.takeIf { it in tabs } ?: PlayerTab.GENERAL
+    // Lying down on a phone the photo and name band would leave the tab little height: the name and the
+    // band's line go in the top bar instead.
+    val short = shortWindow()
 
     Scaffold(
         contentWindowInsets = ScreenWindowInsets,
@@ -161,7 +165,10 @@ private fun PlayerDetailsContent(
         topBar = {
             Column(Modifier.background(ClubChrome).safeSidesPadding()) {
                 SquadifyTopBar(
-                    title = stringResource(Res.string.title_player_profile),
+                    title = profile?.takeIf { short }?.player?.let { "${it.firstName} ${it.lastName}" } ?: stringResource(Res.string.title_player_profile),
+                    subtitle = profile?.takeIf { short }?.let { p ->
+                        listOfNotNull(p.player.shirtNumber?.let { "#$it" }, subtitleLine(p)).joinToString(" · ")
+                    },
                     onNavigateBack = onNavigateBack,
                     actions = {
                         if (profile != null && profile.canEditPlayer) {
@@ -185,7 +192,7 @@ private fun PlayerDetailsContent(
                     }
                 )
                 if (profile != null) {
-                    PlayerHeaderBand(profile)
+                    if (!short) PlayerHeaderBand(profile)
                     PlayerTabRow(tabs, selectedTab) { tab = it }
                 }
             }

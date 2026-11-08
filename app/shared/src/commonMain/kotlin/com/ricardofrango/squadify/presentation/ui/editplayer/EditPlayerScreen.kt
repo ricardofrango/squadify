@@ -1,7 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.editplayer
 
 import com.ricardofrango.squadify.presentation.ui.components.longDateLabel
-import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
+import com.ricardofrango.squadify.presentation.ui.components.shortWindow
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
@@ -226,6 +226,7 @@ private fun EditPlayerForm(
     onRemovePhoto: () -> Unit
 ) {
     val form = state.form
+    val short = shortWindow()
 
     Column(modifier = modifier) {
         Column(
@@ -312,35 +313,41 @@ private fun EditPlayerForm(
                     )
                 }
             }
+            if (short) EditPlayerSaveBar(state, onSaveClick, Modifier.padding(top = 8.dp))
         }
 
-        if (!keyboardOnShortWindow()) Column(
-            modifier = Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (state.submitError != null) {
-                Text(
-                    text = state.submitError,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-            PrimaryLoadingButton(
-                text = stringResource(Res.string.btn_save_changes),
-                submittingText = stringResource(Res.string.btn_saving_changes),
-                isLoading = state.isSubmitting,
-                enabled = state.canSave,
-                onClick = onSaveClick
+        // Lying down on a phone a pinned bar would leave about one field: there it ends the form and
+        // scrolls with it (the top bar's tick saves too).
+        if (!short) EditPlayerSaveBar(state, onSaveClick, Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp))
+    }
+}
+
+/** Save, with the error and "Nothing changed yet": pinned under the form, or at its end lying down on a phone. */
+@Composable
+private fun EditPlayerSaveBar(state: EditPlayerUiState.Idle, onSaveClick: () -> Unit, modifier: Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (state.submitError != null) {
+            Text(
+                text = state.submitError,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
             )
-            if (!state.isDirty) {
-                Text(
-                    text = stringResource(Res.string.msg_nothing_changed_yet),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DeepCarbon.copy(alpha = 0.5f),
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
-            }
+        }
+        PrimaryLoadingButton(
+            text = stringResource(Res.string.btn_save_changes),
+            submittingText = stringResource(Res.string.btn_saving_changes),
+            isLoading = state.isSubmitting,
+            enabled = state.canSave,
+            onClick = onSaveClick
+        )
+        if (!state.isDirty) {
+            Text(
+                text = stringResource(Res.string.msg_nothing_changed_yet),
+                style = MaterialTheme.typography.bodySmall,
+                color = DeepCarbon.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

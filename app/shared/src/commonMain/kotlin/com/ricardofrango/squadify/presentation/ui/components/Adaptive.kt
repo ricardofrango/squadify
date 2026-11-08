@@ -40,6 +40,14 @@ fun useNavigationRail(): Boolean =
     currentWindowAdaptiveInfoV2().windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
 
 /**
+ * True in a window under 480dp tall (a phone lying down): the screens that keep a tall header or a
+ * pinned bar give that height to their content there (TECHNICAL_DECISIONS.md §11.8).
+ */
+@Composable
+fun shortWindow(): Boolean =
+    !currentWindowAdaptiveInfoV2().windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND)
+
+/**
  * True while the keyboard is open in a window under 480dp tall (a phone lying down). The keyboard
  * leaves about the top bar's height there, so a form's pinned Save bar hides while typing, or it
  * would cover the field being typed in; it's back as the keyboard closes (TECHNICAL_DECISIONS.md §11.6).
@@ -47,8 +55,7 @@ fun useNavigationRail(): Boolean =
 // The keyboard's inset rather than WindowInsets.isImeVisible, which the desktop target doesn't have.
 @Composable
 fun keyboardOnShortWindow(): Boolean =
-    WindowInsets.ime.getBottom(LocalDensity.current) > 0 &&
-        !currentWindowAdaptiveInfoV2().windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND)
+    WindowInsets.ime.getBottom(LocalDensity.current) > 0 && shortWindow()
 
 /** The widest a form, or a list of single rows, gets; centred beyond that, so rows never stretch across a wide window. */
 val ReadableMaxWidth: Dp = 720.dp

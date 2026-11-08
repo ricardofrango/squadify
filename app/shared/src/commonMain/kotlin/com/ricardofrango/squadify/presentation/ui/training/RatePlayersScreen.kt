@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,6 +53,7 @@ import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
+import com.ricardofrango.squadify.presentation.ui.components.shortWindow
 import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import com.ricardofrango.squadify.presentation.ui.matchdetails.playerComparator
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
@@ -134,25 +136,42 @@ private fun RatePlayersContent(
         },
         bottomBar = {
             if (ratings != null) {
-                PinnedBottomBar {
-                    if (!ratings.ratingsOpen) Text(stringResource(Res.string.msg_ratings_not_open), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText)
-                    // 12dp to the button (the bar's 8dp gap + 4), the same as the bar's padding under it.
-                    Row(Modifier.padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Lying down on a phone the count and Save share one row, so the list keeps more rows
+                // (TECHNICAL_DECISIONS.md §11.8); upright the count is above a full-width Save.
+                val short = shortWindow()
+                val count: @Composable (Modifier) -> Unit = { m ->
+                    Row(m, verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(Res.string.label_rated_count, state.ratedCount, ratings.players.size), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
                         if (state.absentCount > 0) {
                             Text(" · " + stringResource(Res.string.label_absent_count, state.absentCount), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText)
                         }
                     }
-                    // Only when there's an error: an empty error line would widen the gap to the button.
-                    if (state.error != null) FormErrorLine(state.error)
+                }
+                val save: @Composable (Modifier) -> Unit = { m ->
                     PrimaryLoadingButton(
                         text = stringResource(Res.string.btn_save_ratings),
                         submittingText = stringResource(Res.string.btn_saving_changes),
                         isLoading = state.saving,
                         enabled = state.canSave,
                         onClick = onSave,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = m
                     )
+                }
+                PinnedBottomBar {
+                    if (!ratings.ratingsOpen) Text(stringResource(Res.string.msg_ratings_not_open), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText)
+                    if (short) {
+                        if (state.error != null) FormErrorLine(state.error)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            count(Modifier.weight(1f))
+                            save(Modifier.widthIn(max = 280.dp))
+                        }
+                    } else {
+                        // 12dp to the button (the bar's 8dp gap + 4), the same as the bar's padding under it.
+                        count(Modifier.padding(bottom = 4.dp))
+                        // Only when there's an error: an empty error line would widen the gap to the button.
+                        if (state.error != null) FormErrorLine(state.error)
+                        save(Modifier.fillMaxWidth())
+                    }
                 }
             }
         }
