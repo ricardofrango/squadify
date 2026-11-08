@@ -52,6 +52,8 @@ android-billing = { module = "com.android.billingclient:billing-ktx", version = 
 # Ads on the coach app's Free plan (AdMob) and the consent form before them (UMP).
 google-ads = { module = "com.google.android.gms:play-services-ads", version = "25.5.0" }
 google-ump = { module = "com.google.android.ump:user-messaging-platform", version = "4.0.0" }
+# Newer than the 2.7.0 the ads library brings, whose database the release build can't create (app/coach).
+androidx-work-runtime = { module = "androidx.work:work-runtime", version = "2.11.2" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
