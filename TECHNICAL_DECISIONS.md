@@ -660,9 +660,21 @@ Split across two mechanisms, deliberately not funneled entirely through GitHub A
     34, Google APIs image, KVM) and opens it from its launcher icon
     (`.github/scripts/start-release-apk.sh`): it fails if the app crashed, isn't running or isn't in front
     20 seconds later, printing the crash. Both deploy workflows need it before they upload, and
-    `.github/workflows/android-checks.yml` runs it on every pull request to `develop` for the apps the
+    `.github/workflows/pr-checks.yml` runs it on every pull request to `develop` for the apps the
     pull request changes (the same script, from the base to the head), so a crashing build shows on the
     pull request before it's merged.
+- **Pull requests to `develop`** (`.github/workflows/pr-checks.yml`, 2026-11-08): a **Tests** job on
+  every pull request, whatever it changes: the five servers' tests (`:server:core`, `:server:data`,
+  `:server:web`, `:server:clubs`, `:server:coach`, on a Postgres service as in the deploy workflows) and the
+  apps' unit tests (`testAndroidHostTest` of `:core`, `:app:shared`, `:app:clubs`, `:app:coach`, which run
+  their `commonTest` too), about 2 minutes locally; and the release check of the apps it changes (above).
+  **Merging only when Tests passes** (the developer, 2026-11-08): GitHub enforces it with a branch
+  protection rule or ruleset on `develop` requiring the `Tests` check, which a private repository on the
+  free plan can't have (the API answers 403, "Upgrade to GitHub Pro or make this repository public"). Until
+  then it's on whoever merges: a pull request with a red Tests check isn't merged. With GitHub Pro:
+  Settings -> Rules -> Rulesets -> a ruleset on `develop`, "Require status checks to pass", check `Tests`
+  (and the release checks, `clubs / clubs release build starts` and `coach / coach release build starts`,
+  if wanted: skipped ones count as passed).
 - **Railway (server + web client), production**: `.github/workflows/deploy-production.yml`,
   `workflow_dispatch` only (the "Run workflow" button in the Actions tab, dispatched against `main` for a
   real release) -- deliberately not on push, per the developer. Same test gate, then the Railway CLI

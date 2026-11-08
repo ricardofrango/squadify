@@ -3,7 +3,7 @@ name: Android release check
 # Builds an Android app's staging release (shrunk by R8, as testers and the store get it), installs it on an
 # emulator and opens it: fails if it crashes or isn't running after a while. Debug builds aren't shrunk, so a
 # library whose R8 rules fall short only breaks a release build: the coach app's ads library did (#212).
-# Called by android-checks.yml on pull requests and by the deploy workflows before they publish, for the apps
+# Called by pr-checks.yml on pull requests and by the deploy workflows before they publish, for the apps
 # the change touches (.github/scripts/android_apps_changed.py). TECHNICAL_DECISIONS §17.
 #
 # Signed with the debug key (no keystore here) and without uploading the mapping file to Crashlytics:
