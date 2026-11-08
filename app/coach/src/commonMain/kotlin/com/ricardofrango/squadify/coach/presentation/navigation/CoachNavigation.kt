@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.coach.presentation.navigation
 
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.CancellationException
+import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.presentation.ui.components.LocalAdBanner
 import com.ricardofrango.squadify.coach.presentation.ads.CoachAdBanner
 import androidx.compose.animation.ContentTransform
@@ -110,6 +114,25 @@ fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
     val ownSpace by ownSpacePlan.space.collectAsStateWithLifecycle()
     // Every plan as the server sends them, for the boxes' wording (loaded with the spaces, and by Plans).
     val plansResponse by ownSpacePlan.plans.collectAsStateWithLifecycle()
+    // Home loads the spaces, and with them the own space and the plans. A notification can open a game
+    // or a team with Home under it, never shown: then they're loaded here, once signed in, so the plan
+    // boxes there have the plans' names and limits.
+    val getSpacesUseCase = koinInject<GetSpacesUseCase>()
+    LaunchedEffect(navigator) {
+        snapshotFlow { navigator.currentBackStackEntry?.screen }.filterNotNull()
+            .map { screen -> !screen.isBeforeSignIn() && screen != Screen.CoachHome }
+            .distinctUntilChanged()
+            .collect { pastHome ->
+                if (!pastHome || ownSpacePlan.plans.value != null) return@collect
+                try {
+                    getSpacesUseCase()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Best effort: the boxes still show, without the plans' names, as before.
+                }
+            }
+    }
     // Everyone gets See plans; with no space of their own, Plans marks none as theirs.
     val seePlans: () -> Unit = { navigator.navigate(Screen.Plans) }
     val adBanner: @Composable (String?) -> Unit = { spaceId -> CoachAdBanner(spaceId) }
