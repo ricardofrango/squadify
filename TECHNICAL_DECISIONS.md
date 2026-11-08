@@ -658,8 +658,8 @@ Split across two mechanisms, deliberately not funneled entirely through GitHub A
     staging release (R8, as testers get it; debug-signed and without the Crashlytics mapping upload,
     since it's never published), installs it on an emulator (`reactivecircus/android-emulator-runner`, API
     34, Google APIs image, KVM) and opens it from its launcher icon
-    (`.github/scripts/start-release-apk.sh`): it fails if the app crashed, isn't running or isn't in front
-    20 seconds later, printing the crash. Both deploy workflows need it before they upload, and
+    (`.github/scripts/start-release-apk.sh`): it fails if the app crashed or isn't running 20 seconds later (not
+    whether it's in front: the notification permission's dialog, the system's, is), printing the crash. Both deploy workflows need it before they upload, and
     `.github/workflows/pr-checks.yml` runs it on every pull request to `develop` for the apps the
     pull request changes (the same script, from the base to the head), so a crashing build shows on the
     pull request before it's merged.

@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Installs a release APK on the running emulator, opens it as a tap on its icon would, and fails if the app
-# crashed or isn't running and in front after a while (android-release-check.yml, TECHNICAL_DECISIONS §17).
+# crashed or isn't running after a while (android-release-check.yml, TECHNICAL_DECISIONS §17).
 #
 #   start-release-apk.sh <apk> <application id>
+#
+# Not whether it's in front: on Android 13+ the notification permission's dialog, which belongs to the system,
+# is.
 set -euo pipefail
 
 apk="$1"
@@ -19,8 +22,6 @@ if adb logcat -d -b crash | grep -q "Process: $package"; then
   failed="it crashed"
 elif [ -z "$(adb shell pidof "$package" | tr -d '\r')" ]; then
   failed="it isn't running"
-elif ! adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | grep -q "$package/"; then
-  failed="it isn't in front"
 fi
 
 if [ -n "$failed" ]; then
