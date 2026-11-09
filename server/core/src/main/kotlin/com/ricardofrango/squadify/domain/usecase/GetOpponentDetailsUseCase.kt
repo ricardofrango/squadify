@@ -35,6 +35,7 @@ class GetOpponentDetailsUseCase(
         accessPolicy.requireMember(userId, opponent.clubId)
 
         val canEdit = allowed { accessPolicy.requireEditOpponent(userId, GameScope(opponent.clubId)) }
+        val canDelete = allowed { accessPolicy.requireDeleteOpponent(userId, GameScope(opponent.clubId)) }
 
         val club = clubRepository.getClubById(opponent.clubId) ?: throw NotFoundException("Club not found")
         val matches = matchRepository.getMatchesByOpponent(opponentId)
@@ -49,7 +50,8 @@ class GetOpponentDetailsUseCase(
             scores = matchEventRepository.getScoresByMatches(started).values.toList(),
             teams = teamRepository.getTeamsByClub(opponent.clubId).filter { it.id in teamIds },
             seasons = seasonRepository.getSeasonsByClub(opponent.clubId),
-            canEdit = canEdit
+            canEdit = canEdit,
+            canDelete = canDelete
         )
     }
 

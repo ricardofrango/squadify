@@ -63,7 +63,7 @@ val coachModule = module {
     // invite codes, not from club members (the owner invites and removes them in Age Group Details).
     // Photos and logos (2026-11-02): the coach server's image storage.
     // Account deletion: the stores require it for an app where people sign up.
-    single { AppFeatures(training = true, seasons = false, photos = true, clubMembers = false, accountDeletion = true) }
+    single { AppFeatures(training = true, seasons = false, photos = true, clubMembers = false, accountDeletion = true, spaces = true) }
     viewModelOf(::AddAgeGroupsViewModel)
     viewModelOf(::CoachHomeViewModel)
     viewModelOf(::JoinWithCodeViewModel)

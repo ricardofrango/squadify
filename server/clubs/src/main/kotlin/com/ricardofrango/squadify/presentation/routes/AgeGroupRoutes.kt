@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.routes
 
+import com.ricardofrango.squadify.domain.usecase.DeleteAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.RemoveStaffFromAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.AddPlayersToAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.RemovePlayerFromAgeGroupUseCase
@@ -41,6 +42,7 @@ fun Route.ageGroupRoutes() {
     val removeStaffFromAgeGroupUseCase by inject<RemoveStaffFromAgeGroupUseCase>()
     val getAgeGroupStaffUseCase by inject<GetAgeGroupStaffUseCase>()
     val getAgeGroupDetailsUseCase by inject<GetAgeGroupDetailsUseCase>()
+    val deleteAgeGroupUseCase by inject<DeleteAgeGroupUseCase>()
 
     authenticate("auth-jwt") {
         route("/age-groups") {
@@ -61,6 +63,14 @@ fun Route.ageGroupRoutes() {
                 val request = call.receive<CreateAgeGroupsRequest>()
                 val ageGroups = createAgeGroupsUseCase(currentUserId, request)
                 call.respond(HttpStatusCode.Created, ageGroups)
+            }
+
+            // The age group and everything in it, for good. 204.
+            delete("/{ageGroupId}") {
+                val ageGroupId = call.parameters["ageGroupId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                val currentUserId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                deleteAgeGroupUseCase(currentUserId, ageGroupId)
+                call.respond(HttpStatusCode.NoContent)
             }
 
             patch("/{ageGroupId}") {

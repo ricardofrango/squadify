@@ -73,6 +73,14 @@ class ClubAccessPolicy(private val checkUserPermission: CheckUserPermissionUseCa
     override suspend fun requireEditAgeGroup(userId: String, scope: GameScope, errorMessage: String) =
         checkUserPermission(userId = userId, clubId = scope.clubId, minClubRole = ClubRole.COORDINATOR, errorMessage = errorMessage)
 
+    // Deleting an age group or an opponent: coordinators and admins (TODO: a configurable permission, §35,
+    // like CREATE_TEAM's, when a club asks for it).
+    override suspend fun requireDeleteAgeGroup(userId: String, scope: GameScope, errorMessage: String) =
+        checkUserPermission(userId = userId, clubId = scope.clubId, minClubRole = ClubRole.COORDINATOR, errorMessage = errorMessage)
+
+    override suspend fun requireDeleteOpponent(userId: String, scope: GameScope, errorMessage: String) =
+        checkUserPermission(userId = userId, clubId = scope.clubId, minClubRole = ClubRole.COORDINATOR, errorMessage = errorMessage)
+
     override suspend fun requireManageStaff(userId: String, scope: GameScope, errorMessage: String) =
         checkUserPermission(userId = userId, clubId = scope.clubId, minClubRole = ClubRole.COORDINATOR, errorMessage = errorMessage)
 

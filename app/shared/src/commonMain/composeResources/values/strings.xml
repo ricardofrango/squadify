@@ -1632,4 +1632,25 @@
     <string name="player_averages_example">Example: a player plays one match rated 8 and takes part in 2 of 3 training sessions, rated 9 in each:</string>
     <string name="player_averages_example_left">Left: (8 + 9 + 9) ÷ 3 = 8.67</string>
     <string name="player_averages_example_right">Right: (8 + 9 + 9 + 0) ÷ 4 = 6.50</string>
+    <!-- Deleting an age group or an opponent for good. -->
+    <string name="btn_delete_age_group">Delete age group</string>
+    <string name="title_delete_age_group">Delete %1$s?</string>
+    <plurals name="msg_delete_age_group">
+        <item quantity="one">Its team, with all its games, and its training and staff are deleted too.</item>
+        <item quantity="other">Its %1$d teams, with all their games, and its training and staff are deleted too.</item>
+    </plurals>
+    <plurals name="msg_delete_age_group_players">
+        <item quantity="one">So is its player, unless they're in another age group.</item>
+        <item quantity="other">So are its %1$d players, except those in another age group.</item>
+    </plurals>
+    <string name="edit_age_group_delete_failed">Couldn't delete the age group. Try again.</string>
+    <string name="btn_delete_opponent">Delete opponent</string>
+    <string name="title_delete_opponent">Delete %1$s?</string>
+    <plurals name="msg_delete_opponent_matches">
+        <item quantity="one">Its game is deleted too, even if it was played.</item>
+        <item quantity="other">Its %1$d games are deleted too, played ones included.</item>
+    </plurals>
+    <string name="msg_delete_opponent_no_matches">It has no games.</string>
+    <string name="msg_opponent_delete_failed">Couldn't delete the opponent. Try again.</string>
+    <string name="msg_cannot_be_undone">This can't be undone.</string>
 </resources>

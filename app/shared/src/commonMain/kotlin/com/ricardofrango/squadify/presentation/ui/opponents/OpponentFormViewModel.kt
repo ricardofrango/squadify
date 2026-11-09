@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import squadify.app.shared.generated.resources.msg_opponent_delete_failed
 import com.ricardofrango.squadify.domain.config.AppFeatures
 
 import androidx.lifecycle.ViewModel
@@ -7,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.data.remote.ApiException
 import com.ricardofrango.squadify.domain.usecase.CreateOpponentUseCase
 import com.ricardofrango.squadify.domain.usecase.DeleteOpponentLogoUseCase
+import com.ricardofrango.squadify.domain.usecase.DeleteOpponentUseCase
 import com.ricardofrango.squadify.domain.usecase.GetOpponentDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetOpponentListUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateOpponentUseCase
@@ -74,7 +76,11 @@ data class OpponentFormUiState(
     val duplicateName: Boolean = false,
     val submitting: Boolean = false,
     // Localized copy only, never a raw exception message (AI_GUIDELINES.md).
-    val error: String? = null
+    val error: String? = null,
+    // Edit only: Delete (the server's gate) and how many games go with it, for the confirm.
+    val canDelete: Boolean = false,
+    val matchCount: Int = 0,
+    val deleting: Boolean = false
 ) {
     val canSubmit: Boolean
         get() = form.name.isNotBlank() && !duplicateName && !submitting && !loading && (form != original || logo.changed)
@@ -131,6 +137,7 @@ class OpponentFormViewModel(
     private val updateOpponentUseCase: UpdateOpponentUseCase,
     private val uploadOpponentLogoUseCase: UploadOpponentLogoUseCase,
     private val deleteOpponentLogoUseCase: DeleteOpponentLogoUseCase,
+    private val deleteOpponentUseCase: DeleteOpponentUseCase,
     features: AppFeatures
 ) : ViewModel() {
 
@@ -168,6 +175,27 @@ class OpponentFormViewModel(
         }
     }
 
+    private val _deleted = MutableSharedFlow<Unit>()
+    /** Edit: the opponent was deleted, with its games. */
+    val deleted: SharedFlow<Unit> = _deleted.asSharedFlow()
+
+    /** Edit: deletes the opponent for good, with every game against it (after the screen's confirm). */
+    fun onDelete() {
+        val opponent = editing ?: return
+        val current = _state.value
+        if (!current.canDelete || current.deleting || current.submitting) return
+        _state.update { it.copy(deleting = true, error = null) }
+        viewModelScope.launch {
+            try {
+                deleteOpponentUseCase(opponent.id)
+                _deleted.emit(Unit)
+            } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_opponent_delete_failed)
+                _state.update { it.copy(deleting = false, error = message) }
+            }
+        }
+    }
+
     /** Edit: loads the opponent into the form. [force] retries after a failed load. */
     fun startEdit(opponentId: String, force: Boolean = false) {
         if (editing != null || (!force && _state.value.loading)) return
@@ -184,7 +212,10 @@ class OpponentFormViewModel(
             clubId = opponent.clubId
             val form = opponent.toForm()
             _state.update {
-                it.copy(clubName = details.clubName, form = form, original = form, logo = OpponentLogoDraft(opponent.logoUrl), loading = false)
+                it.copy(
+                    clubName = details.clubName, form = form, original = form, logo = OpponentLogoDraft(opponent.logoUrl), loading = false,
+                    canDelete = details.canDelete, matchCount = details.matches.size
+                )
             }
             try {
                 clubOpponents = getOpponentListUseCase(opponent.clubId).opponents

@@ -202,6 +202,8 @@ val coachModule = module {
     factory { UploadAgeGroupLogoUseCase(get(), get(), get(), get()) }
     factory { DeleteAgeGroupLogoUseCase(get(), get(), get(), get()) }
     factory { GetAgeGroupLogoUseCase(get(), get(), get(), get()) }
+    factory { DeleteAgeGroupUseCase(get(), get(), get(), get(), get()) }
+    factory { DeleteOpponentUseCase(get(), get(), get(), get(), get(), get()) }
     factory { UploadPlayerPhotoUseCase(get(), get(), get(), get()) }
     factory { DeletePlayerPhotoUseCase(get(), get(), get(), get()) }
     factory { GetPlayerPhotoUseCase(get(), get(), get(), get()) }

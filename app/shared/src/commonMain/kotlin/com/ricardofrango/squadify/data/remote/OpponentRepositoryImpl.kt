@@ -51,6 +51,10 @@ class OpponentRepositoryImpl(
             setBody(request)
         }.handleResponse<Unit>()
 
+    override suspend fun deleteOpponent(opponentId: String) {
+        httpClient.delete("${appConfig.baseUrl}/opponents/$opponentId").handleResponse<Unit>()
+    }
+
     override suspend fun uploadOpponentLogo(opponentId: String, ageGroupId: String?, bytes: ByteArray): String =
         httpClient.put("${appConfig.baseUrl}/opponents/$opponentId/logo") {
             ageGroupId?.let { parameter("ageGroupId", it) }

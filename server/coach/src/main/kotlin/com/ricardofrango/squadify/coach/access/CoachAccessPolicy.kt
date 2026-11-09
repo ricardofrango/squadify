@@ -76,6 +76,15 @@ class CoachAccessPolicy(
 
     override suspend fun requireEditAgeGroup(userId: String, scope: GameScope, errorMessage: String) = inAgeGroup(userId, scope, errorMessage)
 
+    // Deleting an age group (its games, training and lone players) or an opponent (its games): the owner's.
+    override suspend fun requireDeleteAgeGroup(userId: String, scope: GameScope, errorMessage: String) =
+        owner(userId, scope.clubId, errorMessage)
+
+    override suspend fun requireDeleteOpponent(userId: String, scope: GameScope, errorMessage: String) =
+        owner(userId, scope.clubId, errorMessage)
+
+    override fun deletesLonePlayers(): Boolean = true
+
     override suspend fun requireManageStaff(userId: String, scope: GameScope, errorMessage: String) =
         owner(userId, scope.clubId, ONLY_THE_OWNER_MANAGES_STAFF)
 

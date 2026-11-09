@@ -81,6 +81,18 @@ interface AccessPolicy {
     /** Creates players, in the club or from an age group. */
     suspend fun requireCreatePlayers(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
 
+    /** Deletes an age group, with everything in it. */
+    suspend fun requireDeleteAgeGroup(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
+
+    /** Deletes an opponent, with every game against it. */
+    suspend fun requireDeleteOpponent(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
+
+    /**
+     * Whether deleting an age group also deletes its players who are in no other age group: the coach's
+     * space, which has no roster outside its age groups. A club keeps them on its roster.
+     */
+    fun deletesLonePlayers(): Boolean = false
+
     /** Edits a player. */
     suspend fun requireEditPlayer(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
 

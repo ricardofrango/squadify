@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.editteam
 
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
+import com.ricardofrango.squadify.presentation.ui.components.DestructiveButton
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -144,15 +145,7 @@ private fun EditTeamContent(
             // Pinned, as every form's main action; it only asks first (the dialog below).
             if (idle?.canDelete == true) {
                 PinnedBottomBar {
-                    OutlinedButton(
-                        onClick = { confirmDelete = true },
-                        enabled = !idle.busy,
-                        border = BorderStroke(1.dp, AlertRed.copy(alpha = if (idle.busy) 0.3f else 1f)),
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(Res.string.btn_delete_team), color = AlertRed, fontWeight = FontWeight.Bold)
-                    }
+                    DestructiveButton(stringResource(Res.string.btn_delete_team), onClick = { confirmDelete = true }, enabled = !idle.busy)
                 }
             }
         }

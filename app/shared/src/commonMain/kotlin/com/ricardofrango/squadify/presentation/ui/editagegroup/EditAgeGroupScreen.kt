@@ -1,5 +1,16 @@
 package com.ricardofrango.squadify.presentation.ui.editagegroup
 
+import squadify.app.shared.generated.resources.msg_cannot_be_undone
+import squadify.app.shared.generated.resources.msg_delete_age_group_players
+import squadify.app.shared.generated.resources.msg_delete_age_group
+import squadify.app.shared.generated.resources.title_delete_age_group
+import squadify.app.shared.generated.resources.btn_delete_age_group
+import squadify.app.shared.generated.resources.btn_delete
+import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
+import com.ricardofrango.squadify.presentation.ui.components.DestructiveButton
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -93,19 +104,22 @@ fun EditAgeGroupScreen(
     ageGroupId: String,
     onNavigateBack: () -> Unit,
     onAgeGroupUpdated: () -> Unit,
+    onAgeGroupDeleted: () -> Unit = {},
     viewModel: EditAgeGroupViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
         val state = viewModel.state.collectSettledState()
         LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
         LaunchedEffect(Unit) { viewModel.saved.collect { onAgeGroupUpdated() } }
+        LaunchedEffect(Unit) { viewModel.deleted.collect { onAgeGroupDeleted() } }
 
         EditAgeGroupContent(
             state = state,
             onNavigateBack = onNavigateBack,
             onRetry = { viewModel.load(ageGroupId) },
             onChange = { transform -> viewModel.updateForm(transform) },
-            onSave = { viewModel.save(ageGroupId) }
+            onSave = { viewModel.save(ageGroupId) },
+            onDelete = { viewModel.delete(ageGroupId) }
         )
     }
 }
@@ -116,9 +130,11 @@ private fun EditAgeGroupContent(
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     onChange: ((AgeGroupFormFields) -> AgeGroupFormFields) -> Unit,
-    onSave: () -> Unit
+    onSave: () -> Unit,
+    onDelete: () -> Unit = {}
 ) {
     val idle = state as? EditAgeGroupUiState.Idle
+    var confirmDelete by remember { mutableStateOf(false) }
     Scaffold(
         contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
@@ -141,6 +157,14 @@ private fun EditAgeGroupContent(
                     }
                 }
             )
+        },
+        bottomBar = {
+            // Pinned, as Edit team's Delete; it only asks first (the dialog below).
+            if (idle?.canDelete == true) {
+                PinnedBottomBar {
+                    DestructiveButton(stringResource(Res.string.btn_delete_age_group), onClick = { confirmDelete = true }, enabled = !idle.isDeleting && !idle.isSubmitting)
+                }
+            }
         }
     ) { padding ->
         val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
@@ -149,6 +173,17 @@ private fun EditAgeGroupContent(
             is EditAgeGroupUiState.Error -> ErrorScreen(title = state.message, body = null, onRetry = onRetry, modifier = modifier)
             is EditAgeGroupUiState.Idle -> EditAgeGroupForm(state, modifier, onChange, onSave)
         }
+    }
+    if (confirmDelete && idle != null) {
+        ConfirmDialog(
+            title = stringResource(Res.string.title_delete_age_group, idle.original.name),
+            body = pluralStringResource(Res.plurals.msg_delete_age_group, idle.teamCount, idle.teamCount) + " " +
+                (if (idle.deletesPlayers && idle.playerCount > 0) pluralStringResource(Res.plurals.msg_delete_age_group_players, idle.playerCount, idle.playerCount) + " " else "") +
+                stringResource(Res.string.msg_cannot_be_undone),
+            onConfirm = { confirmDelete = false; onDelete() },
+            onDismiss = { confirmDelete = false },
+            confirmLabel = stringResource(Res.string.btn_delete)
+        )
     }
 }
 

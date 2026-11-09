@@ -827,6 +827,27 @@ Details ⋮, shown by `AgeGroupDetails.canEditAgeGroup`) applies the same checks
 used by the season's other age groups are left out of the pickers, and a span that would shut players
 out is explained in amber and can't be saved.
 
+### 4.4a Delete Age Group (`DeleteAgeGroupUseCase`, `DELETE /v1/age-groups/{id}`)
+
+For good, from Edit age group's Delete (2026-11-09; `AgeGroupDetails.canDeleteAgeGroup` shows it), on both servers.
+
+```mermaid
+graph TD
+    A[Start: userId, ageGroupId] --> B[Fetch AgeGroup]
+    B -- not found --> N(["Throw NotFoundException"])
+    B --> C["AccessPolicy.requireDeleteAgeGroup — clubs: COORDINATOR+ (TODO: a configurable permission, TECHNICAL_DECISIONS §35); coach: the space's owner"]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D["AgeGroupRepository.deleteAgeGroup(id, deleteLonePlayers = AccessPolicy.deletesLonePlayers()), in one transaction"]
+    D --> D1["Its teams' games, then the teams (a game takes its call-ups, events, line-ups, stats, report)"]
+    D1 --> D2["Its training: ratings, sessions' exercises, sessions, exercises, plans"]
+    D2 --> D3["Its staff and pool, then the age group (the coach's invite codes cascade)"]
+    D3 --> L{"deleteLonePlayers? (the coach server)"}
+    L -- Yes --> L1["Its pool's players in no other age group and with nothing else left (games, ratings) are deleted"]
+    L -- No --> R
+    L1 --> R["After the commit: the crest and deleted players' photos leave storage; open screens hear each deleted game (ClubMatchesBus)"]
+    R --> Z(["204"])
+```
+
 ### 4.4b Get Age Group Details (`GetAgeGroupDetailsUseCase`)
 
 The aggregate behind the age-group detail screen. Follows the standard permission-gated read (§1.3) with an aggregation step and four independent, non-throwing permission probes -- each matching the real gate its action's own use case enforces, rather than one literal check standing in for several at once (see TECHNICAL_DECISIONS.md §35/§37's "reshuffled taxonomy" notes on why bundling these caused real button-visibility bugs):
@@ -1501,6 +1522,10 @@ graph TD
 `GET /opponents/{opponentId}` feeds Opponent details (design 38f). The client works out the head-to-head
 for whichever season is picked from `matches`, `scores` and each team's season, so changing season needs no
 request. `getScoresByMatches` reads the goal events of all the matches at once instead of one query per match.
+
+### 6.4b Delete Opponent (`DeleteOpponentUseCase`, `DELETE /v1/opponents/{id}`)
+
+For good, from Edit opponent's Delete (2026-11-09; `OpponentDetails.canDelete` shows it), on both servers: behind `AccessPolicy.requireDeleteOpponent` (clubs: COORDINATOR+, TODO a configurable permission, TECHNICAL_DECISIONS §35; coach: the space's owner). In one transaction every game against it is deleted (each with its call-ups, events, line-ups, stats and report: `matches.opponent_id` is RESTRICT, so they go first), then the opponent; after the commit its logo leaves storage and open screens hear each deleted game. 204.
 
 ### 6.5 Opponent Logo (`UploadOpponentLogoUseCase` / `DeleteOpponentLogoUseCase` / `GetOpponentLogoUseCase`)
 

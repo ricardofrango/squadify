@@ -1877,6 +1877,9 @@ COACH-level default bar for call-ups; the COACH-caller case needed no change. `A
 succeeding, and moving to the more permissive `MANAGE_LIVE_MATCH` default (STAFF) doesn't break a COACH
 still succeeding.
 
+
+**Deleting an age group or an opponent** (2026-11-09, both apps, `PROCESS_FLOWS.md` §4.4a, §6.4b): a club's coordinators and admins only, fixed for now (`ClubAccessPolicy.requireDeleteAgeGroup` / `requireDeleteOpponent`). **TODO:** configurable permissions for them (a `DELETE_AGE_GROUP` and a `DELETE_OPPONENT`, like `CREATE_TEAM`), when a club asks. On the coach server it's the space's owner (`CoachAccessPolicy`), and deleting an age group also deletes its players in no other age group (`AccessPolicy.deletesLonePlayers`; a club keeps them on its roster). The apps show Delete on Edit age group (pinned, as Edit team's) and Edit opponent (at the end of the form) when the server says so, confirm with what goes with it (teams and games; the coach app's lone players; an opponent's games, played ones too), then go back to the list the details came from. Delete buttons are the shared `DestructiveButton` (Edit team's too).
+
 ## 36. Permission-Aware UI: Fixing Stale "canManage" Flags and Adding Real Gating
 
 **Problem, reported after §35 shipped**: the developer noticed two things live-testing the configurable

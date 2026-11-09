@@ -2,10 +2,13 @@ package com.ricardofrango.squadify.presentation.ui.editagegroup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ricardofrango.squadify.domain.config.AppFeatures
+import com.ricardofrango.squadify.domain.usecase.DeleteAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupsUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateAgeGroupUseCase
 import com.ricardofrango.squadify.model.UpdateAgeGroupRequest
+import com.ricardofrango.squadify.model.ageGroupClubName
 import com.ricardofrango.squadify.presentation.errorMessage
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.edit_age_group_delete_failed
 import squadify.app.shared.generated.resources.edit_age_group_failed
 import squadify.app.shared.generated.resources.edit_age_group_load_failed
 
@@ -43,7 +47,14 @@ sealed class EditAgeGroupUiState {
         val original: AgeGroupFormFields,
         val form: AgeGroupFormFields,
         val isSubmitting: Boolean = false,
-        val submitError: String? = null
+        val submitError: String? = null,
+        // Delete age group (the server's gate): how many teams and players it has, for the confirm, and
+        // whether its lone players go too (the coach app).
+        val canDelete: Boolean = false,
+        val teamCount: Int = 0,
+        val playerCount: Int = 0,
+        val deletesPlayers: Boolean = false,
+        val isDeleting: Boolean = false
     ) : EditAgeGroupUiState() {
         val inverted: Boolean get() = form.twoYears && form.startYear < form.endYear
 
@@ -71,7 +82,9 @@ sealed class EditAgeGroupUiState {
 class EditAgeGroupViewModel(
     private val getAgeGroupDetailsUseCase: GetAgeGroupDetailsUseCase,
     private val getAgeGroupsUseCase: GetAgeGroupsUseCase,
-    private val updateAgeGroupUseCase: UpdateAgeGroupUseCase
+    private val updateAgeGroupUseCase: UpdateAgeGroupUseCase,
+    private val deleteAgeGroupUseCase: DeleteAgeGroupUseCase,
+    private val appFeatures: AppFeatures
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<EditAgeGroupUiState>(EditAgeGroupUiState.Loading)
@@ -80,13 +93,20 @@ class EditAgeGroupViewModel(
     private val _saved = MutableSharedFlow<Unit>()
     val saved: SharedFlow<Unit> = _saved.asSharedFlow()
 
+    private val _deleted = MutableSharedFlow<Unit>()
+    val deleted: SharedFlow<Unit> = _deleted.asSharedFlow()
+
     fun load(ageGroupId: String) {
         viewModelScope.launch {
             _state.value = EditAgeGroupUiState.Loading
             _state.value = try {
                 val details = getAgeGroupDetailsUseCase(ageGroupId)
                 val ag = details.ageGroup
-                val others = getAgeGroupsUseCase(ag.clubId).filter { it.seasonId == ag.seasonId && it.id != ag.id }
+                // The coach app's spaces: only the same club's age groups take its years (the server's rule too).
+                val sameClub = ageGroupClubName(ag.name)?.lowercase()
+                val others = getAgeGroupsUseCase(ag.clubId).filter {
+                    it.seasonId == ag.seasonId && it.id != ag.id && (!appFeatures.spaces || ageGroupClubName(it.name)?.lowercase() == sameClub)
+                }
                 val fields = AgeGroupFormFields(ag.name, ag.startYear != ag.endYear, ag.startYear, ag.endYear, ag.teamSize)
                 EditAgeGroupUiState.Idle(
                     seasonName = details.season.name,
@@ -94,7 +114,11 @@ class EditAgeGroupViewModel(
                     usedByOthers = others.flatMap { it.endYear..it.startYear }.toSet(),
                     poolBirthYears = details.players.map { it.birthDate.year },
                     original = fields,
-                    form = fields
+                    form = fields,
+                    canDelete = details.canDeleteAgeGroup,
+                    teamCount = details.teams.size,
+                    playerCount = details.players.size,
+                    deletesPlayers = appFeatures.spaces
                 )
             } catch (e: Exception) {
                 EditAgeGroupUiState.Error(errorMessage(e, Res.string.edit_age_group_load_failed))
@@ -117,6 +141,22 @@ class EditAgeGroupViewModel(
             } catch (e: Exception) {
                 val message = errorMessage(e, Res.string.edit_age_group_failed)
                 _state.update { (it as? EditAgeGroupUiState.Idle)?.copy(isSubmitting = false, submitError = message) ?: it }
+            }
+        }
+    }
+
+    /** Deletes the age group for good (after the screen's confirm). */
+    fun delete(ageGroupId: String) {
+        val current = _state.value as? EditAgeGroupUiState.Idle ?: return
+        if (!current.canDelete || current.isDeleting || current.isSubmitting) return
+        _state.value = current.copy(isDeleting = true, submitError = null)
+        viewModelScope.launch {
+            try {
+                deleteAgeGroupUseCase(ageGroupId)
+                _deleted.emit(Unit)
+            } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.edit_age_group_delete_failed)
+                _state.update { (it as? EditAgeGroupUiState.Idle)?.copy(isDeleting = false, submitError = message) ?: it }
             }
         }
     }

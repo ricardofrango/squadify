@@ -10,6 +10,8 @@ interface AgeGroupRepository {
     suspend fun getAgeGroups(clubId: String): List<AgeGroup>
     suspend fun createAgeGroups(request: CreateAgeGroupsRequest): List<AgeGroup>
     suspend fun updateAgeGroup(ageGroupId: String, request: com.ricardofrango.squadify.model.UpdateAgeGroupRequest)
+    /** Deletes the age group for good, with its teams, games and training (and on the coach server its lone players). */
+    suspend fun deleteAgeGroup(ageGroupId: String)
     suspend fun getAgeGroupDetails(ageGroupId: String): AgeGroupDetails
     suspend fun getAgeGroupSeasonRecord(ageGroupId: String): com.ricardofrango.squadify.model.AgeGroupSeasonRecord
     suspend fun getAgeGroupFullStats(ageGroupId: String): com.ricardofrango.squadify.model.FullStatsData

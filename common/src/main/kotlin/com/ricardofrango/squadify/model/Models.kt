@@ -906,6 +906,8 @@ data class AgeGroupDetails(
     val canAssignPlayersToAgeGroup: Boolean,
     // Coordinator+, like Add staff (UpdateAgeGroupUseCase's gate): shows "Edit age group".
     val canEditAgeGroup: Boolean = false,
+    // DeleteAgeGroupUseCase's gate (a club's coordinators and admins, a space's owner): shows Delete on Edit age group.
+    val canDeleteAgeGroup: Boolean = false,
     // The coach server's: the space's plan when it has no room for more staff on this age group (the box
     // on the Members tab and Invite staff), null while there's room. Always null on the clubs server.
     val staffFullOnPlan: SpacePlan? = null
@@ -974,6 +976,8 @@ data class OpponentDetails(
     val teams: List<Team>,
     val seasons: List<Season>,
     val canEdit: Boolean = false,
+    // DeleteOpponentUseCase's gate: shows Delete (with its games) on Edit opponent.
+    val canDelete: Boolean = false,
     // Our club's logo path, for the match rows; null without one.
     val clubLogoUrl: String? = null
 )

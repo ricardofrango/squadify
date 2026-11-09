@@ -25,6 +25,8 @@ import com.ricardofrango.squadify.domain.usecase.GetTeamPlayersUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamsUseCase
 import com.ricardofrango.squadify.domain.usecase.RemovePlayerFromAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateAgeGroupUseCase
+import com.ricardofrango.squadify.domain.usecase.DeleteOpponentUseCase
+import com.ricardofrango.squadify.domain.usecase.DeleteAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateOpponentUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdatePlayerUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateTeamUseCase
@@ -78,6 +80,7 @@ private fun Route.ageGroupRoutes() {
     val getAgeGroups by inject<GetAgeGroupsUseCase>()
     val createAgeGroups by inject<CreateAgeGroupsUseCase>()
     val updateAgeGroup by inject<UpdateAgeGroupUseCase>()
+    val deleteAgeGroup by inject<DeleteAgeGroupUseCase>()
     val getAgeGroupDetails by inject<GetAgeGroupDetailsUseCase>()
     val getEligiblePlayers by inject<GetEligiblePlayersForAgeGroupUseCase>()
     val addPlayers by inject<AddPlayersToAgeGroupUseCase>()
@@ -105,6 +108,13 @@ private fun Route.ageGroupRoutes() {
             call.respond(HttpStatusCode.Created, createAgeGroups(userId, request.copy(seasonId = seasonId)))
         }
         route("/{ageGroupId}") {
+            // The age group and everything in it, its lone players too, for good: the owner's.
+            delete {
+                val ageGroupId = call.parameters["ageGroupId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                val userId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                deleteAgeGroup(userId, ageGroupId)
+                call.respond(HttpStatusCode.NoContent)
+            }
             patch {
                 val ageGroupId = call.parameters["ageGroupId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
                 val userId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
@@ -259,6 +269,7 @@ private fun Route.opponentRoutes() {
     val createOpponent by inject<CreateOpponentUseCase>()
     val getOpponentDetails by inject<GetOpponentDetailsUseCase>()
     val updateOpponent by inject<UpdateOpponentUseCase>()
+    val deleteOpponent by inject<DeleteOpponentUseCase>()
 
     route("/opponents") {
         get {
@@ -289,6 +300,13 @@ private fun Route.opponentRoutes() {
             val opponentId = call.parameters["opponentId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
             val userId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
             call.respond(getOpponentDetails(userId, opponentId))
+        }
+        // The opponent and every game against it, for good: the owner's.
+        delete("/{opponentId}") {
+            val opponentId = call.parameters["opponentId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+            val userId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+            deleteOpponent(userId, opponentId)
+            call.respond(HttpStatusCode.NoContent)
         }
         patch("/{opponentId}") {
             val opponentId = call.parameters["opponentId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
