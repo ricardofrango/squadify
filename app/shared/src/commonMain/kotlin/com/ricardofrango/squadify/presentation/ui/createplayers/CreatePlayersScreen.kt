@@ -80,6 +80,8 @@ fun CreatePlayersScreen(
     clubId: String,
     clubName: String,
     ageGroupId: String? = null,
+    addToAgeGroup: Boolean = false,
+    oldestBirthYear: Int? = null,
     onNavigateBack: () -> Unit,
     onPlayersCreated: () -> Unit,
     viewModel: CreatePlayersViewModel = koinViewModel()
@@ -87,6 +89,8 @@ fun CreatePlayersScreen(
     SquadifyClubTheme {
         val uiState = viewModel.state.collectSettledState()
         val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+        // Born in the age group's oldest birth year or later (playing up from a younger one is fine).
+        val earliestBirthDate = oldestBirthYear?.let { LocalDate(it, 1, 1) }
 
         var nextRowKey by remember { mutableStateOf(1) }
         val rows = remember { mutableStateListOf(PlayerRow(key = 0)) }
@@ -104,6 +108,7 @@ fun CreatePlayersScreen(
         CreatePlayersContent(
             uiState = uiState,
             clubName = clubName,
+            oldestBirthYear = oldestBirthYear.takeIf { addToAgeGroup },
             rows = rows,
             showValidationErrors = showValidationErrors,
             onNavigateBack = onNavigateBack,
@@ -136,7 +141,7 @@ fun CreatePlayersScreen(
                             birthDate = LocalDate.parse(r.birthDateIso!!)
                         )
                     }
-                    viewModel.onCreateClicked(clubId, players, ageGroupId)
+                    viewModel.onCreateClicked(clubId, players, ageGroupId, addToAgeGroup)
                 }
             }
         )
@@ -146,7 +151,10 @@ fun CreatePlayersScreen(
             val row = rows.firstOrNull { it.key == pickerRowKey }
             DatePickerSheet(
                 title = Res.string.label_select_birth_date,
-                initialDate = row?.birthDateIso?.let { LocalDate.parse(it) } ?: LocalDate(today.year - 10, 1, 1),
+                initialDate = row?.birthDateIso?.let { LocalDate.parse(it) }
+                    ?: earliestBirthDate
+                    ?: LocalDate(today.year - 10, 1, 1),
+                minDate = earliestBirthDate,
                 maxDate = today,
                 onConfirm = { picked ->
                     updateRow(rows, pickerRowKey) { it.copy(birthDateIso = picked.toString()) }
@@ -177,7 +185,9 @@ private fun CreatePlayersContent(
     onDateClick: (key: Int) -> Unit,
     onAddRow: () -> Unit,
     onRemoveRow: (key: Int) -> Unit,
-    onCreateClick: () -> Unit
+    onCreateClick: () -> Unit,
+    // Set when the players go straight into an age group: its oldest birth year.
+    oldestBirthYear: Int? = null
 ) {
     val anyNameMissing = showValidationErrors && rows.any { it.firstName.isBlank() || it.lastName.isBlank() }
     val anyDobMissing = showValidationErrors && rows.any { it.birthDateIso == null }
@@ -209,7 +219,9 @@ private fun CreatePlayersContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = stringResource(Res.string.msg_players_intro),
+                    text = stringResource(
+                        if (oldestBirthYear != null) Res.string.msg_players_intro_into_age_group else Res.string.msg_players_intro
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = DeepCarbon.copy(alpha = 0.6f)
                 )
@@ -247,7 +259,8 @@ private fun CreatePlayersContent(
                         onFirstNameChange = { onFirstNameChange(row.key, it) },
                         onLastNameChange = { onLastNameChange(row.key, it) },
                         onDateClick = { onDateClick(row.key) },
-                        onRemove = { onRemoveRow(row.key) }
+                        onRemove = { onRemoveRow(row.key) },
+                        oldestBirthYear = oldestBirthYear
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -317,7 +330,8 @@ private fun PlayerRowCard(
     onFirstNameChange: (String) -> Unit,
     onLastNameChange: (String) -> Unit,
     onDateClick: () -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    oldestBirthYear: Int? = null
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -402,7 +416,11 @@ private fun PlayerRowCard(
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = stringResource(Res.string.msg_date_of_birth_helper),
+                    text = if (oldestBirthYear != null) {
+                        stringResource(Res.string.msg_date_of_birth_helper_age_group, oldestBirthYear)
+                    } else {
+                        stringResource(Res.string.msg_date_of_birth_helper)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = DeepCarbon.copy(alpha = 0.55f)
                 )

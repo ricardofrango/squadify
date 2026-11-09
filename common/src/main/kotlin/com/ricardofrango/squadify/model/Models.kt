@@ -620,7 +620,11 @@ data class CreatePlayersRequest(
     // group create players, not just a club admin/coordinator. Null for the standalone club-roster
     // entry points (Club Details' "Add players to club"), which stay coordinator-only. See
     // CreatePlayersUseCase.
-    val ageGroupId: String? = null
+    val ageGroupId: String? = null,
+    // Also add the new players straight into [ageGroupId]'s pool, in the same transaction, each
+    // age-eligible (born in its oldest birth year or later): the coach app, which has no club roster to
+    // pick them from afterwards. False (the clubs app) only creates them in the club.
+    val addToAgeGroup: Boolean = false
 )
 
 @Serializable

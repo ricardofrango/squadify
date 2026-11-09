@@ -31,13 +31,13 @@ class CreatePlayersViewModel(
         _state.update { it.copy(error = null) }
     }
 
-    fun onCreateClicked(clubId: String, players: List<CreatePlayer>, ageGroupId: String? = null) {
+    fun onCreateClicked(clubId: String, players: List<CreatePlayer>, ageGroupId: String? = null, addToAgeGroup: Boolean = false) {
         if (_state.value.isSubmitting || players.isEmpty()) return
 
         viewModelScope.launch {
             _state.update { it.copy(isSubmitting = true, error = null) }
             try {
-                createPlayersUseCase(CreatePlayersRequest(clubId, players, ageGroupId))
+                createPlayersUseCase(CreatePlayersRequest(clubId, players, ageGroupId, addToAgeGroup))
                 _navigationEvent.emit(CreatePlayersNavigationEvent.NavigateBackWithPlayersCreated)
             } catch (e: Exception) {
                 val message = errorMessage(e, Res.string.msg_create_players_failed)

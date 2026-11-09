@@ -11,7 +11,9 @@ import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.CreatePlayer
 import com.ricardofrango.squadify.model.CreatePlayersRequest
@@ -58,11 +60,28 @@ class CreatePlayersUseCaseTest {
 
     private fun coach() = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
 
-    private fun request(ageGroupId: String? = null) = CreatePlayersRequest(
+    private fun request(
+        ageGroupId: String? = null,
+        addToAgeGroup: Boolean = false,
+        birthDate: LocalDate = LocalDate(2012, 1, 1)
+    ) = CreatePlayersRequest(
         clubId = clubId,
-        players = listOf(CreatePlayer(firstName = "First", lastName = "Last", birthDate = LocalDate(2012, 1, 1))),
-        ageGroupId = ageGroupId
+        players = listOf(CreatePlayer(firstName = "First", lastName = "Last", birthDate = birthDate)),
+        ageGroupId = ageGroupId,
+        addToAgeGroup = addToAgeGroup
     )
+
+    // The age group's own coach, the 2013 group (born 2013 or later).
+    private fun coachOfAg1(): User {
+        val coach = coach()
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns null
+        coEvery { ageGroupRepository.getAgeGroupById(ag1) } returns AgeGroup(ag1, clubId, "U12", "s-1", 2013, 2013)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
+        coEvery { userRepository.findByEmails(emptyList()) } returns emptyList()
+        coEvery { playerRepository.createPlayers(any()) } answers { firstArg() }
+        return coach
+    }
 
     @Test
     fun anAgeGroupCoachWithNoClubRoleCanCreatePlayersForTheirOwnAgeGroup() = runBlocking {
@@ -135,5 +154,44 @@ class CreatePlayersUseCaseTest {
 
         kotlin.test.assertEquals(1, result.size)
         coVerify(exactly = 0) { ageGroupRepository.getAgeGroupById(any()) }
+    }
+
+    @Test
+    fun addToAgeGroupPutsTheNewPlayersInItsPool() = runBlocking {
+        val coach = coachOfAg1()
+
+        val created = useCase(coach.id, request(ageGroupId = ag1, addToAgeGroup = true, birthDate = LocalDate(2014, 6, 1))).single()
+
+        coVerify { playerRepository.addPlayersToAgeGroup(match<List<AgeGroupPlayer>> { links -> links.single().let { it.ageGroupId == ag1 && it.playerId == created.id } }) }
+    }
+
+    @Test
+    fun addToAgeGroupRefusesAPlayerTooOldAndCreatesNothing() = runBlocking {
+        val coach = coachOfAg1()
+
+        assertFailsWith<ValidationException> {
+            useCase(coach.id, request(ageGroupId = ag1, addToAgeGroup = true, birthDate = LocalDate(2012, 12, 31)))
+        }
+        coVerify(exactly = 0) { playerRepository.createPlayers(any()) }
+        coVerify(exactly = 0) { playerRepository.addPlayersToAgeGroup(any()) }
+    }
+
+    @Test
+    fun withoutAddToAgeGroupThePlayersOnlyJoinTheClub() = runBlocking {
+        val coach = coachOfAg1()
+
+        // Older than the group: fine when they're only created in the club (the clubs app).
+        useCase(coach.id, request(ageGroupId = ag1, birthDate = LocalDate(2010, 1, 1)))
+
+        coVerify(exactly = 0) { playerRepository.addPlayersToAgeGroup(any()) }
+    }
+
+    @Test
+    fun addToAgeGroupNeedsAnAgeGroup() = runBlocking {
+        val coach = coach()
+        coEvery { userRepository.findById(coach.id) } returns coach
+
+        assertFailsWith<ValidationException> { useCase(coach.id, request(addToAgeGroup = true)) }
+        Unit
     }
 }

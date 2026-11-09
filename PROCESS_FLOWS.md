@@ -1070,14 +1070,22 @@ The permission check is `ClubAccessPolicy`'s (§1.1b), and the self and parent i
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, players list, ageGroupId?] --> AG{ageGroupId supplied?}
+    A[Start: userId, clubId, players list, ageGroupId?, addToAgeGroup] --> AG{ageGroupId supplied?}
     AG -- Yes --> AGF[Fetch AgeGroup by id]
     AGF -- not found --> N0(["Throw NotFoundException"])
     AGF -- found, wrong club --> FB0(["Throw ForbiddenException"])
-    AGF -- found, right club --> B
-    AG -- No --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=CREATE_PLAYERS, ageGroupId]
+    AGF -- found, right club --> AT
+    AG -- No --> AT{addToAgeGroup without an ageGroupId?}
+    AT -- Yes --> V0(["Throw ValidationException"])
+    AT -- No --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=CREATE_PLAYERS, ageGroupId]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C{Any player first/last name blank?}
+    B -- allowed --> PA{addToAgeGroup?}
+    PA -- Yes --> PM["AccessPolicy.requireManagePool (who may add players to the age group)"]
+    PM -- denied --> F
+    PM -- allowed --> PE{"Any player born before ageGroup.endYear?"}
+    PE -- Yes --> V1(["Throw ValidationException — too old, nothing created"])
+    PE -- No --> C
+    PA -- No --> C{Any player first/last name blank?}
     C -- Yes --> V(["Throw ValidationException"])
     C -- No --> D["Batch create Player records — active=true (position/heightCm/weightKg/emergencyContact carried through if given, all optional)"]
     D --> E["Collect all unique emails (players' own + all parents')"]
@@ -1093,12 +1101,17 @@ graph TD
     J --> P[Batch insert all Invites — player + parent]
     M --> Q[Batch insert UserPlayer links]
     N --> P
-    O --> Z(["Return created Players"])
-    Q --> Z
-    P --> Z
+    O --> LK{addToAgeGroup?}
+    Q --> LK
+    P --> LK
+    LK -- Yes --> LA["Insert an AgeGroupPlayer for each created player (the age group's pool)"]
+    LK -- No --> Z(["Return created Players"])
+    LA --> Z
 ```
 
 `ageGroupId` is optional: the "+ Add new player" shortcut on Add Players to Age Group passes the selected age group, so that age group's coach can create players through `ConfigurablePermission.CREATE_PLAYERS` (defaults to Coach). It's checked against `clubId` before the permission check to block cross-club spoofing. The club-roster entry points send no `ageGroupId`, so they stay coordinator-only. See `TECHNICAL_DECISIONS.md` §31/§35.
+
+`addToAgeGroup` (2026-11-09, the coach app, which has no club roster to pick players from afterwards): the new players also go into `ageGroupId`'s pool, in the same transaction. It needs an `ageGroupId`, the caller must also be allowed to manage that pool (`requireManagePool`, as `AddPlayersToAgeGroupUseCase`), and every player must be age-eligible, born in the age group's oldest birth year (`endYear`) or later, checked before anything is created. False (the default, the clubs app) only creates them in the club, any birth date.
 
 ### 5.1b Get Player Profile (`GetPlayerUseCase`)
 

@@ -84,8 +84,12 @@ fun AppNavigator.consumeAndCascadeStructureChanged(entry: AppBackStackEntry) {
     previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
 }
 
-/** Registers every shared screen's content, and where each one navigates to. */
-fun ScreenRegistry.sharedScreens(navigator: AppNavigator) {
+/**
+ * Registers every shared screen's content, and where each one navigates to. [createPlayersInAgeGroup]
+ * (the coach app, which has no club roster to pick players from): an age group's "Add players" creates
+ * them straight into it, instead of picking from the club's eligible players first.
+ */
+fun ScreenRegistry.sharedScreens(navigator: AppNavigator, createPlayersInAgeGroup: Boolean = false) {
     screen<Screen.EditAgeGroup> { backStackEntry ->
         val screen: Screen.EditAgeGroup = backStackEntry.toRoute()
         EditAgeGroupScreen(
@@ -207,8 +211,14 @@ fun ScreenRegistry.sharedScreens(navigator: AppNavigator) {
             onNavigateToMember = { clubId, userId -> navigator.navigate(Screen.ClubMemberDetails(clubId, userId = userId)) },
             onNavigateToEditAgeGroup = { ageGroupId -> navigator.navigate(Screen.EditAgeGroup(ageGroupId)) },
             onNavigateToMatch = { matchId -> navigator.navigate(Screen.MatchDetails(matchId)) },
-            onNavigateToAddPlayers = { clubId, clubName, ageGroupId ->
-                navigator.navigate(Screen.AddPlayersToAgeGroup(clubId, clubName, ageGroupId))
+            onNavigateToAddPlayers = { clubId, clubName, ageGroupId, oldestBirthYear ->
+                navigator.navigate(
+                    if (createPlayersInAgeGroup) {
+                        Screen.CreatePlayers(clubId, clubName, ageGroupId, addToAgeGroup = true, oldestBirthYear = oldestBirthYear)
+                    } else {
+                        Screen.AddPlayersToAgeGroup(clubId, clubName, ageGroupId)
+                    }
+                )
             },
             onNavigateToAddStaff = { clubId, clubName, ageGroupId ->
                 navigator.navigate(Screen.AddStaffToAgeGroup(clubId, clubName, ageGroupId))
@@ -247,6 +257,8 @@ fun ScreenRegistry.sharedScreens(navigator: AppNavigator) {
             clubId = screen.clubId,
             clubName = screen.clubName,
             ageGroupId = screen.ageGroupId,
+            addToAgeGroup = screen.addToAgeGroup,
+            oldestBirthYear = screen.oldestBirthYear,
             onNavigateBack = {
                 navigator.popBackStack()
             },
