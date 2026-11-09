@@ -209,7 +209,6 @@
     <string name="wizard_join_younger">Join with %1$d (two years)</string>
     <string name="wizard_teams_question">How many teams in each age group?</string>
     <string name="wizard_teams_born">Born in %1$s · %2$d-a-side</string>
-    <string name="wizard_summary">SUMMARY</string>
     <plurals name="wizard_summary_age_groups">
         <item quantity="one">%1$d age group</item>
         <item quantity="other">%1$d age groups</item>
@@ -218,7 +217,6 @@
         <item quantity="one">%1$d team</item>
         <item quantity="other">%1$d teams</item>
     </plurals>
-    <string name="wizard_summary_note">Everything is created at once. If any part fails, nothing is saved.</string>
     <string name="wizard_back">Back</string>
     <string name="wizard_next">Next</string>
     <string name="wizard_creating">Creating…</string>

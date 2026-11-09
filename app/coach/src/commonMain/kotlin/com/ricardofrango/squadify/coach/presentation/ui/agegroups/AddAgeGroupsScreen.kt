@@ -91,7 +91,6 @@ import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.readBytes
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.coach.generated.resources.Res
@@ -122,9 +121,7 @@ import squadify.app.coach.generated.resources.wizard_step_age_groups
 import squadify.app.coach.generated.resources.wizard_step_club
 import squadify.app.coach.generated.resources.wizard_step_of
 import squadify.app.coach.generated.resources.wizard_step_teams
-import squadify.app.coach.generated.resources.wizard_summary
 import squadify.app.coach.generated.resources.wizard_summary_age_groups
-import squadify.app.coach.generated.resources.wizard_summary_note
 import squadify.app.coach.generated.resources.wizard_summary_teams
 import squadify.app.coach.generated.resources.wizard_team_size
 import squadify.app.coach.generated.resources.wizard_teams_born
@@ -504,16 +501,6 @@ private fun TeamsStep(state: AddAgeGroupsUiState, onTeamsChange: (Int, Int) -> U
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PitchGreen.copy(alpha = 0.08f)).padding(horizontal = 10.dp, vertical = 6.dp)
             )
         }
-    }
-    SectionCard {
-        Text(stringResource(Res.string.wizard_summary), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = CarbonGray.copy(alpha = 0.7f))
-        Text(
-            "${pluralStringResource(Res.plurals.wizard_summary_age_groups, state.rows.size, state.rows.size)}, " +
-                pluralStringResource(Res.plurals.wizard_summary_teams, state.teamCount, state.teamCount),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = DeepCarbon
-        )
-        Text(stringResource(Res.string.wizard_summary_note), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.75f))
     }
 }
 

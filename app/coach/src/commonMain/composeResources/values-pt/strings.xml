@@ -209,7 +209,6 @@
     <string name="wizard_join_younger">Juntar com %1$d (dois anos)</string>
     <string name="wizard_teams_question">Quantas equipas em cada escalão?</string>
     <string name="wizard_teams_born">Nascidos em %1$s · %2$d em campo</string>
-    <string name="wizard_summary">RESUMO</string>
     <plurals name="wizard_summary_age_groups">
         <item quantity="one">%1$d escalão</item>
         <item quantity="other">%1$d escalões</item>
@@ -218,7 +217,6 @@
         <item quantity="one">%1$d equipa</item>
         <item quantity="other">%1$d equipas</item>
     </plurals>
-    <string name="wizard_summary_note">Tudo é criado de uma vez. Se alguma parte falhar, nada é guardado.</string>
     <string name="wizard_back">Anterior</string>
     <string name="wizard_next">Seguinte</string>
     <string name="wizard_creating">A criar…</string>
