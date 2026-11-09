@@ -27,46 +27,53 @@ jobs:
       - id: apps
         run: python3 .github/scripts/android_apps_changed.py ${{ github.event.before }} ${{ github.sha }} | tee -a "$GITHUB_OUTPUT"
 
-  test:
-    needs: changes
-    if: needs.changes.outputs.clubs == 'true'
-    runs-on: ubuntu-latest
-    # ApplicationTest boots the real Application.module(), which unconditionally connects to Postgres
-    # via DatabaseFactory.init() -- matches docker-compose.yml's local dev credentials exactly, so
-    # ServerConfig's DEV fallbacks (no APP_ENV set) connect with zero extra env vars needed.
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: squadify_dev
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d squadify_dev"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-      - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew :server:core:test :server:data:test :server:web:test :server:clubs:test :server:coach:test --no-daemon
+  # OFF to save GitHub Actions minutes (the developer, 2026-11-09: the 2,000 a month ran out). The PR's
+  # checks (pr-checks.yml) already ran these tests (and more) on the same code before the merge. To turn it back on, uncomment
+  # it and put it back in the distribute job's `needs`.
+  # test:
+  #   needs: changes
+  #   if: needs.changes.outputs.clubs == 'true'
+  #   runs-on: ubuntu-latest
+  #   # ApplicationTest boots the real Application.module(), which unconditionally connects to Postgres
+  #   # via DatabaseFactory.init() -- matches docker-compose.yml's local dev credentials exactly, so
+  #   # ServerConfig's DEV fallbacks (no APP_ENV set) connect with zero extra env vars needed.
+  #   services:
+  #     postgres:
+  #       image: postgres:16-alpine
+  #       env:
+  #         POSTGRES_USER: postgres
+  #         POSTGRES_PASSWORD: postgres
+  #         POSTGRES_DB: squadify_dev
+  #       ports:
+  #         - 5432:5432
+  #       options: >-
+  #         --health-cmd "pg_isready -U postgres -d squadify_dev"
+  #         --health-interval 5s
+  #         --health-timeout 5s
+  #         --health-retries 10
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-java@v4
+  #       with:
+  #         distribution: temurin
+  #         java-version: "21"
+  #     - uses: gradle/actions/setup-gradle@v6
+  #     - run: ./gradlew :server:core:test :server:data:test :server:web:test :server:clubs:test :server:coach:test --no-daemon
 
-  # The release build opened on an emulator first: one that crashes on start never reaches testers.
-  release-check:
-    needs: changes
-    if: needs.changes.outputs.clubs == 'true'
-    uses: ./.github/workflows/android-release-check.yml
-    with:
-      app: clubs
+  # OFF to save GitHub Actions minutes (the developer, 2026-11-09: the 2,000 a month ran out). The PR's
+  # checks (pr-checks.yml) already ran this on the same code before the merge. To turn it back on, uncomment
+  # it and put it back in the distribute job's `needs`.
+  # # The release build opened on an emulator first: one that crashes on start never reaches testers.
+  # release-check:
+  #   needs: changes
+  #   if: needs.changes.outputs.clubs == 'true'
+  #   uses: ./.github/workflows/android-release-check.yml
+  #   with:
+  #     app: clubs
 
   firebase-distribute-android-staging:
-    needs: [changes, test, release-check]
+    # needs: [changes, test, release-check]  (test and release-check are off, see above)
+    needs: changes
     if: needs.changes.outputs.clubs == 'true'
     runs-on: ubuntu-latest
     steps:
