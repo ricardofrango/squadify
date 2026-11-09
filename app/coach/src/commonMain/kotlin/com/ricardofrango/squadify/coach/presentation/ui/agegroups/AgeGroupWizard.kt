@@ -1,7 +1,6 @@
 package com.ricardofrango.squadify.coach.presentation.ui.agegroups
 
 import com.ricardofrango.squadify.model.AgeGroup
-import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.ageGroupClubName
 import com.ricardofrango.squadify.model.birthYearsOverlap
 import kotlinx.datetime.LocalDate
@@ -17,25 +16,8 @@ fun seasonEndYear(today: LocalDate): Int = if (today.month.ordinal >= 6) today.y
 /** "Sub 11": the age reached in the season's last year by the oldest born in [oldestYear]. */
 fun subName(seasonEndYear: Int, oldestYear: Int): String = "Sub ${seasonEndYear - oldestYear}"
 
-/** The birth years the wizard offers, youngest first: Sub 5 to Sub 19 of the season. */
-fun wizardYears(seasonEndYear: Int): List<Int> = ((seasonEndYear - 5) downTo (seasonEndYear - 19)).toList()
-
-/**
- * The a-side size an age group usually plays at its age, of the ones its sport has: futsal 5; football 5
- * to Sub 7, 7 to Sub 11, 9 to Sub 13, 11 after.
- */
-fun defaultTeamSize(sport: SportType, sub: Int): Int {
-    val usual = when (sport) {
-        SportType.FUTSAL -> 5
-        SportType.FOOTBALL -> when {
-            sub <= 7 -> 5
-            sub <= 11 -> 7
-            sub <= 13 -> 9
-            else -> 11
-        }
-    }
-    return usual.takeIf { it in sport.teamSizes } ?: sport.teamSizes.last()
-}
+/** The birth years an age group can have: Sub 5 to Sub 19 of the season. */
+fun wizardYearRange(seasonEndYear: Int): IntRange = (seasonEndYear - 19)..(seasonEndYear - 5)
 
 /**
  * Whether [clubName] already has an age group this season ([seasonId]) sharing a year with
@@ -48,15 +30,25 @@ fun clubHasYears(existing: List<AgeGroup>, seasonId: String?, clubName: String, 
             birthYearsOverlap(startYear, oldestYear, it.startYear, it.endYear)
     }
 
-/** One age group picked in the wizard: its birth years (two in futsal when [joinYounger]), a-side size and teams. */
-data class PickedAgeGroup(
-    val oldestYear: Int,
-    val teamSize: Int,
+/**
+ * One age group being filled in, one box each: the birth year as typed ([yearText]), the a-side size (none
+ * until picked), in futsal whether it joins the next younger year, and how many teams.
+ */
+data class AgeGroupRow(
+    val key: Int,
+    val yearText: String = "",
+    val teamSize: Int? = null,
     val joinYounger: Boolean = false,
     val teams: Int = 1
 ) {
-    val startYear: Int get() = if (joinYounger) oldestYear + 1 else oldestYear
+    /** The oldest birth year, once four digits are typed. */
+    val oldestYear: Int? get() = yearText.takeIf { it.length == 4 }?.toIntOrNull()
+
+    val startYear: Int? get() = oldestYear?.let { if (joinYounger) it + 1 else it }
 }
+
+/** What's wrong with a box, shown under it. */
+enum class RowProblem { YEAR_MISSING, YEAR_OUT_OF_RANGE, YEAR_REPEATED, YEAR_TAKEN, SIZE_MISSING }
 
 /** The teams' names: "A", "B"… */
 fun teamNames(count: Int): List<String> = (0 until count).map { ('A' + it).toString() }

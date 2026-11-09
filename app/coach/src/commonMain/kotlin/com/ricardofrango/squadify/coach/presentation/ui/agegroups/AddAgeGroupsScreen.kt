@@ -1,5 +1,16 @@
 package com.ricardofrango.squadify.coach.presentation.ui.agegroups
 
+import squadify.app.shared.generated.resources.ic_add
+import squadify.app.coach.generated.resources.wizard_add_age_group
+import squadify.app.coach.generated.resources.wizard_size_missing
+import squadify.app.coach.generated.resources.wizard_year_taken_error
+import squadify.app.coach.generated.resources.wizard_year_repeated
+import squadify.app.coach.generated.resources.wizard_year_range
+import squadify.app.coach.generated.resources.wizard_year_missing
+import squadify.app.coach.generated.resources.wizard_birth_year_placeholder
+import squadify.app.coach.generated.resources.wizard_birth_year
+import squadify.app.coach.generated.resources.wizard_remove
+import squadify.app.coach.generated.resources.wizard_age_group_n
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,10 +32,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -72,7 +80,6 @@ import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.readableWidth
-import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -106,7 +113,6 @@ import squadify.app.coach.generated.resources.wizard_football
 import squadify.app.coach.generated.resources.wizard_join_younger
 import squadify.app.coach.generated.resources.wizard_next
 import squadify.app.coach.generated.resources.wizard_pick_by_year
-import squadify.app.coach.generated.resources.wizard_pick_one
 import squadify.app.coach.generated.resources.wizard_problem_crest_too_big
 import squadify.app.coach.generated.resources.wizard_problem_failed
 import squadify.app.coach.generated.resources.wizard_problem_plan
@@ -125,7 +131,6 @@ import squadify.app.coach.generated.resources.wizard_teams_born
 import squadify.app.coach.generated.resources.wizard_teams_question
 import squadify.app.coach.generated.resources.wizard_title
 import squadify.app.coach.generated.resources.wizard_used_clubs
-import squadify.app.coach.generated.resources.wizard_year_taken
 import squadify.app.coach.generated.resources.msg_wizard_failed_to_load
 import squadify.app.shared.generated.resources.ic_close
 import squadify.app.shared.generated.resources.label_back
@@ -170,7 +175,9 @@ fun AddAgeGroupsScreen(
         onCrestPicked = viewModel::onCrestPicked,
         onUsedClubPicked = viewModel::onUsedClubPicked,
         onSportChange = viewModel::onSportChange,
-        onYearToggled = viewModel::onYearToggled,
+        onAddRow = viewModel::onAddRow,
+        onRemoveRow = viewModel::onRemoveRow,
+        onYearChange = viewModel::onYearChange,
         onTeamSizeChange = viewModel::onTeamSizeChange,
         onJoinYoungerChange = viewModel::onJoinYoungerChange,
         onTeamsChange = viewModel::onTeamsChange,
@@ -189,7 +196,9 @@ private fun AddAgeGroupsContent(
     onCrestPicked: (ByteArray) -> Unit,
     onUsedClubPicked: (SpaceClub) -> Unit,
     onSportChange: (SportType) -> Unit,
-    onYearToggled: (Int) -> Unit,
+    onAddRow: () -> Unit,
+    onRemoveRow: (Int) -> Unit,
+    onYearChange: (Int, String) -> Unit,
     onTeamSizeChange: (Int, Int) -> Unit,
     onJoinYoungerChange: (Int, Boolean) -> Unit,
     onTeamsChange: (Int, Int) -> Unit,
@@ -228,7 +237,7 @@ private fun AddAgeGroupsContent(
                     ) {
                         when (state.step) {
                             0 -> ClubStep(state, onClubNameChange, onCrestPicked, onUsedClubPicked)
-                            1 -> AgeGroupsStep(state, onSportChange, onYearToggled, onTeamSizeChange, onJoinYoungerChange)
+                            1 -> AgeGroupsStep(state, onSportChange, onAddRow, onRemoveRow, onYearChange, onTeamSizeChange, onJoinYoungerChange)
                             else -> TeamsStep(state, onTeamsChange)
                         }
                     }
@@ -353,7 +362,9 @@ private fun CrestPreview(state: AddAgeGroupsUiState, size: Int) {
 private fun AgeGroupsStep(
     state: AddAgeGroupsUiState,
     onSportChange: (SportType) -> Unit,
-    onYearToggled: (Int) -> Unit,
+    onAddRow: () -> Unit,
+    onRemoveRow: (Int) -> Unit,
+    onYearChange: (Int, String) -> Unit,
     onTeamSizeChange: (Int, Int) -> Unit,
     onJoinYoungerChange: (Int, Boolean) -> Unit
 ) {
@@ -383,79 +394,86 @@ private fun AgeGroupsStep(
             shorten = false
         )
     }
-    // The plan has room for no more than the ones picked: the same box as everywhere a plan stops.
-    val plan = state.plan
-    if (plan != null && !state.canPickMore) AgeGroupsNotInPlanNotice(plan)
-    if (state.showErrors && state.picked.isEmpty()) {
-        Text(stringResource(Res.string.wizard_pick_one), style = MaterialTheme.typography.bodySmall, color = AlertRed)
+    state.rows.forEachIndexed { index, row ->
+        AgeGroupBox(
+            state = state,
+            row = row,
+            number = index + 1,
+            onRemove = { onRemoveRow(row.key) }.takeIf { state.rows.size > 1 },
+            onYearChange = { onYearChange(row.key, it) },
+            onTeamSizeChange = { onTeamSizeChange(row.key, it) },
+            onJoinYoungerChange = { onJoinYoungerChange(row.key, it) }
+        )
     }
-    SectionCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-        wizardYears(state.seasonEndYear).forEachIndexed { index, year ->
-            if (index > 0) HorizontalDivider(color = CarbonGray.copy(alpha = 0.06f))
-            YearRow(state, year, onYearToggled, onTeamSizeChange, onJoinYoungerChange)
-        }
+    // Another age group while the plan has room; when it hasn't, the same box as everywhere a plan stops.
+    val plan = state.plan
+    if (state.canAddRow) {
+        SecondaryButton(stringResource(Res.string.wizard_add_age_group), onClick = onAddRow, icon = SharedRes.drawable.ic_add)
+    } else if (plan != null) {
+        AgeGroupsNotInPlanNotice(plan)
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * One age group to create: its birth year typed in, then its name ("2016 · Povoense - Sub 11"), how many
+ * players on the pitch (none until picked) and in futsal joining the next younger year. What's wrong shows
+ * under it once Seguinte was tried. Removable when there's more than one.
+ */
 @Composable
-private fun YearRow(
+private fun AgeGroupBox(
     state: AddAgeGroupsUiState,
-    year: Int,
-    onYearToggled: (Int) -> Unit,
-    onTeamSizeChange: (Int, Int) -> Unit,
-    onJoinYoungerChange: (Int, Boolean) -> Unit
+    row: AgeGroupRow,
+    number: Int,
+    onRemove: (() -> Unit)?,
+    onYearChange: (String) -> Unit,
+    onTeamSizeChange: (Int) -> Unit,
+    onJoinYoungerChange: (Boolean) -> Unit
 ) {
-    val picked = state.picked.firstOrNull { it.oldestYear == year }
-    val taken = state.yearsTaken(year)
-    val enabled = picked != null || (!taken && state.canPickMore)
-    val name = ageGroupNameFor(state.clubName.ifBlank { "?" }, subName(state.seasonEndYear, year))
-    val flagged = year in state.takenYears
-    Column(
-        Modifier.fillMaxWidth()
-            .background(if (picked != null) PitchGreen.copy(alpha = 0.05f) else Color.Transparent)
-            .then(if (flagged) Modifier.border(BorderStroke(1.dp, AlertRed)) else Modifier)
-            .alpha(if (enabled) 1f else 0.45f)
-            .clickable(enabled = enabled) { onYearToggled(year) }
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
+    val problem = state.problemOf(row).takeIf { state.showErrors }
+    val oldest = row.oldestYear
+    SectionCard(spacing = 10.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                checked = picked != null,
-                onCheckedChange = { onYearToggled(year) },
-                enabled = enabled,
-                colors = CheckboxDefaults.colors(checkedColor = PitchGreen)
-            )
-            val years = if (picked?.joinYounger == true) "$year–${year + 1}" else year.toString()
-            Text("$years · ", style = MaterialTheme.typography.bodyMedium, color = CarbonGray.copy(alpha = 0.8f))
-            Text(name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (picked != null) FontWeight.Bold else FontWeight.Normal), color = DeepCarbon, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (taken) {
-                Text(
-                    stringResource(Res.string.wizard_year_taken),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = CarbonGray,
-                    modifier = Modifier.clip(RoundedCornerShape(50)).background(CarbonGray.copy(alpha = 0.08f)).padding(horizontal = 8.dp, vertical = 2.dp)
-                )
+            Text(stringResource(Res.string.wizard_age_group_n, number), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = CarbonGray.copy(alpha = 0.7f), modifier = Modifier.weight(1f))
+            if (onRemove != null) {
+                IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
+                    Icon(painterResource(SharedRes.drawable.ic_close), stringResource(Res.string.wizard_remove), tint = CarbonGray.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
+                }
             }
         }
-        if (picked != null) {
-            Column(Modifier.padding(start = 48.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(Res.string.wizard_team_size), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.75f))
-                TeamSizeSelector(options = state.sport.teamSizes, selected = picked.teamSize, onSelected = { onTeamSizeChange(year, it) })
-            }
-            // Futsal joins two consecutive years when there aren't enough players for one.
-            if (state.sport == SportType.FUTSAL) {
-                val canJoin = picked.joinYounger || !state.yearsTaken(year, startYear = year + 1)
-                Row(Modifier.padding(start = 48.dp, bottom = 4.dp).alpha(if (canJoin) 1f else 0.45f), verticalAlignment = Alignment.CenterVertically) {
-                    Switch(
-                        checked = picked.joinYounger,
-                        onCheckedChange = { onJoinYoungerChange(year, it) },
-                        enabled = canJoin,
-                        colors = SwitchDefaults.colors(checkedTrackColor = PitchGreen)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(Res.string.wizard_join_younger, year + 1), style = MaterialTheme.typography.bodySmall, color = DeepCarbon)
+        val yearProblem = problem?.takeIf { it != RowProblem.SIZE_MISSING }
+        FormTextField(
+            value = row.yearText,
+            onValueChange = onYearChange,
+            label = stringResource(Res.string.wizard_birth_year),
+            placeholder = stringResource(Res.string.wizard_birth_year_placeholder),
+            enabled = !state.submitting,
+            keyboardType = KeyboardType.Number,
+            isError = yearProblem != null,
+            supporting = when (yearProblem) {
+                RowProblem.YEAR_MISSING -> stringResource(Res.string.wizard_year_missing)
+                RowProblem.YEAR_OUT_OF_RANGE -> wizardYearRange(state.seasonEndYear).let { stringResource(Res.string.wizard_year_range, it.first, it.last) }
+                RowProblem.YEAR_REPEATED -> stringResource(Res.string.wizard_year_repeated)
+                RowProblem.YEAR_TAKEN -> stringResource(Res.string.wizard_year_taken_error)
+                else -> oldest?.takeIf { it in wizardYearRange(state.seasonEndYear) }?.let {
+                    val years = if (row.joinYounger) "$it–${it + 1}" else it.toString()
+                    "$years · " + ageGroupNameFor(state.clubName, subName(state.seasonEndYear, it))
                 }
+            },
+            imeAction = ImeAction.Done
+        )
+        Text(stringResource(Res.string.wizard_team_size), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.75f))
+        TeamSizeSelector(options = state.sport.teamSizes, selected = row.teamSize, onSelected = onTeamSizeChange)
+        if (problem == RowProblem.SIZE_MISSING) FormErrorLine(stringResource(Res.string.wizard_size_missing))
+        // Futsal joins two consecutive years when there aren't enough players for one.
+        if (state.sport == SportType.FUTSAL && oldest != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(
+                    checked = row.joinYounger,
+                    onCheckedChange = onJoinYoungerChange,
+                    colors = SwitchDefaults.colors(checkedTrackColor = PitchGreen)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.wizard_join_younger, oldest + 1), style = MaterialTheme.typography.bodySmall, color = DeepCarbon)
             }
         }
     }
@@ -464,22 +482,23 @@ private fun YearRow(
 @Composable
 private fun TeamsStep(state: AddAgeGroupsUiState, onTeamsChange: (Int, Int) -> Unit) {
     Text(stringResource(Res.string.wizard_teams_question), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-    state.picked.forEach { picked ->
-        val name = ageGroupNameFor(state.clubName, subName(state.seasonEndYear, picked.oldestYear))
-        val years = if (picked.joinYounger) "${picked.oldestYear}–${picked.startYear}" else picked.oldestYear.toString()
+    state.rows.forEach { row ->
+        val oldest = row.oldestYear ?: return@forEach
+        val name = ageGroupNameFor(state.clubName, subName(state.seasonEndYear, oldest))
+        val years = if (row.joinYounger) "$oldest–${oldest + 1}" else oldest.toString()
         SectionCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CrestPreview(state, size = 36)
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(name, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(stringResource(Res.string.wizard_teams_born, years, picked.teamSize), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.7f))
+                    Text(stringResource(Res.string.wizard_teams_born, years, row.teamSize ?: 0), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.7f))
                 }
-                CountStepper(picked.teams, onChange = { onTeamsChange(picked.oldestYear, it) }, min = 1, max = MAX_WIZARD_TEAMS)
+                CountStepper(row.teams, onChange = { onTeamsChange(row.key, it) }, min = 1, max = MAX_WIZARD_TEAMS)
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                "$name · ${teamNames(picked.teams).joinToString(", ")}",
+                "$name · ${teamNames(row.teams).joinToString(", ")}",
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = PitchGreen,
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PitchGreen.copy(alpha = 0.08f)).padding(horizontal = 10.dp, vertical = 6.dp)
@@ -489,7 +508,7 @@ private fun TeamsStep(state: AddAgeGroupsUiState, onTeamsChange: (Int, Int) -> U
     SectionCard {
         Text(stringResource(Res.string.wizard_summary), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = CarbonGray.copy(alpha = 0.7f))
         Text(
-            "${pluralStringResource(Res.plurals.wizard_summary_age_groups, state.picked.size, state.picked.size)}, " +
+            "${pluralStringResource(Res.plurals.wizard_summary_age_groups, state.rows.size, state.rows.size)}, " +
                 pluralStringResource(Res.plurals.wizard_summary_teams, state.teamCount, state.teamCount),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             color = DeepCarbon
@@ -537,19 +556,19 @@ private fun WizardButtons(state: AddAgeGroupsUiState, onBack: () -> Unit, onNext
 private fun previewState(step: Int) = AddAgeGroupsUiState(
     loading = false, step = step, spaceExists = true, sport = SportType.FOOTBALL, seasonName = "26/27", seasonEndYear = 2027,
     clubName = "Povoense", ageGroupsLeft = 3,
-    picked = listOf(PickedAgeGroup(2017, 7), PickedAgeGroup(2016, 7, teams = 3))
+    rows = listOf(AgeGroupRow(0, "2017", teamSize = 7), AgeGroupRow(1, "2016", teams = 3))
 )
 
 @Composable
 private fun PreviewWizard(state: AddAgeGroupsUiState) {
     SquadifyTheme {
-        AddAgeGroupsContent(state, {}, {}, {}, {}, {}, {}, {}, { _, _ -> }, { _, _ -> }, { _, _ -> }, {}, {}, {})
+        AddAgeGroupsContent(state, {}, {}, {}, {}, {}, {}, {}, {}, { _, _ -> }, { _, _ -> }, { _, _ -> }, { _, _ -> }, {}, {}, {})
     }
 }
 
 @Preview
 @Composable
-private fun WizardClubPreview() = PreviewWizard(previewState(0).copy(clubName = "", picked = emptyList()))
+private fun WizardClubPreview() = PreviewWizard(previewState(0).copy(clubName = "", rows = listOf(AgeGroupRow(0))))
 
 @Preview
 @Composable

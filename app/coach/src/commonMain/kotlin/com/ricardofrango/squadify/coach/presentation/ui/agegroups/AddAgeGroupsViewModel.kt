@@ -15,6 +15,7 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.NewAgeGroup
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SportType
+import com.ricardofrango.squadify.model.birthYearsOverlap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,12 +55,13 @@ data class AddAgeGroupsUiState(
     // The picked image, or the path of a crest the space already uses (an earlier age group's).
     val crest: ByteArray? = null,
     val crestPath: String? = null,
-    val picked: List<PickedAgeGroup> = emptyList(),
+    // One box per age group, starting with an empty one.
+    val rows: List<AgeGroupRow> = listOf(AgeGroupRow(key = 0)),
     val showErrors: Boolean = false,
     val submitting: Boolean = false,
     val problem: WizardProblem? = null,
-    // The oldest years of the picked age groups the server said the club already has.
-    val takenYears: Set<Int> = emptySet()
+    // The boxes the server said the club already has (their keys).
+    val takenRows: Set<Int> = emptySet()
 ) {
     val usedClubs: List<SpaceClub>
         get() = existing.mapNotNull { ageGroup -> clubNameOf(ageGroup)?.let { it to ageGroup.logoUrl } }
@@ -69,14 +71,29 @@ data class AddAgeGroupsUiState(
 
     val clubNameValid: Boolean get() = clubName.isNotBlank() && AGE_GROUP_CLUB_SEPARATOR !in clubName.trim()
 
-    /** Whether more age groups can be picked: the plan's room this season, when it has a limit. */
-    val canPickMore: Boolean get() = ageGroupsLeft == null || picked.size < ageGroupsLeft
+    /** Whether another box can be added: the plan's room this season, when it has a limit. */
+    val canAddRow: Boolean get() = ageGroupsLeft == null || rows.size < ageGroupsLeft
 
-    val teamCount: Int get() = picked.sumOf { it.teams }
+    val teamCount: Int get() = rows.sumOf { it.teams }
 
-    /** Whether the club already has an age group sharing these years this season. */
-    fun yearsTaken(oldestYear: Int, startYear: Int = oldestYear): Boolean =
-        clubHasYears(existing, seasonId, clubName, startYear, oldestYear)
+    /** What's wrong with [row], or null: a year of Sub 5 to Sub 19, in no other box, the club's not already; a size. */
+    fun problemOf(row: AgeGroupRow): RowProblem? {
+        val oldest = row.oldestYear
+        val start = row.startYear
+        return when {
+            oldest == null || start == null -> RowProblem.YEAR_MISSING
+            oldest !in wizardYearRange(seasonEndYear) -> RowProblem.YEAR_OUT_OF_RANGE
+            rows.takeWhile { it.key != row.key }.any { other ->
+                val otherOldest = other.oldestYear ?: return@any false
+                birthYearsOverlap(start, oldest, other.startYear ?: otherOldest, otherOldest)
+            } -> RowProblem.YEAR_REPEATED
+            row.key in takenRows || clubHasYears(existing, seasonId, clubName, start, oldest) -> RowProblem.YEAR_TAKEN
+            row.teamSize == null -> RowProblem.SIZE_MISSING
+            else -> null
+        }
+    }
+
+    val rowsValid: Boolean get() = rows.isNotEmpty() && rows.all { problemOf(it) == null }
 }
 
 sealed class AddAgeGroupsEvent {
@@ -131,7 +148,7 @@ class AddAgeGroupsViewModel(
         }
     }
 
-    fun onClubNameChange(name: String) = _state.update { it.copy(clubName = name, problem = null, takenYears = emptySet()) }
+    fun onClubNameChange(name: String) = _state.update { it.copy(clubName = name, problem = null, takenRows = emptySet()) }
 
     fun onCrestPicked(bytes: ByteArray) = _state.update {
         if (bytes.size > MAX_CREST_BYTES) it.copy(problem = WizardProblem.CREST_TOO_BIG)
@@ -139,41 +156,42 @@ class AddAgeGroupsViewModel(
     }
 
     /** A club the space already uses: its name and crest. */
-    fun onUsedClubPicked(club: SpaceClub) = _state.update { it.copy(clubName = club.name, crest = null, crestPath = club.logoUrl, problem = null, takenYears = emptySet()) }
+    fun onUsedClubPicked(club: SpaceClub) = _state.update { it.copy(clubName = club.name, crest = null, crestPath = club.logoUrl, problem = null, takenRows = emptySet()) }
 
+    /** A new space's sport: the sizes picked so far are the other sport's, so they're picked again. */
     fun onSportChange(sport: SportType) = _state.update { state ->
-        if (state.spaceExists) state
-        else state.copy(sport = sport, picked = state.picked.map { it.copy(teamSize = defaultTeamSize(sport, state.seasonEndYear - it.oldestYear), joinYounger = false) })
+        if (state.spaceExists || sport == state.sport) state
+        else state.copy(sport = sport, rows = state.rows.map { it.copy(teamSize = null, joinYounger = false) })
     }
 
-    /** Picks or unpicks the age group born in [oldestYear]. */
-    fun onYearToggled(oldestYear: Int) = _state.update { state ->
-        val picked = state.picked.firstOrNull { it.oldestYear == oldestYear }
-        when {
-            picked != null -> state.copy(picked = state.picked - picked, problem = null, takenYears = state.takenYears - oldestYear)
-            !state.canPickMore || state.yearsTaken(oldestYear) -> state
-            else -> state.copy(
-                picked = (state.picked + PickedAgeGroup(oldestYear, defaultTeamSize(state.sport, state.seasonEndYear - oldestYear))).sortedByDescending { it.oldestYear },
-                problem = null
-            )
-        }
+    /** Another box, empty, while the plan has room. */
+    fun onAddRow() = _state.update { state ->
+        if (!state.canAddRow) state
+        else state.copy(rows = state.rows + AgeGroupRow(key = (state.rows.maxOfOrNull { it.key } ?: -1) + 1), showErrors = false, problem = null)
     }
 
-    fun onTeamSizeChange(oldestYear: Int, teamSize: Int) = updatePicked(oldestYear) { it.copy(teamSize = teamSize) }
+    fun onRemoveRow(key: Int) = _state.update { state ->
+        if (state.rows.size <= 1) state else state.copy(rows = state.rows.filterNot { it.key == key }, takenRows = state.takenRows - key, problem = null)
+    }
+
+    /** The birth year as typed: digits only, four at most. */
+    fun onYearChange(key: Int, text: String) = updateRow(key) { it.copy(yearText = text.filter(Char::isDigit).take(4)) }
+
+    fun onTeamSizeChange(key: Int, teamSize: Int) = updateRow(key) { it.copy(teamSize = teamSize) }
 
     /** Futsal: the age group takes the next younger year too. */
-    fun onJoinYoungerChange(oldestYear: Int, join: Boolean) = updatePicked(oldestYear) { it.copy(joinYounger = join) }
+    fun onJoinYoungerChange(key: Int, join: Boolean) = updateRow(key) { it.copy(joinYounger = join) }
 
-    fun onTeamsChange(oldestYear: Int, teams: Int) = updatePicked(oldestYear) { it.copy(teams = teams.coerceIn(1, MAX_WIZARD_TEAMS)) }
+    fun onTeamsChange(key: Int, teams: Int) = updateRow(key) { it.copy(teams = teams.coerceIn(1, MAX_WIZARD_TEAMS)) }
 
-    private fun updatePicked(oldestYear: Int, change: (PickedAgeGroup) -> PickedAgeGroup) = _state.update { state ->
-        state.copy(picked = state.picked.map { if (it.oldestYear == oldestYear) change(it) else it }, problem = null)
+    private fun updateRow(key: Int, change: (AgeGroupRow) -> AgeGroupRow) = _state.update { state ->
+        state.copy(rows = state.rows.map { if (it.key == key) change(it) else it }, takenRows = state.takenRows - key, problem = null)
     }
 
     fun onNext() = _state.update { state ->
         val valid = when (state.step) {
             0 -> state.clubNameValid
-            1 -> state.picked.isNotEmpty()
+            1 -> state.rowsValid
             else -> true
         }
         if (valid) state.copy(step = state.step + 1, showErrors = false, problem = null) else state.copy(showErrors = true)
@@ -183,13 +201,14 @@ class AddAgeGroupsViewModel(
 
     fun onCreate() {
         val state = _state.value
-        if (state.submitting || state.picked.isEmpty() || !state.clubNameValid) return
+        if (state.submitting || !state.rowsValid || !state.clubNameValid) return
         viewModelScope.launch {
             _state.update { it.copy(submitting = true, problem = null) }
             val request = AddAgeGroupsRequest(
                 clubName = state.clubName.trim(),
-                ageGroups = state.picked.map {
-                    NewAgeGroup(subName(state.seasonEndYear, it.oldestYear), it.startYear, it.oldestYear, it.teamSize, it.teams)
+                ageGroups = state.rows.map {
+                    val oldest = it.oldestYear!!
+                    NewAgeGroup(subName(state.seasonEndYear, oldest), it.startYear!!, oldest, it.teamSize, it.teams)
                 },
                 spaceName = state.spaceName.takeUnless { state.spaceExists },
                 sport = state.sport.takeUnless { state.spaceExists }
@@ -206,8 +225,8 @@ class AddAgeGroupsViewModel(
                     when {
                         e.code == PLAN_LIMIT -> it.copy(submitting = false, problem = WizardProblem.PLAN_LIMIT)
                         e.statusCode == 409 -> it.copy(
-                            submitting = false, step = 1, problem = WizardProblem.YEARS_TAKEN,
-                            takenYears = e.rows.orEmpty().mapNotNull { row -> state.picked.getOrNull(row)?.oldestYear }.toSet()
+                            submitting = false, step = 1, problem = WizardProblem.YEARS_TAKEN, showErrors = true,
+                            takenRows = e.rows.orEmpty().mapNotNull { row -> state.rows.getOrNull(row)?.key }.toSet()
                         )
                         else -> it.copy(submitting = false, problem = WizardProblem.FAILED)
                     }
