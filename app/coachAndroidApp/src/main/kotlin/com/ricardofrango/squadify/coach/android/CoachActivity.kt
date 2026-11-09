@@ -10,6 +10,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.ricardofrango.squadify.presentation.ui.splash.LaunchSplash
+import android.os.SystemClock
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -21,6 +24,18 @@ class CoachActivity : ComponentActivity(), KoinComponent {
     private val pushLinkInbox: PushLinkInbox by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // One splash, the system's: it stays until the app's own splash (the session check) has gone,
+        // so the app opens straight onto Login or Home. Not after a rotation or a process restore, which
+        // don't start at the splash; and never longer than the session check's HTTP timeout (15s) and a
+        // margin, whatever happens.
+        val splash = installSplashScreen()
+        if (savedInstanceState == null) {
+            LaunchSplash.start()
+            val until = SystemClock.uptimeMillis() + SPLASH_LIMIT_MILLIS
+            splash.setKeepOnScreenCondition {
+                LaunchSplash.isShowing.value && SystemClock.uptimeMillis() < until
+            }
+        }
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // A tapped notification's link; not after a rotation or process restore (the same intent).
@@ -41,3 +56,5 @@ class CoachActivity : ComponentActivity(), KoinComponent {
         PushNotifications.takePushLink(intent, pushLinkInbox)
     }
 }
+
+private const val SPLASH_LIMIT_MILLIS = 20_000L

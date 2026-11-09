@@ -9,6 +9,7 @@ import coil3.network.ktor3.KtorNetworkFetcherFactory
 import com.ricardofrango.squadify.coach.presentation.navigation.CoachNavigation
 import com.ricardofrango.squadify.presentation.navigation.LocalAppNavigator
 import com.ricardofrango.squadify.presentation.navigation.rememberAppNavigator
+import com.ricardofrango.squadify.presentation.ui.components.LocalMarkOnTile
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import io.ktor.client.HttpClient
 import org.koin.compose.koinInject
@@ -28,7 +29,8 @@ fun CoachApp() {
         val navigator = rememberAppNavigator()
         // The consent form, once a space has ads, then the ads SDK (Android).
         AdsConsentEffect()
-        CompositionLocalProvider(LocalAppNavigator provides navigator) {
+        // The mark on the splash and login stands on a white tile, as on the launch splash and the icon.
+        CompositionLocalProvider(LocalAppNavigator provides navigator, LocalMarkOnTile provides true) {
             CoachNavigation(navigator)
         }
     }
