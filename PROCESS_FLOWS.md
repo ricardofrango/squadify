@@ -2846,6 +2846,133 @@ erDiagram
 
 ---
 
+### 12.6 The coach database (Squadify for Coaches)
+
+The coach server has its own Postgres database (`squadify_coach_dev` locally, its own service on Railway), created by its own migrations, `server/coach/src/main/resources/db/migration/` (`V1__shared_tables.sql` to `V10__…`). It reuses the clubs' tables for accounts, structure, games and training (`sharedTables` in `Tables.kt`, `TECHNICAL_DECISIONS.md` §72) and adds four of its own. As checked against both local databases on 2026-11-09:
+
+| Tables | Clubs database | Coach database |
+|---|---|---|
+| Accounts: `users`, `refresh_tokens`, `password_reset_codes`, `email_change_codes`, `fcm_tokens` | yes | yes |
+| `clubs`, `club_members` | a club and its members | **the coach's space** and who's in it (the owner as `CLUB_ADMIN`, staff as `MEMBER`) |
+| Structure: `seasons`, `age_groups`, `teams`, `players`, `age_group_players`, `age_group_staff`, `opponents` | yes | yes, every `club_id` being the space's id |
+| Games: `matches`, `match_call_ups`, `match_events`, `match_lineup_changes`, `match_player_stats`, `match_reports` | yes | yes |
+| Training: `training_plans`, `training_sessions`, `training_exercises`, `training_session_exercises`, `training_ratings` | yes | yes |
+| `club_permission_overrides`, `invites`, `user_players` | yes | no (no configurable permissions, no email invites, no parent accounts) |
+| `space_plans`, `plan_requests`, `staff_invites`, `store_subscriptions` | no | yes (plans, payments, staff join codes) |
+
+**`clubs` is the space.** It's a `clubs` row because the tables and the server code that reads them (`server/core`) are shared with the clubs server; the coach app never shows it as a club. Of its columns the coach app uses `name`, `logo_url` and `sport` (the space's name, crest and sport, shown as "our" side of a game); the rest (`short_name`, `email`, `phone`, `address`, `stadium_location`, `country`, the theme colours) stay empty or at their defaults. Everything a coach records hangs off it: age groups, players, teams, games and **opponents are the space's** (`opponents.club_id` = the space).
+
+```mermaid
+erDiagram
+    USERS ||--o{ CLUB_MEMBERS : "is in"
+    CLUBS ||--o{ CLUB_MEMBERS : "has (owner + staff)"
+    CLUBS ||--o| SPACE_PLANS : "is on"
+    CLUBS ||--o| PLAN_REQUESTS : "asked for"
+    CLUBS ||--o{ STORE_SUBSCRIPTIONS : "paid by"
+    USERS ||--o{ STORE_SUBSCRIPTIONS : buys
+    CLUBS ||--o{ SEASONS : runs
+    CLUBS ||--o{ AGE_GROUPS : owns
+    SEASONS ||--o{ AGE_GROUPS : scopes
+    AGE_GROUPS ||--o{ TEAMS : has
+    AGE_GROUPS ||--o{ AGE_GROUP_STAFF : "coached by"
+    USERS ||--o{ AGE_GROUP_STAFF : coaches
+    AGE_GROUPS ||--o{ STAFF_INVITES : "join codes"
+    CLUBS ||--o{ PLAYERS : owns
+    AGE_GROUPS ||--o{ AGE_GROUP_PLAYERS : pool
+    PLAYERS ||--o{ AGE_GROUP_PLAYERS : "is in"
+    CLUBS ||--o{ OPPONENTS : owns
+    CLUBS ||--o{ MATCHES : owns
+    TEAMS ||--o{ MATCHES : plays
+    OPPONENTS ||--o{ MATCHES : against
+    MATCHES ||--o{ MATCH_CALL_UPS : "calls up"
+    MATCHES ||--o{ MATCH_EVENTS : records
+    MATCHES ||--o{ MATCH_LINEUP_CHANGES : "lineup saves"
+    MATCHES ||--o{ MATCH_PLAYER_STATS : "per player"
+    MATCHES ||--o| MATCH_REPORTS : "after the game"
+    AGE_GROUPS ||--o{ TRAINING_PLANS : plans
+    AGE_GROUPS ||--o{ TRAINING_SESSIONS : trains
+    AGE_GROUPS ||--o{ TRAINING_EXERCISES : library
+    TRAINING_SESSIONS ||--o{ TRAINING_SESSION_EXERCISES : uses
+    TRAINING_SESSIONS ||--o{ TRAINING_RATINGS : rates
+
+    CLUBS {
+        uuid id PK "the space's id"
+        string name "the space's name"
+        string logo_url "the space's crest"
+        string sport
+        string status
+    }
+    SPACE_PLANS {
+        uuid club_id PK
+        string plan "FREE, BASIC or PRO"
+        timestamp updated_at
+    }
+    PLAN_REQUESTS {
+        uuid club_id PK
+        string plan
+        uuid requested_by FK
+        timestamp requested_at
+    }
+    STORE_SUBSCRIPTIONS {
+        string purchase_token PK
+        uuid club_id FK
+        uuid user_id FK
+        string store
+        string product_id
+        string base_plan_id
+        string plan
+        boolean entitled
+        timestamp expires_at
+        string pending_plan
+        boolean test
+    }
+    STAFF_INVITES {
+        uuid id PK
+        string code
+        uuid age_group_id FK
+        uuid created_by FK
+        timestamp expires_at
+        uuid accepted_by FK
+        string sent_to "email, if sent by email"
+    }
+    AGE_GROUPS {
+        uuid id PK
+        uuid club_id FK "the space"
+        uuid season_id FK
+        string name
+        int start_year
+        int end_year "oldest birth year"
+        int team_size
+    }
+    TEAMS {
+        uuid id PK
+        uuid club_id FK "the space"
+        uuid age_group_id FK
+        uuid season_id FK
+        string name
+        int team_size
+    }
+    OPPONENTS {
+        uuid id PK
+        uuid club_id FK "the space"
+        string name
+        string short_name
+        string logo_url
+        string stadium_name
+    }
+    MATCHES {
+        uuid id PK
+        uuid club_id FK "the space"
+        uuid team_id FK
+        uuid opponent_id FK
+        uuid live_manager_user_id FK
+    }
+```
+
+The shared tables' columns are the clubs database's (§12.1), with the coach's migrations kept in step (e.g. `matches.live_manager_user_id`: the clubs' V34, the coach's V10).
+
+**Where to look at them:** this file on GitHub draws both diagrams (§12.1 the clubs database, §12.6 the coach one). The live tables: `psql -h localhost -U postgres -d squadify_dev` (clubs) or `-d squadify_coach_dev` (coach), then `\dt` for the tables and `\d <table>` for one's columns; or any Postgres client (TablePlus, DBeaver, IntelliJ's Database tool) on `localhost:5432`, user `postgres`.
+
 ## 13. Squadify for Coaches: the Space and its Access
 
 The coach server (`server/coach`, TECHNICAL_DECISIONS §72) runs the shared structure use cases (§4–§6, from `:server:core`) on its own database, with its own `AccessPolicy`. A coach's space is a `clubs` row; its owner is the `CLUB_ADMIN` member, staff are the other members, each on the age groups they're staff of (`age_group_staff`).
