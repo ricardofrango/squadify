@@ -625,19 +625,56 @@ Split across two mechanisms, deliberately not funneled entirely through GitHub A
   should be scoped to what it actually depends on (server: `server/clubs/**`, `server/core/**`, `server/data/**`, `server/web/**`, `common/**`, root build files, with its Dockerfile path `server/clubs/Dockerfile` (until 2026-10-29 `server/**` and `server/Dockerfile`);
   web: `app/webApp/**`, `app/shared/**`, `core/**`, root build files) so a change to the *other* client
   doesn't trigger an unnecessary redeploy of a service nothing in it actually changed.
-- **Android -> Firebase App Distribution, staging**: `.github/workflows/deploy-staging.yml`, triggered on
-  push to `develop`, scoped with a `paths` filter to what `app/androidApp`'s build actually depends on
-  (itself, `app/shared`, `core`, the version catalog/wrapper/root build files) -- added after the
-  developer noticed the workflow was rebuilding and redistributing an unchanged APK on every push
-  regardless of whether anything Android-relevant had changed. Railway has nothing to do with Android
-  builds, so this genuinely needs a real CI job -- runs `:server:clubs:test` as a gate, then
+- **Android -> Firebase App Distribution, staging**: one workflow per app, on push to `develop`:
+  `.github/workflows/deploy-staging.yml` (the clubs app, `app/androidApp`, which also runs the servers'
+  tests as a gate) and `deploy-staging-coach.yml` (the coach app, `app/coachAndroidApp`, its own Firebase
+  project, §72). Railway has nothing to do with Android builds, so this genuinely needs a real CI job:
   `android-actions/setup-android` (GitHub's own runners don't necessarily have the exact
-  `compileSdk`/`build-tools` versions this project pins) and
-  `./gradlew :app:androidApp:assembleStagingRelease :app:androidApp:appDistributionUploadStagingRelease`.
-  The Firebase service account (`app/androidApp/firebase-service-account.json`, gitignored locally -- see
-  §12) and the release keystore (`keystore/keystore.properties` + `keystore/squadify-keystore.jks`,
-  gitignored -- see the Android release-signing section) are both written from repo secrets at the exact
-  paths the Gradle config already expects.
+  `compileSdk`/`build-tools` versions this project pins), then
+  `./gradlew :app:<module>:assembleStagingRelease :app:<module>:appDistributionUploadStagingRelease`.
+  The Firebase service accounts (`app/androidApp/firebase-service-account.json`,
+  `firebase-coach-service-account.json`, gitignored locally -- see §12) and the release keystore
+  (`keystore/keystore.properties` + `keystore/squadify-keystore.jks`, gitignored -- see the Android
+  release-signing section) are written from repo secrets at the exact paths the Gradle config expects.
+  Each workflow keeps its file and name: its run number is the build's `versionCode` (§30).
+  - **Only the apps a push changes are published** (the developer, 2026-11-08: a docs, server or
+    one-app change shouldn't send testers, or later the stores, a new build of an app it didn't touch).
+    Each workflow's first job runs `.github/scripts/android_apps_changed.py <before> <sha>`, and the rest
+    run only when it says the app changed. Until then, a `paths` filter per workflow did a coarser job: any
+    change to `app/shared` or the version catalog published both apps (the coach app's WorkManager line in
+    #212 republished the clubs app), a change to a test or a Markdown file inside an app published it, and
+    a change to `common` (the models, which `core` compiles into both apps) published neither. The script
+    counts, per app: its own modules (clubs: `app/androidApp`, `app/clubs`; coach: `app/coachAndroidApp`,
+    `app/coach`) and the shared ones (`app/shared`, `core`, `common/src/main`), not their tests, iOS, web
+    or desktop source sets nor `.md` files; the root build files and the Gradle wrapper (both apps); in
+    `gradle/libs.versions.toml`, only the libraries, plugins, bundles and versions that changed, and only
+    for an app whose modules' `build.gradle.kts` use one (`libs.…` accessors; a version counts for every
+    entry that refers to it); and the CI files that build it. A base that isn't in the history (a force
+    push) counts as both. Against the last twelve merges to `develop`: the two docs-only ones publish
+    nothing, #209 and #212 only the coach app, the rest both (they changed `app/shared`).
+  - **The release build is opened before it's published** (2026-11-08, after the coach app's staging
+    release crashed on every start, #212, which no check caught: debug builds aren't shrunk).
+    `.github/workflows/android-release-check.yml` (`workflow_call`, `app: clubs | coach`) builds the app's
+    staging release (R8, as testers get it; debug-signed and without the Crashlytics mapping upload,
+    since it's never published), installs it on an emulator (`reactivecircus/android-emulator-runner`, API
+    34, Google APIs image, KVM) and opens it from its launcher icon
+    (`.github/scripts/start-release-apk.sh`): it fails if the app crashed or isn't running 20 seconds later (not
+    whether it's in front: the notification permission's dialog, the system's, is), printing the crash. Both deploy workflows need it before they upload, and
+    `.github/workflows/pr-checks.yml` runs it on every pull request to `develop` for the apps the
+    pull request changes (the same script, from the base to the head), so a crashing build shows on the
+    pull request before it's merged.
+- **Pull requests to `develop`** (`.github/workflows/pr-checks.yml`, 2026-11-08): a **Tests** job on
+  every pull request, whatever it changes: the five servers' tests (`:server:core`, `:server:data`,
+  `:server:web`, `:server:clubs`, `:server:coach`, on a Postgres service as in the deploy workflows) and the
+  apps' unit tests (`testAndroidHostTest` of `:core`, `:app:shared`, `:app:clubs`, `:app:coach`, which run
+  their `commonTest` too), about 2 minutes locally; and the release check of the apps it changes (above).
+  **Merging only when Tests passes** (the developer, 2026-11-08): GitHub enforces it with a branch
+  protection rule or ruleset on `develop` requiring the `Tests` check, which a private repository on the
+  free plan can't have (the API answers 403, "Upgrade to GitHub Pro or make this repository public"). Until
+  then it's on whoever merges: a pull request with a red Tests check isn't merged. With GitHub Pro:
+  Settings -> Rules -> Rulesets -> a ruleset on `develop`, "Require status checks to pass", check `Tests`
+  (and the release checks, `clubs / clubs release build starts` and `coach / coach release build starts`,
+  if wanted: skipped ones count as passed).
 - **Railway (server + web client), production**: `.github/workflows/deploy-production.yml`,
   `workflow_dispatch` only (the "Run workflow" button in the Actions tab, dispatched against `main` for a
   real release) -- deliberately not on push, per the developer. Same test gate, then the Railway CLI
