@@ -62,14 +62,20 @@ class UpdateAgeGroupUseCase(
         }
 
         val spanChanged = updatedAgeGroup.startYear != existingAgeGroup.startYear || updatedAgeGroup.endYear != existingAgeGroup.endYear
-        if (spanChanged) {
-            // Same rule as creating: no birth year in two age groups of the same season -- any overlap
-            // collides, not only an identical span.
+        // A new name can be another club's on the coach server, whose age groups it now competes with.
+        if (spanChanged || updatedAgeGroup.name != existingAgeGroup.name) {
+            // Same rule as creating: no birth year in two competing age groups of the same season -- any
+            // overlap collides, not only an identical span.
             val clash = ageGroupRepository.findByClubAndSeason(existingAgeGroup.clubId, existingAgeGroup.seasonId)
-                .any { it.id != ageGroupId && birthYearsOverlap(updatedAgeGroup.startYear, updatedAgeGroup.endYear, it.startYear, it.endYear) }
+                .any {
+                    it.id != ageGroupId && accessPolicy.shareBirthYears(updatedAgeGroup.name, it.name) &&
+                        birthYearsOverlap(updatedAgeGroup.startYear, updatedAgeGroup.endYear, it.startYear, it.endYear)
+                }
             if (clash) {
                 throw ConflictException("Another age group already covers some of ${updatedAgeGroup.startYear}-${updatedAgeGroup.endYear} in this season")
             }
+        }
+        if (spanChanged) {
             // Eligibility is `birthDate.year >= endYear`: raising endYear can shut out players already in the pool.
             if (updatedAgeGroup.endYear > existingAgeGroup.endYear) {
                 val shutOut = playerRepository.getPlayersByAgeGroup(ageGroupId).count { it.birthDate.year < updatedAgeGroup.endYear }

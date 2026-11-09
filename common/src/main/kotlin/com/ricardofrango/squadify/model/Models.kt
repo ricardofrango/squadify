@@ -433,6 +433,15 @@ data class AgeGroup(
 fun birthYearsOverlap(startYear: Int, endYear: Int, otherStartYear: Int, otherEndYear: Int): Boolean =
     endYear <= otherStartYear && otherEndYear <= startYear
 
+/**
+ * The club an age group is named after, its name's part before " - " (the coach app's "Povoense - Sub 11"),
+ * or null when it isn't. The coach server lets age groups of different clubs share birth years.
+ */
+fun ageGroupClubName(name: String): String? =
+    name.substringBefore(AGE_GROUP_CLUB_SEPARATOR, missingDelimiterValue = "").trim().takeIf { it.isNotEmpty() }
+
+const val AGE_GROUP_CLUB_SEPARATOR = " - "
+
 @Serializable
 data class Team(
     val id: String,

@@ -142,11 +142,10 @@ object AgeGroups : Table("age_groups") {
     // when a space goes down a plan (REQUIREMENTS §5c); older rows have the migration's time.
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
 
+    // No unique birth years: which age groups of a season may not share one is the servers' rule
+    // (AccessPolicy.shareBirthYears): all of a club's, only the same club's in a coach's space (clubs V36,
+    // coach V12 dropped unique_club_season_years).
     override val primaryKey = PrimaryKey(id)
-
-    init {
-        uniqueIndex("unique_club_season_years", clubId, seasonId, startYear, endYear)
-    }
 }
 
 object Teams : Table("teams") {

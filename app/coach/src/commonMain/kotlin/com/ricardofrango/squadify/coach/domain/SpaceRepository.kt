@@ -4,10 +4,10 @@ import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.SpacePlan
-import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpaceDetails
-import com.ricardofrango.squadify.model.SpaceSetup
+import com.ricardofrango.squadify.model.AddAgeGroupsRequest
+import com.ricardofrango.squadify.model.AddedAgeGroups
 import com.ricardofrango.squadify.model.StaffInvite
 
 /** The coach's spaces on the coach server (TECHNICAL_DECISIONS §72). */
@@ -17,6 +17,15 @@ interface SpaceRepository {
 
     /** One space the coach is in, for its details screen: its age groups with their teams and next games. */
     suspend fun getSpaceDetails(spaceId: String): SpaceDetails
+
+    /** The age-group wizard: one club's age groups with their teams, in their own space (made the first time). */
+    suspend fun addAgeGroups(request: AddAgeGroupsRequest): AddedAgeGroups
+
+    /** An age group's crest, the club it plays for; returns its path. */
+    suspend fun uploadAgeGroupCrest(ageGroupId: String, bytes: ByteArray): String
+
+    /** An image the server serves at [path] (e.g. a crest already used in the space), to give it to another. */
+    suspend fun imageBytes(path: String): ByteArray
 
     /** Every plan, cheapest first, with what it has in the app's language, and the coach's own (the coach server's). */
     suspend fun getPlans(): PlansResponse
@@ -30,8 +39,6 @@ interface SpaceRepository {
     /** A Google Play purchase, for the server to check with Google and set the plan from. Returns the plans after it. */
     suspend fun verifyGooglePurchase(productId: String, purchaseToken: String): PlansResponse
 
-    /** Their own space, with its first age group and team. 409 once they own one. */
-    suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup
 
     /** Joins the code's age group as staff, returning its space. */
     suspend fun acceptInvite(code: String): CoachSpace

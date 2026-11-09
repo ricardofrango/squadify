@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.coach.domain.GetAccountDeletionSummaryUseCase
 import com.ricardofrango.squadify.coach.presentation.ui.deleteaccount.DeleteAccountViewModel
 import com.ricardofrango.squadify.coach.data.StaffInviteRepositoryImpl
 import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
+import com.ricardofrango.squadify.coach.domain.AddAgeGroupsUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpaceDetailsUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.LoadPlansUseCase
@@ -18,16 +19,15 @@ import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
 import com.ricardofrango.squadify.coach.domain.GetStaffInvitesUseCase
 import com.ricardofrango.squadify.coach.domain.JoinWithCodeUseCase
 import com.ricardofrango.squadify.coach.domain.RevokeStaffInviteUseCase
-import com.ricardofrango.squadify.coach.domain.SetUpSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.SpaceRepository
 import com.ricardofrango.squadify.coach.domain.StaffInviteRepository
 import com.ricardofrango.squadify.coach.presentation.navigation.CoachSignedInHome
+import com.ricardofrango.squadify.coach.presentation.ui.agegroups.AddAgeGroupsViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.invite.InviteStaffViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.join.JoinWithCodeViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.space.MySpaceViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.space.SpaceDetailsViewModel
-import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupViewModel
 import com.ricardofrango.squadify.di.startSquadifyKoin
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.config.AppFeatures
@@ -49,10 +49,10 @@ val coachModule = module {
     single { CoachAds() }
     factory { GetSpacesUseCase(get(), get(), get(), get()) }
     factory { GetSpaceDetailsUseCase(get()) }
+    factory { AddAgeGroupsUseCase(get()) }
     factory { LoadPlansUseCase(get(), get()) }
     factory { RequestPlanUseCase(get(), get(), get()) }
     factory { SaveStorePurchaseUseCase(get(), get(), get()) }
-    factory { SetUpSpaceUseCase(get()) }
     factory { JoinWithCodeUseCase(get()) }
     factory { GetStaffInvitesUseCase(get()) }
     factory { CreateStaffInviteUseCase(get()) }
@@ -64,7 +64,7 @@ val coachModule = module {
     // Photos and logos (2026-11-02): the coach server's image storage.
     // Account deletion: the stores require it for an app where people sign up.
     single { AppFeatures(training = true, seasons = false, photos = true, clubMembers = false, accountDeletion = true) }
-    viewModelOf(::SpaceSetupViewModel)
+    viewModelOf(::AddAgeGroupsViewModel)
     viewModelOf(::CoachHomeViewModel)
     viewModelOf(::JoinWithCodeViewModel)
     viewModelOf(::InviteStaffViewModel)

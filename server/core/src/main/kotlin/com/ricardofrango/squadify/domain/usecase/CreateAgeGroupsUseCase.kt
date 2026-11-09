@@ -35,7 +35,8 @@ class CreateAgeGroupsUseCase(
         // Grows as items are accepted, so two items in this same request sharing a year are caught
         // too -- not just a clash with an age group already in the database. Any shared birth year
         // collides, not only an identical span (2011 vs 2011-2010 overlaps on 2011).
-        val takenRanges = existingAgeGroups.map { it.startYear to it.endYear }.toMutableList()
+        // Each with its name: only the ones the policy says compete with an item clash with it.
+        val taken = existingAgeGroups.map { Triple(it.name, it.startYear, it.endYear) }.toMutableList()
         // Every clashing item is collected, not just the first, so the screen can mark them all at once
         // (ConflictException.rows, 0-based in request order). Within the batch, the later item of two
         // that share a year is the one reported.
@@ -48,10 +49,13 @@ class CreateAgeGroupsUseCase(
             if (item.startYear < item.endYear) {
                 throw ValidationException("Start year cannot be before end year")
             }
-            if (takenRanges.any { (start, end) -> birthYearsOverlap(item.startYear, item.endYear, start, end) }) {
+            val clashes = taken.any { (name, start, end) ->
+                accessPolicy.shareBirthYears(item.name, name) && birthYearsOverlap(item.startYear, item.endYear, start, end)
+            }
+            if (clashes) {
                 conflictingRows += index
             } else {
-                takenRanges += item.startYear to item.endYear
+                taken += Triple(item.name, item.startYear, item.endYear)
             }
             if (item.teamSize != null && item.teamSize !in club.sport.teamSizes) {
                 throw ValidationException("Team size ${item.teamSize} is not valid for ${club.sport}")

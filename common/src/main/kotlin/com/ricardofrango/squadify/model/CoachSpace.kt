@@ -208,6 +208,8 @@ data class SpaceDetails(
     val ownerName: String? = null,
     val plan: SpacePlan,
     val seasonName: String? = null,
+    // The current season's id: the wizard marks the birth years a club already has in it.
+    val seasonId: String? = null,
     val ageGroups: List<SpaceAgeGroup>,
     // The owner's: how many more age groups the plan allows this season; null: no limit, or staff.
     val ageGroupsLeft: Int? = null,
@@ -222,6 +224,34 @@ data class SpaceAgeGroup(
     val nextMatch: SpaceNextMatch? = null,
     val locked: Boolean = false
 )
+
+/**
+ * The age-group wizard (`POST /v1/space/age-groups`, the coach server): age groups for the club they play
+ * for, named "{clubName} - {name}" ("Povoense - Sub 11"), each with [NewAgeGroup.teams] teams named "A",
+ * "B"…, in the coach's own space and the current season, all at once. A coach with no space yet gets one,
+ * [spaceName] ("Espaço de Ana Silva") in [sport]. The crest is uploaded to each age group afterwards.
+ */
+@Serializable
+data class AddAgeGroupsRequest(
+    val clubName: String,
+    val ageGroups: List<NewAgeGroup>,
+    val spaceName: String? = null,
+    val sport: SportType? = null
+)
+
+/** One age group of [AddAgeGroupsRequest]: its own name ("Sub 11"), birth years, a-side size and how many teams. */
+@Serializable
+data class NewAgeGroup(
+    val name: String,
+    val startYear: Int,
+    val endYear: Int,
+    val teamSize: Int? = null,
+    val teams: Int = 1
+)
+
+/** What the wizard created: the space (new or not), its new age groups and how many teams. */
+@Serializable
+data class AddedAgeGroups(val space: Club, val ageGroups: List<AgeGroup>, val teams: Int)
 
 /** An age group's next game, for its row: when and against whom. */
 @Serializable

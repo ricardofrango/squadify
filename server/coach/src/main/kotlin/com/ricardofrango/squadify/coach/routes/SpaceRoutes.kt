@@ -1,11 +1,13 @@
 package com.ricardofrango.squadify.coach.routes
 
 import com.ricardofrango.squadify.presentation.routes.appLanguage
+import com.ricardofrango.squadify.coach.domain.AddAgeGroupsUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpaceDetailsUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.GetPlansUseCase
 import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
 import com.ricardofrango.squadify.coach.domain.SetUpSpaceUseCase
+import com.ricardofrango.squadify.model.AddAgeGroupsRequest
 import com.ricardofrango.squadify.model.RequestPlanRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.security.userId
@@ -29,6 +31,7 @@ fun Route.spaceRoutes() {
     val setUpSpaceUseCase by inject<SetUpSpaceUseCase>()
     val getSpacesUseCase by inject<GetSpacesUseCase>()
     val getSpaceDetailsUseCase by inject<GetSpaceDetailsUseCase>()
+    val addAgeGroupsUseCase by inject<AddAgeGroupsUseCase>()
     val getPlansUseCase by inject<GetPlansUseCase>()
     val requestPlanUseCase by inject<RequestPlanUseCase>()
 
@@ -49,6 +52,11 @@ fun Route.spaceRoutes() {
         post("/plans/request") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
             call.respond(requestPlanUseCase(currentUserId, call.receive<RequestPlanRequest>().plan, call.appLanguage()))
+        }
+        // The age-group wizard: age groups for one club, with their teams, in their own space (made the first time).
+        post("/space/age-groups") {
+            val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+            call.respond(HttpStatusCode.Created, addAgeGroupsUseCase(currentUserId, call.receive<AddAgeGroupsRequest>()))
         }
         post("/space") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)

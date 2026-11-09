@@ -8,7 +8,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ricardofrango.squadify.model.AGE_GROUP_CLUB_SEPARATOR
 import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.ageGroupClubName
 import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 
 // The coach app names an age group after the club it plays for, "{club} - Sub N" (the age-group wizard),
@@ -16,13 +18,10 @@ import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 // the age group's name before " - ".
 
 /** The club an age group plays for: its name's part before " - " ("Povoense - Sub 11"), or null. */
-fun clubNameOf(ageGroup: AgeGroup): String? =
-    ageGroup.name.substringBefore(CLUB_SEPARATOR, missingDelimiterValue = "").trim().takeIf { it.isNotEmpty() }
+fun clubNameOf(ageGroup: AgeGroup): String? = ageGroupClubName(ageGroup.name)
 
 /** "Povoense - Sub 11" for [clubName] and [ageGroupName] ("Sub 11"). */
-fun ageGroupNameFor(clubName: String, ageGroupName: String): String = "${clubName.trim()}$CLUB_SEPARATOR$ageGroupName"
-
-private const val CLUB_SEPARATOR = " - "
+fun ageGroupNameFor(clubName: String, ageGroupName: String): String = "${clubName.trim()}$AGE_GROUP_CLUB_SEPARATOR$ageGroupName"
 
 /**
  * A club's initials for its crest placeholder: the first letters of its first two words, leaving out a

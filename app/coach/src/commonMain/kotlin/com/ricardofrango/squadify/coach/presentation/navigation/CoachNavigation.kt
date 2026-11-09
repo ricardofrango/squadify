@@ -38,7 +38,7 @@ import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.presentation.ui.components.LocalOwnSpace
 import com.ricardofrango.squadify.presentation.ui.components.LocalSeePlans
-import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupScreen
+import com.ricardofrango.squadify.coach.presentation.ui.agegroups.AddAgeGroupsScreen
 import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.presentation.navigation.AppNavigator
 import com.ricardofrango.squadify.presentation.navigation.KEY_CLUB_STRUCTURE_CHANGED
@@ -200,10 +200,22 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
         navigator.popBackStack()
     }
 
-    screen<Screen.SpaceSetup> {
-        SpaceSetupScreen(
-            onSetUp = ::backToHomeChanged,
-            onNavigateBack = { navigator.popBackStack() }
+    // The age-group wizard: on Create, the space's details with the new age groups, in place of the details it
+    // came from (or of nothing, from Home); Home reloads.
+    screen<Screen.AddAgeGroups> { entry ->
+        val screen: Screen.AddAgeGroups = entry.toRoute()
+        AddAgeGroupsScreen(
+            spaceId = screen.spaceId,
+            onClose = { navigator.popBackStack() },
+            onSeePlans = { navigator.navigate(Screen.Plans) },
+            onCreated = { created ->
+                navigator.backStack.firstOrNull { it.screen == Screen.CoachHome }?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                val before = navigator.previousBackStackEntry?.screen
+                val replaced = if (before is Screen.SpaceDetails && before.spaceId == created.spaceId) before else screen
+                navigator.navigate(Screen.SpaceDetails(created.spaceId, created.ageGroupIds, created.teams, created.crestSaved)) {
+                    popUpTo(replaced) { inclusive = true }
+                }
+            }
         )
     }
 
@@ -231,13 +243,16 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
             spaceId = screen.spaceId,
             onNavigateBack = { navigator.popBackStack() },
             onOpenAgeGroup = { ageGroupId -> navigator.navigate(Screen.AgeGroupDetails(ageGroupId)) },
-            onAddAgeGroups = { space -> navigator.navigate(Screen.CreateAgeGroups(space.id, space.name, space.sport.name)) },
+            onAddAgeGroups = { space -> navigator.navigate(Screen.AddAgeGroups(space.id)) },
             onEditSpace = { navigator.navigate(Screen.MySpace) },
             onSeePlans = { navigator.navigate(Screen.Plans) },
             onOpenOpponent = { opponentId -> navigator.navigate(Screen.OpponentDetails(opponentId)) },
             onCreateOpponent = { name -> navigator.navigate(Screen.CreateOpponent(screen.spaceId, name = name)) },
             refresh = changed,
-            onRefreshed = { entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false }
+            onRefreshed = { entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false },
+            newAgeGroupIds = screen.newAgeGroupIds,
+            newTeams = screen.newTeams,
+            crestSaved = screen.crestSaved
         )
     }
 
@@ -265,8 +280,8 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
         CoachHomeScreen(
             onSignedOut = { openAsRoot(Screen.Login) },
             onOpenSpace = { spaceId -> navigator.navigate(Screen.SpaceDetails(spaceId)) },
-            onCreateAgeGroups = { space -> navigator.navigate(Screen.CreateAgeGroups(space.id, space.name, space.sport.name)) },
-            onSetUpSpace = { navigator.navigate(Screen.SpaceSetup) },
+            onCreateAgeGroups = { space -> navigator.navigate(Screen.AddAgeGroups(space.id)) },
+            onSetUpSpace = { navigator.navigate(Screen.AddAgeGroups()) },
             onJoinWithCode = { navigator.navigate(Screen.JoinWithCode) },
             onOpenAccount = { navigator.navigate(Screen.Account) },
             onOpenPlans = { navigator.navigate(Screen.Plans) },

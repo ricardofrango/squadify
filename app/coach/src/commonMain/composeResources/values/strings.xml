@@ -176,4 +176,58 @@
     <string name="coach_home_first_age_groups">Create your first age groups to start recording games.</string>
     <string name="coach_home_create_age_groups">Create age groups</string>
     <string name="coach_home_got_code">Got a code from another coach?</string>
+    <!-- The age-group wizard (the coach app). -->
+    <string name="wizard_title">Add age groups</string>
+    <string name="wizard_step_club">Club</string>
+    <string name="wizard_step_age_groups">Age groups</string>
+    <string name="wizard_step_teams">Teams</string>
+    <string name="wizard_step_of">%1$d of %2$d</string>
+    <string name="wizard_club_question">Which club do these age groups play for?</string>
+    <string name="wizard_club_intro">The club's name and crest go into each age group's name and its teams.</string>
+    <string name="wizard_crest_choose">Choose crest</string>
+    <string name="wizard_crest_optional">Optional · without an image, we use the initials</string>
+    <string name="wizard_club_name">Club name *</string>
+    <string name="wizard_club_name_placeholder">E.g. Povoense</string>
+    <string name="wizard_club_hint">Shown as "Club - Sub 11".</string>
+    <string name="wizard_club_name_required">The club's name is required.</string>
+    <string name="wizard_club_name_dash">The name can't have " - " in it.</string>
+    <string name="wizard_used_clubs">Used in this space</string>
+    <string name="wizard_club_hint_used">Tap a club to fill in its name and crest.</string>
+    <string name="wizard_pick_by_year">Pick by birth year</string>
+    <string name="wizard_season">Season %1$s</string>
+    <string name="wizard_football">Football</string>
+    <string name="wizard_futsal">Futsal</string>
+    <plurals name="wizard_plan_room">
+        <item quantity="one">Your plan allows %1$d more age group this season</item>
+        <item quantity="other">Your plan allows %1$d more age groups this season</item>
+    </plurals>
+    <string name="wizard_see_plans">See plans</string>
+    <string name="wizard_pick_one">Pick at least one age group.</string>
+    <string name="wizard_year_taken">Already there</string>
+    <string name="wizard_team_size">Players on the pitch</string>
+    <string name="wizard_join_younger">Join with %1$d (two years)</string>
+    <string name="wizard_teams_question">How many teams in each age group?</string>
+    <string name="wizard_teams_born">Born in %1$s · %2$d-a-side</string>
+    <string name="wizard_summary">SUMMARY</string>
+    <plurals name="wizard_summary_age_groups">
+        <item quantity="one">%1$d age group</item>
+        <item quantity="other">%1$d age groups</item>
+    </plurals>
+    <plurals name="wizard_summary_teams">
+        <item quantity="one">%1$d team</item>
+        <item quantity="other">%1$d teams</item>
+    </plurals>
+    <string name="wizard_summary_note">Everything is created at once. If any part fails, nothing is saved.</string>
+    <string name="wizard_back">Back</string>
+    <string name="wizard_next">Next</string>
+    <string name="wizard_create">Create</string>
+    <string name="wizard_problem_plan">Your plan has no room for these age groups this season.</string>
+    <string name="wizard_problem_years">This club already has age groups for the years marked, this season.</string>
+    <string name="wizard_problem_crest_too_big">That image is too big (5 MB at most).</string>
+    <string name="wizard_problem_failed">Couldn't create the age groups. Try again.</string>
+    <string name="msg_wizard_failed_to_load">Couldn't load your space.</string>
+    <string name="space_details_new">New</string>
+    <string name="space_details_created">%1$s and %2$s created</string>
+    <string name="space_details_created_no_crest">%1$s and %2$s created, but the crest wasn't saved on all of them</string>
+    <string name="space_details_ok">OK</string>
 </resources>

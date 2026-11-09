@@ -774,7 +774,7 @@ graph TD
     G -- name blank --> V2(["Throw ValidationException"])
     G -- startYear < endYear --> V2c(["Throw ValidationException: inverted range"])
     G -- teamSize set AND not in club.sport.teamSizes --> V2(["Throw ValidationException"])
-    G -- "shares any birth year with a taken span (in the DB, or an earlier item in this request) — birthYearsOverlap" --> CR[Note the item's index as clashing; don't mark its range taken]
+    G -- "shares any birth year with a taken span it competes with (in the DB, or an earlier item in this request) — AccessPolicy.shareBirthYears + birthYearsOverlap" --> CR[Note the item's index as clashing; don't mark its range taken]
     G -- valid --> H[Mark range as taken; build AgeGroup entity — teamSize nullable]
     CR --> G
     H --> G
@@ -785,6 +785,8 @@ graph TD
 ```
 
 `seasonId` is optional in the request only for the coach server, which fills in the current season before calling this use case (§13.5); on the clubs server a request without one is refused.
+
+**Which age groups compete for birth years** (2026-11-09) is the policy's `shareBirthYears(name, otherName)`: on the clubs server every age group of the season does (one per birth year, as before); on the coach server only those named after the same club, the name's part before " - " (`ageGroupClubName`), so "Povoense - Sub 11" and "CF Santa Iria - Sub 11" can both be 2016. The database no longer has a unique (club, season, start year, end year) constraint (clubs V36, coach V12): the rule is the code's. Update age group (§4.4) checks the same way, also when only the name changes.
 
 Every clashing item is reported, not only the first. The 409's `ErrorResponse.rows` lists them (0-based, in request order), so Create age groups marks each of those rows in red and names them in its message. Within the batch, the later of two items sharing a year is the one reported. The other row checks (blank name, inverted range, invalid team size) still stop at the first, and the screen prevents them before submitting.
 
@@ -3169,4 +3171,31 @@ graph TD
 ```
 
 The app sorts the age groups by the club each plays for (the name's part before " - ") and then youngest first. Its opponents tab is the shared opponents list (`OpponentsBrowser`, the same search and list as the Opponents screen) for the space.
+
+### 13.8 The age-group wizard (`AddAgeGroupsUseCase`, `POST /v1/space/age-groups`)
+
+The coach app's "Adicionar escalões" (2026-11-09): one club's age groups, with their teams, in the coach's own space and the current season, all at once.
+
+```mermaid
+graph TD
+    A["Start: userId, AddAgeGroupsRequest (clubName, ageGroups: name, startYear, endYear, teamSize?, teams; spaceName?, sport?)"] --> C{clubName blank, or has " - "?}
+    C -- Yes --> V(["Throw ValidationException"])
+    C -- No --> E{ageGroups empty?}
+    E -- Yes --> V
+    E -- No --> S{"Owns a space? (CLUB_ADMIN membership)"}
+    S -- No --> N{spaceName and sport given?}
+    N -- No --> V
+    N -- Yes --> NS["Create the space (clubs row) and the owner's membership"]
+    S -- Yes --> I
+    NS --> I{"Each age group: name, years, teamSize in the space's sport, 1..5 teams"}
+    I -- invalid --> V
+    I -- valid --> P["CoachSeasons.current; requireRoomForAgeGroups (the plan)"]
+    P -- no room --> PL(["Throw PlanLimitException — 403 PLAN_001"])
+    P --> K{"Shares a birth year with the same club's age group this season, already there or earlier in the request?"}
+    K -- Yes --> CN(["Throw ConflictException(rows) — 409"])
+    K -- No --> CR["Create the age groups, named \"{clubName} - {name}\", then each one's teams named A, B, …"]
+    CR --> Z(["AddedAgeGroups: space, ageGroups, teams"])
+```
+
+Everything is in one transaction, the new space included: a refusal leaves nothing behind. The app then uploads the club's crest to each new age group (`PUT /v1/age-groups/{id}/logo`), best effort: the picked image, or the crest an age group of the same club already has (downloaded and uploaded again). `GET /v1/spaces/{id}` gives the current season's id (`seasonId`) for the years a club already has.
 

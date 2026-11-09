@@ -31,6 +31,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import squadify.app.coach.generated.resources.wizard_summary_teams
+import squadify.app.coach.generated.resources.wizard_summary_age_groups
+import squadify.app.coach.generated.resources.space_details_ok
+import squadify.app.coach.generated.resources.space_details_new
+import squadify.app.coach.generated.resources.space_details_created_no_crest
+import squadify.app.coach.generated.resources.space_details_created
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -133,6 +144,10 @@ fun SpaceDetailsScreen(
     // Set when a screen opened from here changed something: reload.
     refresh: Boolean = false,
     onRefreshed: () -> Unit = {},
+    // The age groups the wizard just created, marked new, with a message saying so once.
+    newAgeGroupIds: List<String> = emptyList(),
+    newTeams: Int = 0,
+    crestSaved: Boolean = true,
     viewModel: SpaceDetailsViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -153,7 +168,13 @@ fun SpaceDetailsScreen(
         onEditSpace = onEditSpace,
         onSeePlans = onSeePlans,
         opponents = { OpponentsBrowser(spaceId, onOpponentClick = { onOpenOpponent(it.id) }, onCreateOpponent = onCreateOpponent, refresh = refresh) },
-        onCreateOpponent = { onCreateOpponent("") }
+        onCreateOpponent = { onCreateOpponent("") },
+        newAgeGroupIds = newAgeGroupIds,
+        createdMessage = if (newAgeGroupIds.isEmpty()) null else stringResource(
+            if (crestSaved) Res.string.space_details_created else Res.string.space_details_created_no_crest,
+            pluralStringResource(Res.plurals.wizard_summary_age_groups, newAgeGroupIds.size, newAgeGroupIds.size),
+            pluralStringResource(Res.plurals.wizard_summary_teams, newTeams, newTeams)
+        )
     )
 }
 
@@ -168,9 +189,21 @@ private fun SpaceDetailsContent(
     onEditSpace: () -> Unit,
     onSeePlans: () -> Unit,
     opponents: @Composable () -> Unit,
-    onCreateOpponent: () -> Unit
+    onCreateOpponent: () -> Unit,
+    newAgeGroupIds: List<String> = emptyList(),
+    createdMessage: String? = null
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    val snackbar = remember { SnackbarHostState() }
+    // Once, not again after a rotation.
+    var announced by rememberSaveable { mutableStateOf(false) }
+    val ok = stringResource(Res.string.space_details_ok)
+    LaunchedEffect(createdMessage) {
+        if (createdMessage != null && !announced) {
+            announced = true
+            snackbar.showSnackbar(createdMessage, actionLabel = ok, duration = SnackbarDuration.Long)
+        }
+    }
     val loaded = state as? SpaceDetailsUiState.Loaded
     val isOwner = loaded?.details?.isOwner == true
     Scaffold(
@@ -178,6 +211,7 @@ private fun SpaceDetailsContent(
         containerColor = ScreenBackground,
         topBar = { SpaceHeader(loaded?.details, tab, onSelectTab = { tab = it }, onNavigateBack = onNavigateBack, onEditSpace = onEditSpace.takeIf { isOwner }) },
         bottomBar = { AdBanner(spaceId = spaceId, alone = true) },
+        snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             // The owner adds age groups, and opponents; staff open what's there.
             if (loaded != null && isOwner) {
@@ -200,7 +234,7 @@ private fun SpaceDetailsContent(
             when (state) {
                 SpaceDetailsUiState.Loading -> Unit
                 SpaceDetailsUiState.Failed -> ErrorScreen(title = stringResource(Res.string.msg_space_details_failed), body = null, onRetry = onRetry, modifier = Modifier.fillMaxSize())
-                is SpaceDetailsUiState.Loaded -> if (tab == 0) AgeGroupList(state, onOpenAgeGroup, onAddAgeGroups, onSeePlans) else opponents()
+                is SpaceDetailsUiState.Loaded -> if (tab == 0) AgeGroupList(state, newAgeGroupIds, onOpenAgeGroup, onAddAgeGroups, onSeePlans) else opponents()
             }
         }
     }
@@ -318,6 +352,7 @@ private fun Badge(text: String, background: Color) {
 @Composable
 private fun AgeGroupList(
     state: SpaceDetailsUiState.Loaded,
+    newAgeGroupIds: List<String>,
     onOpenAgeGroup: (String) -> Unit,
     onAddAgeGroups: (Club) -> Unit,
     onSeePlans: () -> Unit
@@ -348,19 +383,30 @@ private fun AgeGroupList(
             )
         }
         items(state.ageGroups, key = { it.ageGroup.id }) { row ->
-            AgeGroupCard(row, details.plan, onClick = { onOpenAgeGroup(row.ageGroup.id) }.takeUnless { row.locked })
+            AgeGroupCard(row, details.plan, isNew = row.ageGroup.id in newAgeGroupIds, onClick = { onOpenAgeGroup(row.ageGroup.id) }.takeUnless { row.locked })
         }
     }
 }
 
 @Composable
-private fun AgeGroupCard(row: SpaceAgeGroup, plan: SpacePlan, onClick: (() -> Unit)?) {
-    SectionCard(onClick = onClick, contentPadding = PaddingValues(0.dp), modifier = if (row.locked) Modifier.alpha(0.6f) else Modifier) {
+private fun AgeGroupCard(row: SpaceAgeGroup, plan: SpacePlan, isNew: Boolean, onClick: (() -> Unit)?) {
+    val modifier = when {
+        row.locked -> Modifier.alpha(0.6f)
+        isNew -> Modifier.border(BorderStroke(1.5.dp, PitchGreen), RoundedCornerShape(16.dp))
+        else -> Modifier
+    }
+    SectionCard(onClick = onClick, contentPadding = PaddingValues(0.dp), modifier = modifier) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             AgeGroupCrest(row.ageGroup, size = 40.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(row.ageGroup.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(row.ageGroup.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    if (isNew) {
+                        Spacer(Modifier.width(6.dp))
+                        Badge(stringResource(Res.string.space_details_new), PitchGreen)
+                    }
+                }
                 Text(stringResource(Res.string.space_details_born, bornYears(row.ageGroup)), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.7f))
                 Text(teamsLine(row.teams), style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
                 if (row.locked) {
