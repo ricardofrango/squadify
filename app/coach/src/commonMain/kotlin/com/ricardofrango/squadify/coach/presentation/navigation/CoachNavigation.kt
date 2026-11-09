@@ -207,7 +207,6 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
         AddAgeGroupsScreen(
             spaceId = screen.spaceId,
             onClose = { navigator.popBackStack() },
-            onSeePlans = { navigator.navigate(Screen.Plans) },
             onCreated = { created ->
                 navigator.backStack.firstOrNull { it.screen == Screen.CoachHome }?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                 val before = navigator.previousBackStackEntry?.screen
@@ -245,7 +244,6 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
             onOpenAgeGroup = { ageGroupId -> navigator.navigate(Screen.AgeGroupDetails(ageGroupId)) },
             onAddAgeGroups = { space -> navigator.navigate(Screen.AddAgeGroups(space.id)) },
             onEditSpace = { navigator.navigate(Screen.MySpace) },
-            onSeePlans = { navigator.navigate(Screen.Plans) },
             onOpenOpponent = { opponentId -> navigator.navigate(Screen.OpponentDetails(opponentId)) },
             onCreateOpponent = { name -> navigator.navigate(Screen.CreateOpponent(screen.spaceId, name = name)) },
             refresh = changed,

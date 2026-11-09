@@ -15,16 +15,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,14 +28,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,13 +56,23 @@ import com.ricardofrango.squadify.coach.presentation.ui.space.ClubCrest
 import com.ricardofrango.squadify.coach.presentation.ui.space.ageGroupNameFor
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
+import squadify.app.coach.generated.resources.wizard_creating
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
+import com.ricardofrango.squadify.presentation.ui.components.AgeGroupsNotInPlanNotice
+import com.ricardofrango.squadify.presentation.ui.components.TeamSizeSelector
+import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
+import com.ricardofrango.squadify.presentation.ui.components.CountStepper
+import com.ricardofrango.squadify.presentation.ui.components.SecondaryButton
+import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
+import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
+import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
+import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
-import com.ricardofrango.squadify.presentation.ui.theme.Amber
-import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -105,13 +107,11 @@ import squadify.app.coach.generated.resources.wizard_join_younger
 import squadify.app.coach.generated.resources.wizard_next
 import squadify.app.coach.generated.resources.wizard_pick_by_year
 import squadify.app.coach.generated.resources.wizard_pick_one
-import squadify.app.coach.generated.resources.wizard_plan_room
 import squadify.app.coach.generated.resources.wizard_problem_crest_too_big
 import squadify.app.coach.generated.resources.wizard_problem_failed
 import squadify.app.coach.generated.resources.wizard_problem_plan
 import squadify.app.coach.generated.resources.wizard_problem_years
 import squadify.app.coach.generated.resources.wizard_season
-import squadify.app.coach.generated.resources.wizard_see_plans
 import squadify.app.coach.generated.resources.wizard_step_age_groups
 import squadify.app.coach.generated.resources.wizard_step_club
 import squadify.app.coach.generated.resources.wizard_step_of
@@ -143,7 +143,6 @@ fun AddAgeGroupsScreen(
     // The coach's own space; null before they have one (the first age groups make it).
     spaceId: String?,
     onClose: () -> Unit,
-    onSeePlans: () -> Unit,
     onCreated: (AddAgeGroupsEvent.Created) -> Unit,
     viewModel: AddAgeGroupsViewModel = koinViewModel()
 ) {
@@ -177,8 +176,7 @@ fun AddAgeGroupsScreen(
         onTeamsChange = viewModel::onTeamsChange,
         onNext = viewModel::onNext,
         onBack = viewModel::onBack,
-        onCreate = viewModel::onCreate,
-        onSeePlans = onSeePlans
+        onCreate = viewModel::onCreate
     )
 }
 
@@ -197,8 +195,7 @@ private fun AddAgeGroupsContent(
     onTeamsChange: (Int, Int) -> Unit,
     onNext: () -> Unit,
     onBack: () -> Unit,
-    onCreate: () -> Unit,
-    onSeePlans: () -> Unit
+    onCreate: () -> Unit
 ) {
     Scaffold(
         contentWindowInsets = ScreenWindowInsets,
@@ -215,7 +212,7 @@ private fun AddAgeGroupsContent(
             )
         },
         bottomBar = {
-            if (!state.loading && !state.failedToLoad) WizardButtons(state, onBack, onNext, onCreate, onSeePlans)
+            if (!state.loading && !state.failedToLoad) WizardButtons(state, onBack, onNext, onCreate)
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).imePadding()) {
@@ -231,7 +228,7 @@ private fun AddAgeGroupsContent(
                     ) {
                         when (state.step) {
                             0 -> ClubStep(state, onClubNameChange, onCrestPicked, onUsedClubPicked)
-                            1 -> AgeGroupsStep(state, onSportChange, onYearToggled, onTeamSizeChange, onJoinYoungerChange, onSeePlans)
+                            1 -> AgeGroupsStep(state, onSportChange, onYearToggled, onTeamSizeChange, onJoinYoungerChange)
                             else -> TeamsStep(state, onTeamsChange)
                         }
                     }
@@ -296,17 +293,16 @@ private fun ClubStep(
             !state.clubNameValid -> stringResource(Res.string.wizard_club_name_dash)
             else -> null
         }
-        OutlinedTextField(
+        FormTextField(
             value = state.clubName,
             onValueChange = onClubNameChange,
-            label = { Text(stringResource(Res.string.wizard_club_name)) },
-            placeholder = { Text(stringResource(Res.string.wizard_club_name_placeholder)) },
-            singleLine = true,
+            label = stringResource(Res.string.wizard_club_name),
+            placeholder = stringResource(Res.string.wizard_club_name_placeholder),
+            enabled = !state.submitting,
+            keyboardType = KeyboardType.Text,
             isError = nameError != null,
-            supportingText = { Text(nameError ?: stringResource(Res.string.wizard_club_hint)) },
-            shape = RoundedCornerShape(14.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PitchGreen, focusedLabelColor = PitchGreen, cursorColor = PitchGreen),
-            modifier = Modifier.fillMaxWidth()
+            supporting = nameError ?: stringResource(Res.string.wizard_club_hint),
+            imeAction = ImeAction.Done
         )
     }
     val used = state.usedClubs
@@ -359,8 +355,7 @@ private fun AgeGroupsStep(
     onSportChange: (SportType) -> Unit,
     onYearToggled: (Int) -> Unit,
     onTeamSizeChange: (Int, Int) -> Unit,
-    onJoinYoungerChange: (Int, Boolean) -> Unit,
-    onSeePlans: () -> Unit
+    onJoinYoungerChange: (Int, Boolean) -> Unit
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         CrestPreview(state, size = 36)
@@ -379,16 +374,18 @@ private fun AgeGroupsStep(
         }
     }
     // A new space picks its sport here; an existing one keeps its own.
-    if (!state.spaceExists) SportChoice(state.sport, onSportChange)
-    state.ageGroupsLeft?.let { left ->
-        Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Amber.copy(alpha = 0.15f)).padding(start = 14.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(pluralStringResource(Res.plurals.wizard_plan_room, left, left), style = MaterialTheme.typography.bodySmall, color = AmberText, modifier = Modifier.weight(1f))
-            TextButton(onClick = onSeePlans) { Text(stringResource(Res.string.wizard_see_plans), color = PitchGreen, fontWeight = FontWeight.Bold) }
-        }
+    if (!state.spaceExists) {
+        SegmentedFilter(
+            options = listOf(SportType.FOOTBALL, SportType.FUTSAL),
+            selected = state.sport,
+            label = { stringResource(if (it == SportType.FOOTBALL) Res.string.wizard_football else Res.string.wizard_futsal) },
+            onSelect = onSportChange,
+            shorten = false
+        )
     }
+    // The plan has room for no more than the ones picked: the same box as everywhere a plan stops.
+    val plan = state.plan
+    if (plan != null && !state.canPickMore) AgeGroupsNotInPlanNotice(plan)
     if (state.showErrors && state.picked.isEmpty()) {
         Text(stringResource(Res.string.wizard_pick_one), style = MaterialTheme.typography.bodySmall, color = AlertRed)
     }
@@ -396,21 +393,6 @@ private fun AgeGroupsStep(
         wizardYears(state.seasonEndYear).forEachIndexed { index, year ->
             if (index > 0) HorizontalDivider(color = CarbonGray.copy(alpha = 0.06f))
             YearRow(state, year, onYearToggled, onTeamSizeChange, onJoinYoungerChange)
-        }
-    }
-}
-
-@Composable
-private fun SportChoice(sport: SportType, onSportChange: (SportType) -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).border(BorderStroke(1.dp, CarbonGray.copy(alpha = 0.2f)), RoundedCornerShape(50))) {
-        listOf(SportType.FOOTBALL to Res.string.wizard_football, SportType.FUTSAL to Res.string.wizard_futsal).forEach { (option, label) ->
-            val selected = option == sport
-            Box(
-                Modifier.weight(1f).background(if (selected) PitchGreen.copy(alpha = 0.12f) else Color.White).clickable { onSportChange(option) }.padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text((if (selected) "✓ " else "") + stringResource(label), fontWeight = FontWeight.Bold, color = if (selected) PitchGreen else DeepCarbon)
-            }
         }
     }
 }
@@ -457,23 +439,9 @@ private fun YearRow(
             }
         }
         if (picked != null) {
-            Row(Modifier.padding(start = 48.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.padding(start = 48.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(stringResource(Res.string.wizard_team_size), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.75f))
-                Spacer(Modifier.width(8.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    state.sport.teamSizes.forEach { size ->
-                        val selected = size == picked.teamSize
-                        Box(
-                            Modifier.size(32.dp).clip(CircleShape)
-                                .background(if (selected) PitchGreen else Color.White)
-                                .border(BorderStroke(1.dp, if (selected) PitchGreen else CarbonGray.copy(alpha = 0.25f)), CircleShape)
-                                .clickable { onTeamSizeChange(year, size) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(size.toString(), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = if (selected) Color.White else DeepCarbon)
-                        }
-                    }
-                }
+                TeamSizeSelector(options = state.sport.teamSizes, selected = picked.teamSize, onSelected = { onTeamSizeChange(year, it) })
             }
             // Futsal joins two consecutive years when there aren't enough players for one.
             if (state.sport == SportType.FUTSAL) {
@@ -507,7 +475,7 @@ private fun TeamsStep(state: AddAgeGroupsUiState, onTeamsChange: (Int, Int) -> U
                     Text(name, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(stringResource(Res.string.wizard_teams_born, years, picked.teamSize), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.7f))
                 }
-                Stepper(picked.teams, onChange = { onTeamsChange(picked.oldestYear, it) })
+                CountStepper(picked.teams, onChange = { onTeamsChange(picked.oldestYear, it) }, min = 1, max = MAX_WIZARD_TEAMS)
             }
             Spacer(Modifier.height(8.dp))
             Text(
@@ -531,23 +499,14 @@ private fun TeamsStep(state: AddAgeGroupsUiState, onTeamsChange: (Int, Int) -> U
 }
 
 @Composable
-private fun Stepper(value: Int, onChange: (Int) -> Unit) {
-    Row(
-        Modifier.clip(RoundedCornerShape(50)).border(BorderStroke(1.dp, CarbonGray.copy(alpha = 0.2f)), RoundedCornerShape(50)),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TextButton(onClick = { onChange(value - 1) }, enabled = value > 1) { Text("−", fontWeight = FontWeight.Bold, color = if (value > 1) PitchGreen else CarbonGray.copy(alpha = 0.3f)) }
-        Text(value.toString(), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-        TextButton(onClick = { onChange(value + 1) }, enabled = value < MAX_WIZARD_TEAMS) { Text("+", fontWeight = FontWeight.Bold, color = if (value < MAX_WIZARD_TEAMS) PitchGreen else CarbonGray.copy(alpha = 0.3f)) }
-    }
-}
-
-@Composable
-private fun WizardButtons(state: AddAgeGroupsUiState, onBack: () -> Unit, onNext: () -> Unit, onCreate: () -> Unit, onSeePlans: () -> Unit) {
-    Column(Modifier.fillMaxWidth().background(Color.White).navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 10.dp)) {
+private fun WizardButtons(state: AddAgeGroupsUiState, onBack: () -> Unit, onNext: () -> Unit, onCreate: () -> Unit) {
+    PinnedBottomBar {
         state.problem?.let { problem ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
+            val plan = state.plan
+            if (problem == WizardProblem.PLAN_LIMIT && plan != null) {
+                AgeGroupsNotInPlanNotice(plan)
+            } else {
+                FormErrorLine(
                     stringResource(
                         when (problem) {
                             WizardProblem.PLAN_LIMIT -> Res.string.wizard_problem_plan
@@ -555,37 +514,22 @@ private fun WizardButtons(state: AddAgeGroupsUiState, onBack: () -> Unit, onNext
                             WizardProblem.CREST_TOO_BIG -> Res.string.wizard_problem_crest_too_big
                             WizardProblem.FAILED -> Res.string.wizard_problem_failed
                         }
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AlertRed,
-                    modifier = Modifier.weight(1f)
+                    )
                 )
-                if (problem == WizardProblem.PLAN_LIMIT) TextButton(onClick = onSeePlans) { Text(stringResource(Res.string.wizard_see_plans), color = PitchGreen, fontWeight = FontWeight.Bold) }
             }
-            Spacer(Modifier.height(6.dp))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (state.step > 0) {
-                OutlinedButton(
-                    onClick = onBack,
-                    enabled = !state.submitting,
-                    shape = RoundedCornerShape(18.dp),
-                    border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.3f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DeepCarbon),
-                    modifier = Modifier.height(48.dp)
-                ) { Text(stringResource(Res.string.wizard_back)) }
+                SecondaryButton(stringResource(Res.string.wizard_back), onClick = onBack, enabled = !state.submitting, neutral = true, modifier = Modifier.weight(1f))
             }
             val last = state.step == 2
-            Button(
+            PrimaryLoadingButton(
+                text = if (last) Res.string.wizard_create else Res.string.wizard_next,
+                submittingText = Res.string.wizard_creating,
+                isLoading = state.submitting,
                 onClick = if (last) onCreate else onNext,
-                enabled = !state.submitting,
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PitchGreen),
-                modifier = Modifier.weight(1f).height(48.dp)
-            ) {
-                if (state.submitting) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                else Text(stringResource(if (last) Res.string.wizard_create else Res.string.wizard_next), fontWeight = FontWeight.Bold)
-            }
+                modifier = Modifier.weight(if (state.step > 0) 1.6f else 1f)
+            )
         }
     }
 }
@@ -599,7 +543,7 @@ private fun previewState(step: Int) = AddAgeGroupsUiState(
 @Composable
 private fun PreviewWizard(state: AddAgeGroupsUiState) {
     SquadifyTheme {
-        AddAgeGroupsContent(state, {}, {}, {}, {}, {}, {}, {}, { _, _ -> }, { _, _ -> }, { _, _ -> }, {}, {}, {}, {})
+        AddAgeGroupsContent(state, {}, {}, {}, {}, {}, {}, {}, { _, _ -> }, { _, _ -> }, { _, _ -> }, {}, {}, {})
     }
 }
 

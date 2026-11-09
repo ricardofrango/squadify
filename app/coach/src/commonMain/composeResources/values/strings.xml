@@ -153,8 +153,6 @@
     </plurals>
     <string name="space_details_no_teams">No teams yet</string>
     <string name="space_details_next_game">Next game · %1$s · vs %2$s</string>
-    <string name="space_details_plan_full">The %1$s plan has no room for more age groups this season.</string>
-    <string name="space_details_see_plans">See plans</string>
     <string name="space_details_add_age_groups">Add age groups</string>
     <string name="space_details_new_opponent">New opponent</string>
     <string name="space_details_empty_title">No age groups yet</string>
@@ -197,11 +195,6 @@
     <string name="wizard_season">Season %1$s</string>
     <string name="wizard_football">Football</string>
     <string name="wizard_futsal">Futsal</string>
-    <plurals name="wizard_plan_room">
-        <item quantity="one">Your plan allows %1$d more age group this season</item>
-        <item quantity="other">Your plan allows %1$d more age groups this season</item>
-    </plurals>
-    <string name="wizard_see_plans">See plans</string>
     <string name="wizard_pick_one">Pick at least one age group.</string>
     <string name="wizard_year_taken">Already there</string>
     <string name="wizard_team_size">Players on the pitch</string>
@@ -220,6 +213,7 @@
     <string name="wizard_summary_note">Everything is created at once. If any part fails, nothing is saved.</string>
     <string name="wizard_back">Back</string>
     <string name="wizard_next">Next</string>
+    <string name="wizard_creating">Creating…</string>
     <string name="wizard_create">Create</string>
     <string name="wizard_problem_plan">Your plan has no room for these age groups this season.</string>
     <string name="wizard_problem_years">This club already has age groups for the years marked, this season.</string>

@@ -73,6 +73,8 @@ import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.ui.components.AdBanner
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
+import com.ricardofrango.squadify.presentation.ui.components.SecondaryButton
+import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyMark
@@ -333,16 +335,12 @@ private fun OwnSpaceCard(space: SpaceAgeGroups?, defaultName: String?, onOpen: (
             if (empty) {
                 Text(stringResource(Res.string.coach_home_first_age_groups), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.8f))
                 Spacer(Modifier.height(2.dp))
-                Button(
-                    onClick = onCreateAgeGroups,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PitchGreen)
-                ) {
-                    Icon(painterResource(SharedRes.drawable.ic_add), contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(Res.string.coach_home_create_age_groups), fontWeight = FontWeight.Bold)
-                }
+                PrimaryLoadingButton(
+                    text = Res.string.coach_home_create_age_groups,
+                    submittingText = Res.string.coach_home_create_age_groups,
+                    isLoading = false,
+                    onClick = onCreateAgeGroups
+                )
             } else {
                 CrestStrip(space)
             }
@@ -458,17 +456,7 @@ private fun MenuItem(icon: DrawableResource, label: String, onClick: () -> Unit)
 
 @Composable
 private fun JoinButton(onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = PitchGreen)
-    ) {
-        Icon(painterResource(Res.drawable.ic_join), contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(6.dp))
-        Text(stringResource(Res.string.coach_home_join))
-    }
+    SecondaryButton(stringResource(Res.string.coach_home_join), onClick = onClick, icon = Res.drawable.ic_join)
 }
 
 private fun previewClub(id: String, name: String) =

@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -73,6 +72,9 @@ import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.ui.components.AdBanner
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
+import com.ricardofrango.squadify.presentation.ui.components.PrimaryFab
+import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
+import com.ricardofrango.squadify.presentation.ui.components.AgeGroupsNotInPlanNotice
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyMark
@@ -109,8 +111,6 @@ import squadify.app.coach.generated.resources.space_details_new_opponent
 import squadify.app.coach.generated.resources.space_details_next_game
 import squadify.app.coach.generated.resources.space_details_no_teams
 import squadify.app.coach.generated.resources.space_details_owned_by
-import squadify.app.coach.generated.resources.space_details_plan_full
-import squadify.app.coach.generated.resources.space_details_see_plans
 import squadify.app.coach.generated.resources.space_details_staff
 import squadify.app.coach.generated.resources.space_details_staff_note
 import squadify.app.coach.generated.resources.space_details_tab_age_groups
@@ -138,7 +138,6 @@ fun SpaceDetailsScreen(
     onOpenAgeGroup: (ageGroupId: String) -> Unit,
     onAddAgeGroups: (space: Club) -> Unit,
     onEditSpace: () -> Unit,
-    onSeePlans: () -> Unit,
     onOpenOpponent: (opponentId: String) -> Unit,
     onCreateOpponent: (name: String) -> Unit,
     // Set when a screen opened from here changed something: reload.
@@ -166,7 +165,6 @@ fun SpaceDetailsScreen(
         onOpenAgeGroup = onOpenAgeGroup,
         onAddAgeGroups = onAddAgeGroups,
         onEditSpace = onEditSpace,
-        onSeePlans = onSeePlans,
         opponents = { OpponentsBrowser(spaceId, onOpponentClick = { onOpenOpponent(it.id) }, onCreateOpponent = onCreateOpponent, refresh = refresh) },
         onCreateOpponent = { onCreateOpponent("") },
         newAgeGroupIds = newAgeGroupIds,
@@ -187,7 +185,6 @@ private fun SpaceDetailsContent(
     onOpenAgeGroup: (String) -> Unit,
     onAddAgeGroups: (Club) -> Unit,
     onEditSpace: () -> Unit,
-    onSeePlans: () -> Unit,
     opponents: @Composable () -> Unit,
     onCreateOpponent: () -> Unit,
     newAgeGroupIds: List<String> = emptyList(),
@@ -220,13 +217,7 @@ private fun SpaceDetailsContent(
                 } else {
                     stringResource(Res.string.space_details_new_opponent) to onCreateOpponent
                 }
-                ExtendedFloatingActionButton(
-                    onClick = action,
-                    containerColor = PitchGreen,
-                    contentColor = Color.White,
-                    icon = { Icon(painterResource(SharedRes.drawable.ic_add), contentDescription = null) },
-                    text = { Text(label, fontWeight = FontWeight.Bold) }
-                )
+                PrimaryFab(label, onClick = action)
             }
         }
     ) { padding ->
@@ -234,7 +225,7 @@ private fun SpaceDetailsContent(
             when (state) {
                 SpaceDetailsUiState.Loading -> Unit
                 SpaceDetailsUiState.Failed -> ErrorScreen(title = stringResource(Res.string.msg_space_details_failed), body = null, onRetry = onRetry, modifier = Modifier.fillMaxSize())
-                is SpaceDetailsUiState.Loaded -> if (tab == 0) AgeGroupList(state, newAgeGroupIds, onOpenAgeGroup, onAddAgeGroups, onSeePlans) else opponents()
+                is SpaceDetailsUiState.Loaded -> if (tab == 0) AgeGroupList(state, newAgeGroupIds, onOpenAgeGroup, onAddAgeGroups) else opponents()
             }
         }
     }
@@ -354,8 +345,7 @@ private fun AgeGroupList(
     state: SpaceDetailsUiState.Loaded,
     newAgeGroupIds: List<String>,
     onOpenAgeGroup: (String) -> Unit,
-    onAddAgeGroups: (Club) -> Unit,
-    onSeePlans: () -> Unit
+    onAddAgeGroups: (Club) -> Unit
 ) {
     val details = state.details
     if (state.ageGroups.isEmpty()) {
@@ -373,7 +363,7 @@ private fun AgeGroupList(
         }
         // The owner's plan has no room for more age groups this season.
         if (details.isOwner && details.ageGroupsLeft == 0) {
-            item(key = "plan-full") { PlanFull(details.plan, onSeePlans) }
+            item(key = "plan-full") { AgeGroupsNotInPlanNotice(details.plan) }
         }
         item(key = "count") {
             Text(
@@ -454,17 +444,6 @@ private fun Note(text: String) {
 }
 
 @Composable
-private fun PlanFull(plan: SpacePlan, onSeePlans: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Amber.copy(alpha = 0.15f)).padding(start = 14.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(Res.string.space_details_plan_full, plan.displayName()), style = MaterialTheme.typography.bodySmall, color = AmberText, modifier = Modifier.weight(1f))
-        TextButton(onClick = onSeePlans) { Text(stringResource(Res.string.space_details_see_plans), color = PitchGreen, fontWeight = FontWeight.Bold) }
-    }
-}
-
-@Composable
 private fun EmptyAgeGroups(details: SpaceDetails, onAddAgeGroups: (Club) -> Unit) {
     Box(Modifier.fillMaxSize().padding(ScreenPadding.Horizontal), contentAlignment = Alignment.TopCenter) {
         SectionCard(modifier = Modifier.widthIn(max = 480.dp).padding(top = 12.dp)) {
@@ -476,13 +455,12 @@ private fun EmptyAgeGroups(details: SpaceDetails, onAddAgeGroups: (Club) -> Unit
                 Text(stringResource(Res.string.space_details_empty_body), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.75f))
                 if (details.isOwner) {
                     Spacer(Modifier.height(4.dp))
-                    androidx.compose.material3.Button(
-                        onClick = { onAddAgeGroups(details.space) },
-                        shape = RoundedCornerShape(18.dp),
-                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = PitchGreen)
-                    ) {
-                        Text(stringResource(Res.string.space_details_add_age_groups))
-                    }
+                    PrimaryLoadingButton(
+                        text = Res.string.space_details_add_age_groups,
+                        submittingText = Res.string.space_details_add_age_groups,
+                        isLoading = false,
+                        onClick = { onAddAgeGroups(details.space) }
+                    )
                 }
             }
         }
@@ -510,7 +488,7 @@ private val previewDetails = SpaceDetails(
 @Composable
 private fun SpaceDetailsPreview() {
     SquadifyTheme {
-        SpaceDetailsContent(SpaceDetailsUiState.Loaded(previewDetails), "space-1", {}, {}, {}, {}, {}, {}, opponents = {}, onCreateOpponent = {})
+        SpaceDetailsContent(SpaceDetailsUiState.Loaded(previewDetails), "space-1", {}, {}, {}, {}, {}, opponents = {}, onCreateOpponent = {})
     }
 }
 
@@ -520,7 +498,7 @@ private fun SpaceDetailsStaffPreview() {
     SquadifyTheme {
         SpaceDetailsContent(
             SpaceDetailsUiState.Loaded(previewDetails.copy(isOwner = false, ownerName = "João Pereira", space = previewSpace.copy(name = "Espaço de João Pereira"))),
-            "space-1", {}, {}, {}, {}, {}, {}, opponents = {}, onCreateOpponent = {}
+            "space-1", {}, {}, {}, {}, {}, opponents = {}, onCreateOpponent = {}
         )
     }
 }
@@ -529,7 +507,7 @@ private fun SpaceDetailsStaffPreview() {
 @Composable
 private fun SpaceDetailsEmptyPreview() {
     SquadifyTheme {
-        SpaceDetailsContent(SpaceDetailsUiState.Loaded(previewDetails.copy(ageGroups = emptyList(), plan = SpacePlan("FREE"))), "space-1", {}, {}, {}, {}, {}, {}, opponents = {}, onCreateOpponent = {})
+        SpaceDetailsContent(SpaceDetailsUiState.Loaded(previewDetails.copy(ageGroups = emptyList(), plan = SpacePlan("FREE"))), "space-1", {}, {}, {}, {}, {}, opponents = {}, onCreateOpponent = {})
     }
 }
 
@@ -537,6 +515,6 @@ private fun SpaceDetailsEmptyPreview() {
 @Composable
 private fun SpaceDetailsLandscapePreview() {
     SquadifyTheme {
-        SpaceDetailsContent(SpaceDetailsUiState.Loaded(previewDetails), "space-1", {}, {}, {}, {}, {}, {}, opponents = {}, onCreateOpponent = {})
+        SpaceDetailsContent(SpaceDetailsUiState.Loaded(previewDetails), "space-1", {}, {}, {}, {}, {}, opponents = {}, onCreateOpponent = {})
     }
 }
