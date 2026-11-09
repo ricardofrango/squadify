@@ -41,6 +41,7 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             it[startYear] = ageGroup.startYear
             it[endYear] = ageGroup.endYear
             it[teamSize] = ageGroup.teamSize
+            it[logoUrl] = ageGroup.logoUrl
         }.resultedValues?.singleOrNull()?.let(::toAgeGroup)
             ?: throw DatabaseException("Failed to create age group")
     }
@@ -54,6 +55,7 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             this[AgeGroups.startYear] = ageGroup.startYear
             this[AgeGroups.endYear] = ageGroup.endYear
             this[AgeGroups.teamSize] = ageGroup.teamSize
+            this[AgeGroups.logoUrl] = ageGroup.logoUrl
         }.map(::toAgeGroup)
     }
 
@@ -146,6 +148,10 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
         name = row[AgeGroups.name],
         startYear = row[AgeGroups.startYear],
         endYear = row[AgeGroups.endYear],
-        teamSize = row[AgeGroups.teamSize]
+        teamSize = row[AgeGroups.teamSize],
+        logoUrl = row[AgeGroups.logoUrl]
     )
+
+    override suspend fun updateLogoUrl(ageGroupId: String, logoUrl: String?): Boolean =
+        AgeGroups.update({ AgeGroups.id eq ageGroupId.toUuid() }) { it[AgeGroups.logoUrl] = logoUrl } > 0
 }

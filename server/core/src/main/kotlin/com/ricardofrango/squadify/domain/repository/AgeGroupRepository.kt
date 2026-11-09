@@ -11,6 +11,8 @@ interface AgeGroupRepository {
     suspend fun createAgeGroups(ageGroups: List<AgeGroup>): List<AgeGroup>
     suspend fun getAgeGroupById(id: String): AgeGroup?
     suspend fun updateAgeGroup(ageGroup: AgeGroup): Boolean
+    /** The age group's crest (`AgeGroupLogos`); null removes it. */
+    suspend fun updateLogoUrl(ageGroupId: String, logoUrl: String?): Boolean
     suspend fun findByDetails(clubId: String, seasonId: String, startYear: Int, endYear: Int): AgeGroup?
     suspend fun findByClubAndSeason(clubId: String, seasonId: String): List<AgeGroup>
 

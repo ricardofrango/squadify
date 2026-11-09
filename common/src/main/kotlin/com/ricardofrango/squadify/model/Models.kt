@@ -419,7 +419,10 @@ data class AgeGroup(
     val endYear: Int,
     // The a-side count this age group's teams play by default (one of `club.sport.teamSizes`).
     // Nullable so age groups created before this existed still load; a team can override it.
-    val teamSize: Int? = null
+    val teamSize: Int? = null,
+    // The crest of the club it plays for (the coach app: "Povoense - Sub 11"), served at this path like
+    // the other images; null: none.
+    val logoUrl: String? = null
 )
 
 /**

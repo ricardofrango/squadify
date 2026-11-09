@@ -2600,6 +2600,7 @@ erDiagram
         integer start_year "default 0 — younger/more recent birth year; == end_year for single-year groups"
         integer end_year "default 0 — older birth year; eligibility is always checked against this"
         integer team_size "nullable — default a-side count for this age group's teams"
+        varchar logo_url "nullable, 500 chars — the crest of the club it plays for (the coach app); /age-groups/{id}/logo/{imageId}.png"
         timestamp created_at "default CURRENT_TIMESTAMP — the coach server's plan keeps the first created"
     }
     TEAMS {
@@ -2943,6 +2944,7 @@ erDiagram
         int start_year
         int end_year "oldest birth year"
         int team_size
+        string logo_url "the crest of the club it plays for, nullable"
     }
     TEAMS {
         uuid id PK

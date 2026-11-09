@@ -22,6 +22,7 @@ import com.ricardofrango.squadify.data.database.Seasons
 import com.ricardofrango.squadify.data.database.Teams
 import com.ricardofrango.squadify.data.database.Users
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.domain.usecase.AgeGroupLogos
 import com.ricardofrango.squadify.domain.usecase.ClubLogos
 import com.ricardofrango.squadify.domain.usecase.OpponentLogos
 import com.ricardofrango.squadify.domain.usecase.PlayerPhotos
@@ -139,7 +140,9 @@ class ExposedAccountDeletionRepository : AccountDeletionRepository {
             Players.selectAll().where { Players.clubId eq spaceId }
                 .mapNotNull { row -> row[Players.photoUrl]?.let { PlayerPhotos.keyOf(row[Players.id].toString(), it) } } +
             Opponents.selectAll().where { Opponents.clubId eq spaceId }
-                .mapNotNull { row -> row[Opponents.logoUrl]?.let { OpponentLogos.keyOf(row[Opponents.id].toString(), it) } }
+                .mapNotNull { row -> row[Opponents.logoUrl]?.let { OpponentLogos.keyOf(row[Opponents.id].toString(), it) } } +
+            AgeGroups.selectAll().where { AgeGroups.clubId eq spaceId }
+                .mapNotNull { row -> row[AgeGroups.logoUrl]?.let { AgeGroupLogos.keyOf(row[AgeGroups.id].toString(), it) } }
         val ageGroupIds = AgeGroups.selectAll().where { AgeGroups.clubId eq spaceId }.map { it[AgeGroups.id] }
         Matches.deleteWhere { Matches.clubId eq spaceId }
         Teams.deleteWhere { Teams.clubId eq spaceId }

@@ -21,6 +21,7 @@ import com.ricardofrango.squadify.model.StaffInvite
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.put
@@ -110,12 +111,25 @@ class CoachImagesTest {
         val opponentLogo = api.upload("/v1/opponents/${opponent.id}/logo?ageGroupId=${setup.ageGroup.id}", joao).body<LogoResponse>().logoUrl
         assertTrue(stored(opponentLogo).isFile)
 
+        // An age group's crest: its own staff change it (João for Sub-12, not Sub-14); the space sees it, in
+        // the age group itself; outsiders don't.
+        assertEquals(HttpStatusCode.Forbidden, api.upload("/v1/age-groups/${sub14.id}/logo", joao).status)
+        val crest = api.upload("/v1/age-groups/${setup.ageGroup.id}/logo", joao).body<LogoResponse>().logoUrl
+        assertTrue(crest.startsWith("/age-groups/${setup.ageGroup.id}/logo/"))
+        assertTrue(stored(crest).isFile)
+        assertEquals(crest, api.get("/v1/age-groups?clubId=$spaceId") { bearerAuth(ana) }.body<List<AgeGroup>>().single { it.id == setup.ageGroup.id }.logoUrl)
+        assertEquals(HttpStatusCode.OK, api.get("/v1$crest") { bearerAuth(joao) }.status)
+        assertEquals(HttpStatusCode.Forbidden, api.get("/v1$crest") { bearerAuth(outsider) }.status)
+        val sub14Crest = api.upload("/v1/age-groups/${sub14.id}/logo", ana).body<LogoResponse>().logoUrl
+        assertEquals(HttpStatusCode.NoContent, api.delete("/v1/age-groups/${sub14.id}/logo") { bearerAuth(ana) }.status)
+        assertFalse(stored(sub14Crest).exists())
+
         // The account's own photo, seen by anyone signed in.
         val anaPhoto = api.upload("/v1/users/me/avatar", ana).body<PhotoResponse>().photoUrl
         assertEquals(HttpStatusCode.OK, api.get("/v1$anaPhoto") { bearerAuth(joao) }.status)
 
         // Ana deletes her account: her space's images and her photo go with it.
         assertEquals(HttpStatusCode.NoContent, api.post("/v1/users/me/delete") { json(ana, DeleteAccountRequest("password1")) }.status)
-        listOf(logo, ruiPhoto, ritaPhoto, opponentLogo, anaPhoto).forEach { assertFalse(stored(it).exists(), it) }
+        listOf(logo, ruiPhoto, ritaPhoto, opponentLogo, crest, anaPhoto).forEach { assertFalse(stored(it).exists(), it) }
     }
 }

@@ -23,6 +23,9 @@ class ImagePaths(private val kind: String, private val name: String) {
 /** A club's logo (`clubs.logo_url`). */
 val ClubLogos = ImagePaths("clubs", "logo")
 
+/** An age group's crest, the club it plays for (`age_groups.logo_url`). */
+val AgeGroupLogos = ImagePaths("age-groups", "logo")
+
 /** An opponent's logo (`opponents.logo_url`). */
 val OpponentLogos = ImagePaths("opponents", "logo")
 
