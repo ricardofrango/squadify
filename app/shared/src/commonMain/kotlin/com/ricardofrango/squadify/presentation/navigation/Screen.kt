@@ -68,6 +68,11 @@ sealed class Screen {
     @SerialName("my-space")
     data object MySpace : Screen()
 
+    // The coach app: one space's details, its age groups and opponents (the owner's or one they're staff in).
+    @Serializable
+    @SerialName("space")
+    data class SpaceDetails(val spaceId: String) : Screen()
+
     // What each plan has, with the coach's own plan marked, both from the coach server: from My Space's
     // Plan card and every plan box's See plans (the coach app).
     @Serializable

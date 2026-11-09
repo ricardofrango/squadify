@@ -14,6 +14,7 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.PlayerProfile
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
+import com.ricardofrango.squadify.model.SpaceDetails
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
 import io.ktor.client.call.body
@@ -105,6 +106,13 @@ class CoachSpaceTest {
             HttpStatusCode.Created,
             api.post("/v1/opponents?clubId=$spaceId") { json(owner, CreateOpponentRequest("Benfica")) }.status
         )
+        // The space's details: its age groups with their teams, the season; the opponents counted on /spaces.
+        val spaceDetails = api.get("/v1/spaces/$spaceId") { bearerAuth(owner) }.body<SpaceDetails>()
+        assertTrue(spaceDetails.isOwner)
+        assertEquals(setup.season.name, spaceDetails.seasonName)
+        assertEquals(listOf("Sub-12 A"), spaceDetails.ageGroups.single { it.ageGroup.id == setup.ageGroup.id }.teams)
+        assertEquals(1, api.get("/v1/spaces") { bearerAuth(owner) }.body<List<SpaceAgeGroups>>().single().opponents)
+
         assertEquals(HttpStatusCode.NoContent, api.delete("/v1/teams/${setup.team.id}") { bearerAuth(owner) }.status)
 
         // Someone outside the space sees and creates nothing in it.
@@ -116,6 +124,7 @@ class CoachSpaceTest {
             api.post("/v1/age-groups") { json(outsider, CreateAgeGroupsRequest(spaceId, items = listOf(AgeGroupItemRequest("Sub-16", 2011, 2011)))) }.status
         )
         assertTrue(api.get("/v1/spaces") { bearerAuth(outsider) }.body<List<SpaceAgeGroups>>().isEmpty())
+        assertEquals(HttpStatusCode.Forbidden, api.get("/v1/spaces/$spaceId") { bearerAuth(outsider) }.status)
     }
 
     @Test

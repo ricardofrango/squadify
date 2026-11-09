@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
+import com.ricardofrango.squadify.model.SpaceDetails
 import com.ricardofrango.squadify.domain.config.OwnSpace
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +33,11 @@ class GetSpacesUseCase(
             } catch (e: Exception) {
             }
         }
+}
+
+/** One space the coach is in, for its details screen (its age groups' teams and next games). */
+class GetSpaceDetailsUseCase(private val spaceRepository: SpaceRepository) {
+    suspend operator fun invoke(spaceId: String): SpaceDetails = spaceRepository.getSpaceDetails(spaceId)
 }
 
 /**

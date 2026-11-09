@@ -143,4 +143,29 @@
     <string name="plans_price_year">%1$s / ano</string>
     <string name="plans_pending">%1$s até %2$s, depois %3$s.</string>
     <string name="plans_purchase_failed">A compra não foi concluída. Tenta novamente.</string>
+    <!-- Detalhes do espaço (a app de treinadores): os escalões e os adversários de um espaço. -->
+    <string name="space_details_tab_age_groups">Escalões</string>
+    <string name="space_details_tab_opponents">Adversários</string>
+    <string name="space_details_edit">Editar espaço</string>
+    <string name="space_details_staff">Staff</string>
+    <string name="space_details_owned_by">de %1$s</string>
+    <string name="space_details_staff_note">Só vês os escalões em que és staff.</string>
+    <plurals name="space_details_count">
+        <item quantity="one">%1$d escalão · ordenados por clube e idade</item>
+        <item quantity="other">%1$d escalões · ordenados por clube e idade</item>
+    </plurals>
+    <string name="space_details_born">Nascidos em %1$s</string>
+    <plurals name="space_details_teams">
+        <item quantity="one">Equipa %1$s</item>
+        <item quantity="other">Equipas %1$s</item>
+    </plurals>
+    <string name="space_details_no_teams">Ainda sem equipas</string>
+    <string name="space_details_next_game">Próximo jogo · %1$s · vs %2$s</string>
+    <string name="space_details_plan_full">O plano %1$s não tem lugar para mais escalões esta época.</string>
+    <string name="space_details_see_plans">Ver planos</string>
+    <string name="space_details_add_age_groups">Adicionar escalões</string>
+    <string name="space_details_new_opponent">Novo adversário</string>
+    <string name="space_details_empty_title">Ainda não há escalões</string>
+    <string name="space_details_empty_body">Adiciona os escalões deste espaço. Cada um tem o nome e o emblema do clube por que joga, por exemplo "Povoense - Sub 11".</string>
+    <string name="msg_space_details_failed">Não foi possível carregar este espaço.</string>
 </resources>

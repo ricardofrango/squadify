@@ -95,6 +95,8 @@ class CoachImagesTest {
         assertTrue(logo.startsWith("/clubs/$spaceId/logo/"))
         assertTrue(stored(logo).isFile)
         assertEquals(logo, api.get("/v1/spaces") { bearerAuth(joao) }.body<List<SpaceAgeGroups>>().single().space.logoUrl)
+        // Staff see whose space it is.
+        assertEquals("Ana Coach", api.get("/v1/spaces") { bearerAuth(joao) }.body<List<SpaceAgeGroups>>().single().ownerName)
         assertEquals(HttpStatusCode.OK, api.get("/v1$logo") { bearerAuth(joao) }.status)
         assertEquals(HttpStatusCode.Forbidden, api.get("/v1$logo") { bearerAuth(outsider) }.status)
         assertEquals(HttpStatusCode.OK, api.get("/v1/public$logo").status)

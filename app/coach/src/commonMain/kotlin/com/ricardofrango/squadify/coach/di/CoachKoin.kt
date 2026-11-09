@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.coach.domain.GetAccountDeletionSummaryUseCase
 import com.ricardofrango.squadify.coach.presentation.ui.deleteaccount.DeleteAccountViewModel
 import com.ricardofrango.squadify.coach.data.StaffInviteRepositoryImpl
 import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
+import com.ricardofrango.squadify.coach.domain.GetSpaceDetailsUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.LoadPlansUseCase
 import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
@@ -25,6 +26,7 @@ import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.invite.InviteStaffViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.join.JoinWithCodeViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.space.MySpaceViewModel
+import com.ricardofrango.squadify.coach.presentation.ui.space.SpaceDetailsViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupViewModel
 import com.ricardofrango.squadify.di.startSquadifyKoin
 import com.ricardofrango.squadify.domain.config.AppConfig
@@ -46,6 +48,7 @@ val coachModule = module {
     single { OwnSpacePlan() }
     single { CoachAds() }
     factory { GetSpacesUseCase(get(), get(), get(), get()) }
+    factory { GetSpaceDetailsUseCase(get()) }
     factory { LoadPlansUseCase(get(), get()) }
     factory { RequestPlanUseCase(get(), get(), get()) }
     factory { SaveStorePurchaseUseCase(get(), get(), get()) }
@@ -67,6 +70,7 @@ val coachModule = module {
     viewModelOf(::InviteStaffViewModel)
     viewModelOf(::DeleteAccountViewModel)
     viewModelOf(::MySpaceViewModel)
+    viewModelOf(::SpaceDetailsViewModel)
 }
 
 /**

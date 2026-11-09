@@ -12,6 +12,7 @@ import com.ricardofrango.squadify.model.RequestPlanRequest
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
+import com.ricardofrango.squadify.model.SpaceDetails
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.StaffInvite
 import io.ktor.client.HttpClient
@@ -29,6 +30,9 @@ class SpaceRepositoryImpl(
 
     override suspend fun getSpaces(): List<SpaceAgeGroups> =
         httpClient.get("${appConfig.baseUrl}/spaces").handleResponse()
+
+    override suspend fun getSpaceDetails(spaceId: String): SpaceDetails =
+        httpClient.get("${appConfig.baseUrl}/spaces/$spaceId").handleResponse()
 
     // The features come written by the server, in the app's language (its Accept-Language).
     override suspend fun getPlans(): PlansResponse =

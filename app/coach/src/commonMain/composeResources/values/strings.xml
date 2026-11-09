@@ -143,4 +143,29 @@
     <string name="plans_price_year">%1$s / year</string>
     <string name="plans_pending">%1$s until %2$s, then %3$s.</string>
     <string name="plans_purchase_failed">The purchase didn't go through. Try again.</string>
+    <!-- Space details (the coach app): a space's age groups and opponents. -->
+    <string name="space_details_tab_age_groups">Age groups</string>
+    <string name="space_details_tab_opponents">Opponents</string>
+    <string name="space_details_edit">Edit space</string>
+    <string name="space_details_staff">Staff</string>
+    <string name="space_details_owned_by">by %1$s</string>
+    <string name="space_details_staff_note">You only see the age groups you're staff in.</string>
+    <plurals name="space_details_count">
+        <item quantity="one">%1$d age group · sorted by club and age</item>
+        <item quantity="other">%1$d age groups · sorted by club and age</item>
+    </plurals>
+    <string name="space_details_born">Born in %1$s</string>
+    <plurals name="space_details_teams">
+        <item quantity="one">Team %1$s</item>
+        <item quantity="other">Teams %1$s</item>
+    </plurals>
+    <string name="space_details_no_teams">No teams yet</string>
+    <string name="space_details_next_game">Next game · %1$s · vs %2$s</string>
+    <string name="space_details_plan_full">The %1$s plan has no room for more age groups this season.</string>
+    <string name="space_details_see_plans">See plans</string>
+    <string name="space_details_add_age_groups">Add age groups</string>
+    <string name="space_details_new_opponent">New opponent</string>
+    <string name="space_details_empty_title">No age groups yet</string>
+    <string name="space_details_empty_body">Add this space's age groups. Each one has the name and crest of the club it plays for, for example "Povoense - Sub 11".</string>
+    <string name="msg_space_details_failed">Couldn't load this space.</string>
 </resources>

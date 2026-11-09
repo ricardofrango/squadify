@@ -132,8 +132,8 @@ fun CoachHomeScreen(
     onSetUpSpace: () -> Unit,
     onJoinWithCode: () -> Unit,
     onOpenAccount: () -> Unit,
-    // The owner's own space (its logo).
-    onOpenMySpace: () -> Unit = {},
+    // The owner's own space: its details.
+    onOpenMySpace: (spaceId: String) -> Unit = {},
     onOpenPlans: () -> Unit = {},
     // Set when a screen opened from here changed something (an age group created, a code used).
     refresh: Boolean = false,
@@ -172,7 +172,7 @@ fun CoachHomeScreen(
         },
         onJoinWithCode = onJoinWithCode,
         onOpenAccount = onOpenAccount,
-        onOpenMySpace = onOpenMySpace,
+        onOpenMySpace = { (uiState as? CoachHomeUiState.Loaded)?.ownSpace?.let { onOpenMySpace(it.id) } },
         onOpenPlans = onOpenPlans,
         adSpaceId = adSpaceId,
         onPrivacyOptions = rememberPrivacyOptions()

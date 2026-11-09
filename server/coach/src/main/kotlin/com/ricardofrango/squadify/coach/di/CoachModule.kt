@@ -57,6 +57,7 @@ import com.ricardofrango.squadify.coach.domain.GetStaffInvitesUseCase
 import com.ricardofrango.squadify.coach.domain.RemoveStaffUseCase
 import com.ricardofrango.squadify.coach.domain.RevokeStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.GetPlansUseCase
+import com.ricardofrango.squadify.coach.domain.GetSpaceDetailsUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.SetUpSpaceUseCase
 import com.ricardofrango.squadify.data.repository.ExposedAgeGroupRepository
@@ -251,7 +252,8 @@ val coachModule = module {
     factory<AccessPolicy> { CoachAccessPolicy(get(), get(), get(), get(), get()) }
     factory { CoachSeasons(get()) }
     factory { SetUpSpaceUseCase(get(), get(), get(), get(), get()) }
-    factory { GetSpacesUseCase(get(), get(), get(), get(), get()) }
+    factory { GetSpacesUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { GetSpaceDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     // How plans change: at once locally; deployed, in the store once it can check purchases, else by request.
     single<GooglePlayApi> { GooglePlayDeveloperApi(CoachConfig.googlePlayPackageName, CoachConfig.googlePlayServiceAccountJson) }
     single<StoreSubscriptionRepository> { ExposedStoreSubscriptionRepository() }

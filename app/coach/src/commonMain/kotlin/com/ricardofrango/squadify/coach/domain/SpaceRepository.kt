@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
+import com.ricardofrango.squadify.model.SpaceDetails
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.StaffInvite
 
@@ -13,6 +14,9 @@ import com.ricardofrango.squadify.model.StaffInvite
 interface SpaceRepository {
     /** Every space the coach is in, their own first, with their age groups there; empty before any. */
     suspend fun getSpaces(): List<SpaceAgeGroups>
+
+    /** One space the coach is in, for its details screen: its age groups with their teams and next games. */
+    suspend fun getSpaceDetails(spaceId: String): SpaceDetails
 
     /** Every plan, cheapest first, with what it has in the app's language, and the coach's own (the coach server's). */
     suspend fun getPlans(): PlansResponse

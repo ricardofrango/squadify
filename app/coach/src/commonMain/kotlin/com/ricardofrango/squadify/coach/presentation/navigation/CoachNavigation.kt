@@ -31,6 +31,7 @@ import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.invite.InviteStaffScreen
 import com.ricardofrango.squadify.coach.presentation.ui.join.JoinWithCodeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.space.MySpaceScreen
+import com.ricardofrango.squadify.coach.presentation.ui.space.SpaceDetailsScreen
 import com.ricardofrango.squadify.coach.presentation.ui.plans.PlansRoute
 import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
 import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
@@ -222,6 +223,24 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
         )
     }
 
+    // A space's details: its age groups and opponents. The screens opened from here reload it on return.
+    screen<Screen.SpaceDetails> { entry ->
+        val screen: Screen.SpaceDetails = entry.toRoute()
+        val changed by entry.savedStateHandle.getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false).collectAsStateWithLifecycle()
+        SpaceDetailsScreen(
+            spaceId = screen.spaceId,
+            onNavigateBack = { navigator.popBackStack() },
+            onOpenAgeGroup = { ageGroupId -> navigator.navigate(Screen.AgeGroupDetails(ageGroupId)) },
+            onAddAgeGroups = { space -> navigator.navigate(Screen.CreateAgeGroups(space.id, space.name, space.sport.name)) },
+            onEditSpace = { navigator.navigate(Screen.MySpace) },
+            onSeePlans = { navigator.navigate(Screen.Plans) },
+            onOpenOpponent = { opponentId -> navigator.navigate(Screen.OpponentDetails(opponentId)) },
+            onCreateOpponent = { name -> navigator.navigate(Screen.CreateOpponent(screen.spaceId, name = name)) },
+            refresh = changed,
+            onRefreshed = { entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false }
+        )
+    }
+
     screen<Screen.Plans> {
         PlansRoute(
             // Home lists the age groups the plan locks or frees.
@@ -252,7 +271,7 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
             onSetUpSpace = { navigator.navigate(Screen.SpaceSetup) },
             onJoinWithCode = { navigator.navigate(Screen.JoinWithCode) },
             onOpenAccount = { navigator.navigate(Screen.Account) },
-            onOpenMySpace = { navigator.navigate(Screen.MySpace) },
+            onOpenMySpace = { spaceId -> navigator.navigate(Screen.SpaceDetails(spaceId)) },
             onOpenPlans = { navigator.navigate(Screen.Plans) },
             refresh = changed,
             onRefreshed = { entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false }

@@ -189,8 +189,43 @@ data class SpaceAgeGroups(
     val ageGroupsLeft: Int? = null,
     // Whether the app shows ads on this space's screens: its plan's, decided by the coach server (Free).
     // False from an older server.
+    val showsAds: Boolean = false,
+    // The space owner's name, for a space they're staff in ("de João Pereira"); null from an older server.
+    val ownerName: String? = null,
+    // How many opponents the space has, one list for all its age groups.
+    val opponents: Int = 0
+)
+
+/**
+ * One space as its details screen shows it (`GET /v1/spaces/{id}`, the coach server): the space, the
+ * current season's name ("26/27"), its plan, and the age groups the coach has there (all of them for the
+ * owner, their own for staff), each with its teams and next game.
+ */
+@Serializable
+data class SpaceDetails(
+    val space: Club,
+    val isOwner: Boolean,
+    val ownerName: String? = null,
+    val plan: SpacePlan,
+    val seasonName: String? = null,
+    val ageGroups: List<SpaceAgeGroup>,
+    // The owner's: how many more age groups the plan allows this season; null: no limit, or staff.
+    val ageGroupsLeft: Int? = null,
     val showsAds: Boolean = false
 )
+
+/** An age group on the space's details: its teams' names, its next game, and whether the plan locks it. */
+@Serializable
+data class SpaceAgeGroup(
+    val ageGroup: AgeGroup,
+    val teams: List<String>,
+    val nextMatch: SpaceNextMatch? = null,
+    val locked: Boolean = false
+)
+
+/** An age group's next game, for its row: when and against whom. */
+@Serializable
+data class SpaceNextMatch(val matchId: String, val dateTime: Instant, val opponentName: String)
 
 /** A space the signed-in coach belongs to, and whether they own it. */
 @Serializable

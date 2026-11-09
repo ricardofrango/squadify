@@ -3152,3 +3152,21 @@ All in one transaction, so a failure deletes nothing; the files go only once the
 
 The season running today, July 1st to June 30th (`EUROPEAN_YEAR`): found by its type and dates, or created the first time, named "26/27". Used by the first setup and by `POST /v1/age-groups` without a `seasonId`, where the route checks `requireCreateAgeGroups` first, then fills in the season and calls `CreateAgeGroupsUseCase` (§4.3).
 
+### 13.7 A space's details (`GetSpaceDetailsUseCase`, `GET /v1/spaces/{id}`)
+
+The coach app's space details screen (2026-11-09): one space the coach is in, its age groups and its opponents. `GET /v1/spaces` (`GetSpacesUseCase`) also carries each space's owner's name (`ownerName`, for "de João Pereira") and how many opponents it has (`opponents`).
+
+```mermaid
+graph TD
+    A[Start: userId, spaceId] --> M{"The coach's membership of spaceId (getMemberships)"}
+    M -- none, space unknown --> N(["Throw NotFoundException"])
+    M -- none --> F(["Throw ForbiddenException — only the space's owner and staff"])
+    M -- found --> G["Age groups: all of the space's for the owner (CLUB_ADMIN), the ones they're staff on otherwise"]
+    G --> P["The plan, the age groups it locks, the current season (CoachSeasons) and, for the owner, ageGroupsLeft"]
+    P --> T["Each age group's active teams' names, sorted"]
+    T --> U["Each age group's next game: the space's upcoming games (getUpcomingMatchesByClub, soonest first), the first per age group, with its opponent's name"]
+    U --> Z(["SpaceDetails: space, isOwner, ownerName, plan, seasonName, ageGroups (SpaceAgeGroup: ageGroup, teams, nextMatch, locked), ageGroupsLeft, showsAds"])
+```
+
+The app sorts the age groups by the club each plays for (the name's part before " - ") and then youngest first. Its opponents tab is the shared opponents list (`OpponentsBrowser`, the same search and list as the Opponents screen) for the space.
+

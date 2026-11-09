@@ -171,22 +171,68 @@ private fun OpponentsContent(
             Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(ScreenBackground),
             contentAlignment = Alignment.TopCenter
         ) {
-            // Rows stay readable on a landscape phone or a tablet instead of stretching edge to edge.
-            Column(Modifier.widthIn(max = 720.dp).fillMaxSize()) {
-                SearchField(query, onQueryChange)
-                when (state) {
-                    OpponentsUiState.Loading -> SkeletonRows()
-                    OpponentsUiState.Error -> ErrorScreen(title = stringResource(Res.string.msg_opponents_load_failed), onRetry = onRetry)
-                    is OpponentsUiState.Idle -> OpponentList(
-                        state = state,
-                        onLoadMore = onLoadMore,
-                        selectMode = selectMode,
-                        selectedOpponentId = selectedOpponentId,
-                        onOpponentClick = onOpponentClick,
-                        onCreateOpponent = create
-                    )
-                }
-            }
+            OpponentsBody(state, query, selectMode, selectedOpponentId, onQueryChange, onLoadMore, onRetry, onOpponentClick, create)
+        }
+    }
+}
+
+/**
+ * The opponents to browse without a screen of their own: [OpponentsScreen]'s search and list (BROWSE), for
+ * a tab (the coach app's space details). Tapping a row calls [onOpponentClick]; [onCreateOpponent], when
+ * given and the server says the user may create, backs the empty states' create buttons. [refresh]: reload,
+ * keeping the search, after a screen opened from here changed the opponents.
+ */
+@Composable
+fun OpponentsBrowser(
+    clubId: String,
+    onOpponentClick: (Opponent) -> Unit,
+    onCreateOpponent: ((name: String) -> Unit)?,
+    refresh: Boolean = false,
+    viewModel: OpponentsViewModel = koinViewModel(key = "opponents-browser-$clubId")
+) {
+    val state = viewModel.state.collectSettledState()
+    val query by viewModel.query.collectAsStateWithLifecycle()
+    LaunchedEffect(clubId) { viewModel.load(clubId, null) }
+    LaunchedEffect(refresh) { if (refresh) viewModel.load(clubId, null, force = true) }
+    val create = onCreateOpponent?.takeIf { (state as? OpponentsUiState.Idle)?.list?.canCreate == true }
+    Box(Modifier.fillMaxSize().imePadding(), contentAlignment = Alignment.TopCenter) {
+        OpponentsBody(
+            state, query, selectMode = false, selectedOpponentId = null,
+            onQueryChange = viewModel::onQueryChange,
+            onLoadMore = viewModel::loadMore,
+            onRetry = { viewModel.load(clubId, null, force = true) },
+            onOpponentClick = onOpponentClick,
+            onCreateOpponent = create
+        )
+    }
+}
+
+@Composable
+private fun OpponentsBody(
+    state: OpponentsUiState,
+    query: String,
+    selectMode: Boolean,
+    selectedOpponentId: String?,
+    onQueryChange: (String) -> Unit,
+    onLoadMore: () -> Unit,
+    onRetry: () -> Unit,
+    onOpponentClick: (Opponent) -> Unit,
+    onCreateOpponent: ((name: String) -> Unit)?
+) {
+    // Rows stay readable on a landscape phone or a tablet instead of stretching edge to edge.
+    Column(Modifier.widthIn(max = 720.dp).fillMaxSize()) {
+        SearchField(query, onQueryChange)
+        when (state) {
+            OpponentsUiState.Loading -> SkeletonRows()
+            OpponentsUiState.Error -> ErrorScreen(title = stringResource(Res.string.msg_opponents_load_failed), onRetry = onRetry)
+            is OpponentsUiState.Idle -> OpponentList(
+                state = state,
+                onLoadMore = onLoadMore,
+                selectMode = selectMode,
+                selectedOpponentId = selectedOpponentId,
+                onOpponentClick = onOpponentClick,
+                onCreateOpponent = onCreateOpponent
+            )
         }
     }
 }
