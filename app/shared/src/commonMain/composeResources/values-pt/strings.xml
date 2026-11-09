@@ -227,6 +227,8 @@
     <string name="label_last_name_field">Último nome *</string>
     <string name="label_date_of_birth">Data de nascimento *</string>
     <string name="msg_date_of_birth_helper">Usada para verificar em que escalões o jogador é elegível.</string>
+    <string name="msg_players_intro_into_age_group">Adicione o nome e a data de nascimento de cada jogador. Entram já neste escalão.</string>
+    <string name="msg_date_of_birth_helper_age_group">Nascido em %1$d ou depois.</string>
     <string name="label_pick_a_date">Escolher uma data</string>
     <string name="label_shirt_number">Número</string>
     <string name="label_add_another_player">Adicionar outro jogador</string>

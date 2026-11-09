@@ -82,6 +82,19 @@ class CoachSpaceTest {
         )
         assertEquals(0, api.get("/v1/players/${player.id}") { bearerAuth(owner) }.body<PlayerProfile>().guardiansLinked)
 
+        // The coach app's way: created straight into the age group, born in its year or later only.
+        val straightIn = api.post("/v1/players") {
+            json(owner, CreatePlayersRequest(spaceId, listOf(CreatePlayer("Tiago", "Sousa", LocalDate(2016, 2, 3))), ageGroupId = setup.ageGroup.id, addToAgeGroup = true))
+        }
+        assertEquals(HttpStatusCode.Created, straightIn.status)
+        val tiago = straightIn.body<List<Player>>().single()
+        val tooOld = api.post("/v1/players") {
+            json(owner, CreatePlayersRequest(spaceId, listOf(CreatePlayer("Old", "Er", LocalDate(2014, 12, 31))), ageGroupId = setup.ageGroup.id, addToAgeGroup = true))
+        }
+        assertEquals(HttpStatusCode.BadRequest, tooOld.status)
+        val pool = api.get("/v1/age-groups/${setup.ageGroup.id}/details") { bearerAuth(owner) }.body<AgeGroupDetails>().players.map { it.id }
+        assertEquals(setOf(player.id, tiago.id), pool.toSet())
+
         // Emails would be invites, which the coach product doesn't have.
         val withEmail = api.post("/v1/players") {
             json(owner, CreatePlayersRequest(spaceId, listOf(CreatePlayer("Rita", "Lopes", LocalDate(2015, 1, 9), email = "rita@example.com"))))

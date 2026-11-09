@@ -272,5 +272,6 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
 
     // The age group, team, player, opponent, match and stats screens, as in the clubs app. What the
     // coach app leaves out (training, seasons, club members) is its AppFeatures (CoachKoin).
-    sharedScreens(navigator)
+    // No club roster: an age group's "Add players" creates them straight into it.
+    sharedScreens(navigator, createPlayersInAgeGroup = true)
 }

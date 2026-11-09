@@ -147,9 +147,18 @@ sealed class Screen {
     // so the coach of specifically that age group -- not just a club admin/coordinator -- is
     // authorized to create these players server-side. Null from the standalone club-roster entry
     // points (Club Details' "Add players to club"), which stay coordinator-only.
+    // [addToAgeGroup] (the coach app, from the age group's "Add players"): the new players go straight
+    // into that age group, and the birth date can't be before 1 January of [oldestBirthYear], its oldest
+    // birth year.
     @Serializable
     @SerialName("create-players")
-    data class CreatePlayers(val clubId: String, val clubName: String, val ageGroupId: String? = null) : Screen()
+    data class CreatePlayers(
+        val clubId: String,
+        val clubName: String,
+        val ageGroupId: String? = null,
+        val addToAgeGroup: Boolean = false,
+        val oldestBirthYear: Int? = null
+    ) : Screen()
 
     // Registers a brand-new person to the club (by email -- see AddClubMembersRequest): an existing
     // account is added as a member immediately, an unknown email gets an invite. This is how a
