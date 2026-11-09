@@ -18,6 +18,8 @@ interface OpponentRepository {
     suspend fun getOpponentDetails(opponentId: String): OpponentDetails
     suspend fun createOpponent(clubId: String, request: CreateOpponentRequest): Opponent
     suspend fun updateOpponent(opponentId: String, request: UpdateOpponentRequest)
+    /** Deletes the opponent for good, with every game against it. */
+    suspend fun deleteOpponent(opponentId: String)
     /** Uploads [bytes] (PNG or JPEG) as the opponent's logo; returns the new logo path. */
     suspend fun uploadOpponentLogo(opponentId: String, ageGroupId: String?, bytes: ByteArray): String
     suspend fun deleteOpponentLogo(opponentId: String, ageGroupId: String?)

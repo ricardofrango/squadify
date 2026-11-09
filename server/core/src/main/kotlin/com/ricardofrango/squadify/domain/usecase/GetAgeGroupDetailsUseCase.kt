@@ -102,6 +102,7 @@ class GetAgeGroupDetailsUseCase(
             // Each the gate of the action it shows, so a button only appears where it would work.
             canAddStaff = allowed { accessPolicy.requireManageStaff(userId, scope) },
             canEditAgeGroup = allowed { accessPolicy.requireEditAgeGroup(userId, scope) },
+            canDeleteAgeGroup = allowed { accessPolicy.requireDeleteAgeGroup(userId, scope) },
             canCreateTeam = allowed { accessPolicy.requireManageTeams(userId, scope) },
             canManageMatch = allowed { accessPolicy.requireManageMatch(userId, scope) },
             canAssignPlayersToAgeGroup = allowed { accessPolicy.requireManagePool(userId, scope) }

@@ -4,20 +4,31 @@ import com.ricardofrango.squadify.coach.data.SpacePlanRepository
 import com.ricardofrango.squadify.coach.data.StoreSubscriptionRepository
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
+import com.ricardofrango.squadify.domain.repository.MatchRepository
+import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.ForbiddenException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.model.AGE_GROUP_CLUB_SEPARATOR
+import com.ricardofrango.squadify.model.AddAgeGroupsRequest
+import com.ricardofrango.squadify.model.AddedAgeGroups
 import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.birthYearsOverlap
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.PlanChange
 import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
+import com.ricardofrango.squadify.model.SpaceAgeGroup
 import com.ricardofrango.squadify.model.SpaceAgeGroups
+import com.ricardofrango.squadify.model.SpaceDetails
+import com.ricardofrango.squadify.model.SpaceNextMatch
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.Team
@@ -91,13 +102,111 @@ class SetUpSpaceUseCase(
 }
 
 /**
+ * The age-group wizard (`POST /v1/space/age-groups`): age groups for one club in the coach's own space and
+ * the current season, named "{club} - {name}", each with its teams ("A", "B"…), all in one transaction. A
+ * coach with no space yet gets one, named and in the sport the request gives (the first time). Refused when
+ * the club's name is missing or has " - " in it, an age group is invalid (name, years, a-side size for the
+ * space's sport, 1 to [MAX_TEAMS] teams), the plan has no room for them (PlanLimitException), or one shares
+ * a birth year with another of the same club this season, already there or in the request (409, its
+ * rows); other clubs' age groups may share them (CoachAccessPolicy.shareBirthYears).
+ */
+class AddAgeGroupsUseCase(
+    private val clubRepository: ClubRepository,
+    private val ageGroupRepository: AgeGroupRepository,
+    private val teamRepository: TeamRepository,
+    private val coachSeasons: CoachSeasons,
+    private val accessPolicy: AccessPolicy,
+    private val transactionManager: TransactionManager
+) {
+    suspend operator fun invoke(userId: String, request: AddAgeGroupsRequest): AddedAgeGroups = transactionManager.runInTransaction {
+        val clubName = request.clubName.trim().takeIf { it.isNotEmpty() } ?: throw ValidationException("The club's name is required")
+        if (AGE_GROUP_CLUB_SEPARATOR in clubName) throw ValidationException("The club's name can't have \"$AGE_GROUP_CLUB_SEPARATOR\" in it")
+        if (request.ageGroups.isEmpty()) throw ValidationException("At least one age group must be provided")
+
+        val space = clubRepository.getMemberships(userId).firstOrNull { it.second == ClubRole.CLUB_ADMIN }?.first
+            ?: newSpace(userId, request)
+        request.ageGroups.forEach { item ->
+            if (item.name.isBlank()) throw ValidationException("Age group name cannot be empty")
+            if (item.startYear < item.endYear) throw ValidationException("Start year cannot be before end year")
+            if (item.teamSize != null && item.teamSize !in space.sport.teamSizes) {
+                throw ValidationException("Team size ${item.teamSize} is not valid for ${space.sport}")
+            }
+            if (item.teams !in 1..MAX_TEAMS) throw ValidationException("An age group has 1 to $MAX_TEAMS teams")
+        }
+        val season = coachSeasons.current(space.id)
+        accessPolicy.requireRoomForAgeGroups(space.id, season.id, request.ageGroups.size)
+
+        val names = request.ageGroups.map { "$clubName$AGE_GROUP_CLUB_SEPARATOR${it.name.trim()}" }
+        val taken = ageGroupRepository.findByClubAndSeason(space.id, season.id).map { Triple(it.name, it.startYear, it.endYear) }.toMutableList()
+        val conflictingRows = mutableListOf<Int>()
+        request.ageGroups.forEachIndexed { index, item ->
+            val clashes = taken.any { (name, start, end) ->
+                accessPolicy.shareBirthYears(names[index], name) && birthYearsOverlap(item.startYear, item.endYear, start, end)
+            }
+            if (clashes) conflictingRows += index else taken += Triple(names[index], item.startYear, item.endYear)
+        }
+        if (conflictingRows.isNotEmpty()) {
+            throw ConflictException("$clubName already has an age group for some of these birth years this season", rows = conflictingRows)
+        }
+
+        val ageGroups = ageGroupRepository.createAgeGroups(
+            request.ageGroups.mapIndexed { index, item ->
+                AgeGroup(
+                    id = Uuid.random().toString(),
+                    clubId = space.id,
+                    name = names[index],
+                    seasonId = season.id,
+                    startYear = item.startYear,
+                    endYear = item.endYear,
+                    teamSize = item.teamSize
+                )
+            }
+        )
+        val teams = teamRepository.createTeams(
+            ageGroups.zip(request.ageGroups).flatMap { (ageGroup, item) ->
+                (0 until item.teams).map { index ->
+                    Team(
+                        id = Uuid.random().toString(),
+                        clubId = space.id,
+                        ageGroupId = ageGroup.id,
+                        seasonId = season.id,
+                        name = ('A' + index).toString(),
+                        code = null,
+                        active = true,
+                        teamSize = item.teamSize
+                    )
+                }
+            }
+        )
+        AddedAgeGroups(space, ageGroups, teams.size)
+    }
+
+    /** The coach's own space, the first time: the request's name and sport, owned by them. */
+    private suspend fun newSpace(userId: String, request: AddAgeGroupsRequest): Club {
+        val name = request.spaceName?.trim()?.takeIf { it.isNotEmpty() } ?: throw ValidationException("The space's name is required")
+        val sport = request.sport ?: throw ValidationException("The space's sport is required")
+        val space = clubRepository.createClub(
+            Club(id = Uuid.random().toString(), name = name, status = ClubStatus.ACTIVE, sport = sport, createdAt = Clock.System.now())
+        )
+        clubRepository.addMember(space.id, userId, ClubRole.CLUB_ADMIN)
+        return space
+    }
+
+    companion object {
+        const val MAX_TEAMS = 5
+    }
+}
+
+/**
  * Every space the coach is in, their own first, each with the age groups they have there: all of their
  * own space's, and the ones they're staff on in the others, with the space's plan and which of them it
- * locks, and for their own how many age groups it has this season. Empty before they set up or join one.
+ * locks, for their own how many age groups it has this season, its owner's name and how many opponents
+ * it has. Empty before they set up or join one.
  */
 class GetSpacesUseCase(
     private val clubRepository: ClubRepository,
     private val ageGroupRepository: AgeGroupRepository,
+    private val opponentRepository: OpponentRepository,
     private val transactionManager: TransactionManager,
     private val plans: CoachPlans,
     private val coachSeasons: CoachSeasons
@@ -114,8 +223,84 @@ class GetSpacesUseCase(
                 val locked = ageGroups.filter { it.id in lockedAgeGroups || (!isOwner && userId in plans.lockedStaff(it.id, plan)) }
                 val thisSeason = if (isOwner) coachSeasons.currentOrNull(space.id)?.let { season -> ageGroups.count { it.seasonId == season.id } } ?: 0 else 0
                 val left = if (isOwner) PlanLimits.ageGroups(plan)?.let { (it - thisSeason).coerceAtLeast(0) } else null
-                SpaceAgeGroups(space, isOwner, ageGroups, plan, locked.map { it.id }, thisSeason, left, showsAds = PlanLimits.showsAds(plan))
+                SpaceAgeGroups(
+                    space, isOwner, ageGroups, plan, locked.map { it.id }, thisSeason, left,
+                    showsAds = PlanLimits.showsAds(plan),
+                    ownerName = ownerName(clubRepository, space.id),
+                    opponents = opponentRepository.getOpponentsByClub(space.id).size
+                )
             }
+    }
+}
+
+/** The space's owner's name (its `CLUB_ADMIN`), or null when it has none. */
+private suspend fun ownerName(clubRepository: ClubRepository, spaceId: String): String? =
+    clubRepository.getClubMembers(spaceId).firstOrNull { it.role == ClubRole.CLUB_ADMIN }
+        ?.let { "${it.firstName} ${it.lastName}".trim() }
+
+/**
+ * One space the coach is in, for its details screen (`GET /v1/spaces/{id}`): the age groups they have
+ * there (all of them for the owner, their own for staff), as on `/spaces`, each with its active teams'
+ * names, its next game (the soonest not yet played, its opponent's name) and whether the plan locks it;
+ * the current season's name; and for the owner how many more age groups the plan allows. Refused (403)
+ * to anyone outside the space.
+ */
+class GetSpaceDetailsUseCase(
+    private val clubRepository: ClubRepository,
+    private val ageGroupRepository: AgeGroupRepository,
+    private val teamRepository: TeamRepository,
+    private val matchRepository: MatchRepository,
+    private val opponentRepository: OpponentRepository,
+    private val transactionManager: TransactionManager,
+    private val plans: CoachPlans,
+    private val coachSeasons: CoachSeasons
+) {
+    suspend operator fun invoke(userId: String, spaceId: String): SpaceDetails = transactionManager.runInTransaction {
+        val (space, role) = clubRepository.getMemberships(userId).firstOrNull { it.first.id == spaceId }
+            ?: if (clubRepository.getClubById(spaceId) == null) throw NotFoundException("Space not found")
+            else throw ForbiddenException("Only the space's owner and staff can see it")
+        val isOwner = role == ClubRole.CLUB_ADMIN
+        val ageGroups = ageGroupRepository.getAgeGroupsByClub(space.id)
+            .filter { isOwner || ageGroupRepository.getUserRoleInAgeGroup(userId, it.id) != null }
+        val plan = plans.planOf(space.id)
+        val lockedAgeGroups = plans.lockedAgeGroups(space.id, plan)
+        val season = coachSeasons.currentOrNull(space.id)
+        val thisSeason = season?.let { s -> ageGroups.count { it.seasonId == s.id } } ?: 0
+        val left = if (isOwner) PlanLimits.ageGroups(plan)?.let { (it - thisSeason).coerceAtLeast(0) } else null
+
+        val teams = teamRepository.getTeamsByClub(space.id).filter { it.active }
+        val ageGroupOfTeam = teams.associate { it.id to it.ageGroupId }
+        val opponents = opponentRepository.getOpponentsByClub(space.id).associateBy { it.id }
+        // The soonest game of each age group's teams that isn't played yet (the list is soonest first).
+        val nextMatches = matchRepository.getUpcomingMatchesByClub(space.id, UPCOMING_GAMES)
+            .groupBy { ageGroupOfTeam[it.teamId] }
+            .mapValues { (_, matches) -> matches.first() }
+
+        SpaceDetails(
+            space = space,
+            isOwner = isOwner,
+            ownerName = ownerName(clubRepository, space.id),
+            plan = plan,
+            seasonName = season?.name,
+            seasonId = season?.id,
+            ageGroups = ageGroups.map { ageGroup ->
+                SpaceAgeGroup(
+                    ageGroup = ageGroup,
+                    teams = teams.filter { it.ageGroupId == ageGroup.id }.map { it.name }.sorted(),
+                    nextMatch = nextMatches[ageGroup.id]?.let { match ->
+                        SpaceNextMatch(match.id, match.dateTime, opponents[match.opponentId]?.name.orEmpty())
+                    },
+                    locked = ageGroup.id in lockedAgeGroups || (!isOwner && userId in plans.lockedStaff(ageGroup.id, plan))
+                )
+            },
+            ageGroupsLeft = left,
+            showsAds = PlanLimits.showsAds(plan)
+        )
+    }
+
+    private companion object {
+        // Enough of the space's coming games to find each age group's next one.
+        const val UPCOMING_GAMES = 200
     }
 }
 

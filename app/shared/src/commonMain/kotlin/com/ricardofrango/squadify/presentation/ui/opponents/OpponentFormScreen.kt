@@ -1,5 +1,14 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import squadify.app.shared.generated.resources.msg_cannot_be_undone
+import squadify.app.shared.generated.resources.msg_delete_opponent_no_matches
+import squadify.app.shared.generated.resources.msg_delete_opponent_matches
+import squadify.app.shared.generated.resources.title_delete_opponent
+import squadify.app.shared.generated.resources.btn_delete_opponent
+import squadify.app.shared.generated.resources.btn_delete
+import org.jetbrains.compose.resources.pluralStringResource
+import com.ricardofrango.squadify.presentation.ui.components.DestructiveButton
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -159,12 +168,14 @@ fun OpponentEditScreen(
     opponentId: String,
     onNavigateBack: () -> Unit,
     onSaved: () -> Unit,
+    onDeleted: () -> Unit = {},
     viewModel: OpponentFormViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
         val state by viewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(opponentId) { viewModel.startEdit(opponentId) }
         LaunchedEffect(viewModel) { viewModel.done.collect { onSaved() } }
+        LaunchedEffect(viewModel) { viewModel.deleted.collect { onDeleted() } }
 
         OpponentFormContent(
             state = state,
@@ -178,7 +189,8 @@ fun OpponentEditScreen(
             onSubmit = viewModel::onSubmit,
             showLogo = viewModel.showsLogo,
             onLogoPicked = viewModel::onLogoPicked,
-            onRemoveLogo = viewModel::onRemoveLogo
+            onRemoveLogo = viewModel::onRemoveLogo,
+            onDelete = viewModel::onDelete
         )
     }
 }
@@ -197,8 +209,26 @@ private fun OpponentFormContent(
     // False without the server's image storage (the coach app, for now).
     showLogo: Boolean = true,
     onLogoPicked: (ByteArray) -> Unit = {},
-    onRemoveLogo: () -> Unit = {}
+    onRemoveLogo: () -> Unit = {},
+    // Edit only: Delete, at the end of the form, after a confirm.
+    onDelete: (() -> Unit)? = null
 ) {
+    var confirmDelete by remember { mutableStateOf(false) }
+    val delete: @Composable () -> Unit = {
+        if (onDelete != null && state.canDelete) {
+            DestructiveButton(stringResource(Res.string.btn_delete_opponent), onClick = { confirmDelete = true }, enabled = !state.deleting && !state.submitting)
+        }
+    }
+    if (confirmDelete && onDelete != null) {
+        ConfirmDialog(
+            title = stringResource(Res.string.title_delete_opponent, state.form.name.ifBlank { state.original?.name.orEmpty() }),
+            body = (if (state.matchCount > 0) pluralStringResource(Res.plurals.msg_delete_opponent_matches, state.matchCount, state.matchCount)
+                else stringResource(Res.string.msg_delete_opponent_no_matches)) + " " + stringResource(Res.string.msg_cannot_be_undone),
+            onConfirm = { confirmDelete = false; onDelete() },
+            onDismiss = { confirmDelete = false },
+            confirmLabel = stringResource(Res.string.btn_delete)
+        )
+    }
     Scaffold(
         // Top and bottom only: the action bar is in the content, so its white must reach the sides; the
         // content and the bar keep clear of the camera cutout themselves (safeSidesPadding).
@@ -232,6 +262,7 @@ private fun OpponentFormContent(
                                 ContactSection(state, onFormChange, onSubmit)
                                 NotesSection(state, onFormChange)
                                 FormErrorLine(state.error)
+                                delete()
                             }
                         }
                     } else {
@@ -242,6 +273,7 @@ private fun OpponentFormContent(
                             ContactSection(state, onFormChange, onSubmit)
                             NotesSection(state, onFormChange)
                             FormErrorLine(state.error)
+                            delete()
                         }
                     }
                 }

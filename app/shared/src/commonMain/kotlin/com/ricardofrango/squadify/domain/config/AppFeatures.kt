@@ -17,5 +17,9 @@ data class AppFeatures(
     // the members.
     val clubMembers: Boolean,
     // Deleting the account from Account (the coach app; its server has it). Off in the clubs app for now.
-    val accountDeletion: Boolean = false
+    val accountDeletion: Boolean = false,
+    // The coach app's spaces: an age group is named after the club it plays for ("Povoense - Sub 11"), and
+    // only that club's age groups share its birth years; deleting one also deletes its players in no other
+    // age group (no roster outside them). Off in the clubs app: one age group per birth year, a roster.
+    val spaces: Boolean = false
 )

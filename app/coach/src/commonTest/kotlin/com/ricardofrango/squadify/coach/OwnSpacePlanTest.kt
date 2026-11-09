@@ -14,10 +14,8 @@ import com.ricardofrango.squadify.model.PlanDetails
 import com.ricardofrango.squadify.model.PlanFeature
 import com.ricardofrango.squadify.model.PlanFeatureLine
 import com.ricardofrango.squadify.model.PlansResponse
-import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpacePlan
-import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -40,6 +38,10 @@ class OwnSpacePlanTest {
             currentPlan = SpacePlan("FREE")
         )
         override suspend fun getSpaces() = spaces.also { spacesLoaded++ }
+        override suspend fun getSpaceDetails(spaceId: String): com.ricardofrango.squadify.model.SpaceDetails = error("not used")
+        override suspend fun addAgeGroups(request: com.ricardofrango.squadify.model.AddAgeGroupsRequest): com.ricardofrango.squadify.model.AddedAgeGroups = error("not used")
+        override suspend fun uploadAgeGroupCrest(ageGroupId: String, bytes: ByteArray): String = error("not used")
+        override suspend fun imageBytes(path: String): ByteArray = error("not used")
         override suspend fun getPlans() = plans ?: error("offline")
         var requestFails = false
         // A local server sets the plan; a deployed one records the request.
@@ -52,7 +54,6 @@ class OwnSpacePlanTest {
             plans = now
             return now
         }
-        override suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup = error("not used")
         override suspend fun acceptInvite(code: String): CoachSpace = error("not used")
     }
 

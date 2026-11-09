@@ -16,6 +16,7 @@ fun Route.opponentRoutes() {
     val updateOpponentUseCase by inject<UpdateOpponentUseCase>()
     val getOpponentListUseCase by inject<GetOpponentListUseCase>()
     val getOpponentDetailsUseCase by inject<GetOpponentDetailsUseCase>()
+    val deleteOpponentUseCase by inject<DeleteOpponentUseCase>()
 
     authenticate("auth-jwt") {
         route("/opponents") {
@@ -59,6 +60,14 @@ fun Route.opponentRoutes() {
                 val request = call.receive<CreateOpponentRequest>()
                 val opponent = createOpponentUseCase(currentUserId, clubId, request)
                 call.respond(HttpStatusCode.Created, opponent)
+            }
+
+            // The opponent and every game against it, for good. 204.
+            delete("/{opponentId}") {
+                val opponentId = call.parameters["opponentId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                val currentUserId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                deleteOpponentUseCase(currentUserId, opponentId)
+                call.respond(HttpStatusCode.NoContent)
             }
 
             // Opponent details: the opponent and every match against them.

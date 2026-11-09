@@ -10,9 +10,15 @@ import com.ricardofrango.squadify.model.GooglePurchaseRequest
 import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.RequestPlanRequest
 import com.ricardofrango.squadify.model.SpacePlan
-import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
-import com.ricardofrango.squadify.model.SpaceSetup
+import com.ricardofrango.squadify.model.SpaceDetails
+import com.ricardofrango.squadify.model.AddAgeGroupsRequest
+import com.ricardofrango.squadify.model.AddedAgeGroups
+import com.ricardofrango.squadify.model.LogoResponse
+import io.ktor.client.request.put
+import io.ktor.client.statement.readRawBytes
+import io.ktor.http.content.ByteArrayContent
+import io.ktor.http.isSuccess
 import com.ricardofrango.squadify.model.StaffInvite
 import io.ktor.client.HttpClient
 import io.ktor.client.request.delete
@@ -30,6 +36,26 @@ class SpaceRepositoryImpl(
     override suspend fun getSpaces(): List<SpaceAgeGroups> =
         httpClient.get("${appConfig.baseUrl}/spaces").handleResponse()
 
+    override suspend fun getSpaceDetails(spaceId: String): SpaceDetails =
+        httpClient.get("${appConfig.baseUrl}/spaces/$spaceId").handleResponse()
+
+    override suspend fun addAgeGroups(request: AddAgeGroupsRequest): AddedAgeGroups =
+        httpClient.post("${appConfig.baseUrl}/space/age-groups") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse()
+
+    override suspend fun uploadAgeGroupCrest(ageGroupId: String, bytes: ByteArray): String =
+        httpClient.put("${appConfig.baseUrl}/age-groups/$ageGroupId/logo") {
+            setBody(ByteArrayContent(bytes, ContentType.Application.OctetStream))
+        }.handleResponse<LogoResponse>().logoUrl
+
+    override suspend fun imageBytes(path: String): ByteArray {
+        val response = httpClient.get(appConfig.baseUrl + path)
+        if (!response.status.isSuccess()) throw IllegalStateException("Image not found: ${response.status}")
+        return response.readRawBytes()
+    }
+
     // The features come written by the server, in the app's language (its Accept-Language).
     override suspend fun getPlans(): PlansResponse =
         httpClient.get("${appConfig.baseUrl}/plans").handleResponse()
@@ -44,12 +70,6 @@ class SpaceRepositoryImpl(
         httpClient.post("${appConfig.baseUrl}/plans/request") {
             contentType(ContentType.Application.Json)
             setBody(RequestPlanRequest(plan))
-        }.handleResponse()
-
-    override suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup =
-        httpClient.post("${appConfig.baseUrl}/space") {
-            contentType(ContentType.Application.Json)
-            setBody(request)
         }.handleResponse()
 
     override suspend fun acceptInvite(code: String): CoachSpace =

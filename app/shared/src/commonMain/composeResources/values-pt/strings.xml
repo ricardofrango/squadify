@@ -1629,4 +1629,25 @@
     <string name="player_averages_example">Exemplo: um jogador faz um jogo avaliado com 8 e participa em 2 de 3 treinos, com 9 em cada um:</string>
     <string name="player_averages_example_left">À esquerda: (8 + 9 + 9) ÷ 3 = 8.67</string>
     <string name="player_averages_example_right">À direita: (8 + 9 + 9 + 0) ÷ 4 = 6.50</string>
+    <!-- Apagar um escalão ou um adversário de vez. -->
+    <string name="btn_delete_age_group">Apagar escalão</string>
+    <string name="title_delete_age_group">Apagar %1$s?</string>
+    <plurals name="msg_delete_age_group">
+        <item quantity="one">A sua equipa, com todos os jogos, e os treinos e a equipa técnica também são apagados.</item>
+        <item quantity="other">As suas %1$d equipas, com todos os jogos, e os treinos e a equipa técnica também são apagados.</item>
+    </plurals>
+    <plurals name="msg_delete_age_group_players">
+        <item quantity="one">O seu jogador também, se não estiver noutro escalão.</item>
+        <item quantity="other">Os seus %1$d jogadores também, exceto os que estão noutro escalão.</item>
+    </plurals>
+    <string name="edit_age_group_delete_failed">Não foi possível apagar o escalão. Tenta outra vez.</string>
+    <string name="btn_delete_opponent">Apagar adversário</string>
+    <string name="title_delete_opponent">Apagar %1$s?</string>
+    <plurals name="msg_delete_opponent_matches">
+        <item quantity="one">O seu jogo também é apagado, mesmo que já tenha sido jogado.</item>
+        <item quantity="other">Os seus %1$d jogos também são apagados, incluindo os já jogados.</item>
+    </plurals>
+    <string name="msg_delete_opponent_no_matches">Não tem jogos.</string>
+    <string name="msg_opponent_delete_failed">Não foi possível apagar o adversário. Tenta outra vez.</string>
+    <string name="msg_cannot_be_undone">Não pode ser desfeito.</string>
 </resources>

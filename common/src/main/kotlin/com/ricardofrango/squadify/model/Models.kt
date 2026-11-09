@@ -419,7 +419,10 @@ data class AgeGroup(
     val endYear: Int,
     // The a-side count this age group's teams play by default (one of `club.sport.teamSizes`).
     // Nullable so age groups created before this existed still load; a team can override it.
-    val teamSize: Int? = null
+    val teamSize: Int? = null,
+    // The crest of the club it plays for (the coach app: "Povoense - Sub 11"), served at this path like
+    // the other images; null: none.
+    val logoUrl: String? = null
 )
 
 /**
@@ -429,6 +432,15 @@ data class AgeGroup(
  */
 fun birthYearsOverlap(startYear: Int, endYear: Int, otherStartYear: Int, otherEndYear: Int): Boolean =
     endYear <= otherStartYear && otherEndYear <= startYear
+
+/**
+ * The club an age group is named after, its name's part before " - " (the coach app's "Povoense - Sub 11"),
+ * or null when it isn't. The coach server lets age groups of different clubs share birth years.
+ */
+fun ageGroupClubName(name: String): String? =
+    name.substringBefore(AGE_GROUP_CLUB_SEPARATOR, missingDelimiterValue = "").trim().takeIf { it.isNotEmpty() }
+
+const val AGE_GROUP_CLUB_SEPARATOR = " - "
 
 @Serializable
 data class Team(
@@ -894,6 +906,8 @@ data class AgeGroupDetails(
     val canAssignPlayersToAgeGroup: Boolean,
     // Coordinator+, like Add staff (UpdateAgeGroupUseCase's gate): shows "Edit age group".
     val canEditAgeGroup: Boolean = false,
+    // DeleteAgeGroupUseCase's gate (a club's coordinators and admins, a space's owner): shows Delete on Edit age group.
+    val canDeleteAgeGroup: Boolean = false,
     // The coach server's: the space's plan when it has no room for more staff on this age group (the box
     // on the Members tab and Invite staff), null while there's room. Always null on the clubs server.
     val staffFullOnPlan: SpacePlan? = null
@@ -962,6 +976,8 @@ data class OpponentDetails(
     val teams: List<Team>,
     val seasons: List<Season>,
     val canEdit: Boolean = false,
+    // DeleteOpponentUseCase's gate: shows Delete (with its games) on Edit opponent.
+    val canDelete: Boolean = false,
     // Our club's logo path, for the match rows; null without one.
     val clubLogoUrl: String? = null
 )

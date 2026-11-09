@@ -81,6 +81,18 @@ interface AccessPolicy {
     /** Creates players, in the club or from an age group. */
     suspend fun requireCreatePlayers(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
 
+    /** Deletes an age group, with everything in it. */
+    suspend fun requireDeleteAgeGroup(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
+
+    /** Deletes an opponent, with every game against it. */
+    suspend fun requireDeleteOpponent(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
+
+    /**
+     * Whether deleting an age group also deletes its players who are in no other age group: the coach's
+     * space, which has no roster outside its age groups. A club keeps them on its roster.
+     */
+    fun deletesLonePlayers(): Boolean = false
+
     /** Edits a player. */
     suspend fun requireEditPlayer(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
 
@@ -133,6 +145,13 @@ interface AccessPolicy {
 
     /** The club's plan has room for [count] more age groups in [seasonId] (the coach server's plans). */
     suspend fun requireRoomForAgeGroups(clubId: String, seasonId: String, count: Int) {}
+
+    /**
+     * Whether two age groups of the same season, by their names, may not share a birth year. A club's
+     * all compete (one age group per birth year); the coach server's only within the club each is named
+     * after ("Povoense - Sub 11" and "CF Santa Iria - Sub 11" may both be 2016).
+     */
+    fun shareBirthYears(name: String, otherName: String): Boolean = true
 
     companion object {
         const val DEFAULT_MESSAGE = "Insufficient permissions to perform this action"

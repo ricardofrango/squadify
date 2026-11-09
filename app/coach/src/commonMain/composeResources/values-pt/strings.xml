@@ -20,19 +20,12 @@
     <string name="coach_app_name">Squadify Coach</string>
 
     <!-- The home: every age group the coach has -->
-    <string name="coach_home_title">Os meus escalões</string>
+    <string name="coach_home_title">Os meus espaços</string>
     <string name="cd_coach_menu">Menu</string>
-    <string name="coach_home_add_age_group">+ Adicionar escalão</string>
-    <string name="coach_home_my_age_groups">Os meus escalões</string>
-    <string name="coach_home_as_staff">Como equipa técnica</string>
-    <string name="coach_home_create_age_group">Criar escalão</string>
     <string name="coach_home_join">Entrar com um código</string>
     <string name="coach_home_locked">Bloqueado no plano %1$s, guardado até o plano o permitir</string>
     <string name="coach_menu_account">Conta</string>
     <string name="coach_menu_privacy_options">Opções de privacidade</string>
-    <string name="coach_home_born">Nascidos em %1$s · %2$s</string>
-    <string name="coach_home_empty_title">Ainda não tens escalões</string>
-    <string name="coach_home_empty_body">Cria o teu primeiro escalão, ou entra num com o código que alguém te enviou.</string>
     <string name="msg_coach_home_failed">Não foi possível carregar os teus escalões. Verifica a ligação e tenta outra vez.</string>
 
     <!-- Joining with a code -->
@@ -108,7 +101,6 @@
     <string name="msg_delete_account_load_failed">Não foi possível carregar a tua conta.</string>
 
     <!-- O meu clube ou equipa: o espaço do dono, o seu logótipo -->
-    <string name="coach_menu_my_space">O meu clube ou equipa</string>
     <string name="my_space_title">O meu clube ou equipa</string>
     <string name="my_space_logo_intro">O teu logótipo aparece nos teus escalões, nos teus jogos, no jogo ao vivo e nas notificações.</string>
     <string name="msg_my_space_failed">Não foi possível carregar o teu clube ou equipa. Verifica a ligação e tenta outra vez.</string>
@@ -143,4 +135,99 @@
     <string name="plans_price_year">%1$s / ano</string>
     <string name="plans_pending">%1$s até %2$s, depois %3$s.</string>
     <string name="plans_purchase_failed">A compra não foi concluída. Tenta novamente.</string>
+    <!-- Detalhes do espaço (a app de treinadores): os escalões e os adversários de um espaço. -->
+    <string name="space_details_tab_age_groups">Escalões</string>
+    <string name="space_details_tab_opponents">Adversários</string>
+    <string name="space_details_edit">Editar espaço</string>
+    <string name="space_details_staff">Staff</string>
+    <string name="space_details_owned_by">de %1$s</string>
+    <string name="space_details_staff_note">Só vês os escalões em que és staff.</string>
+    <plurals name="space_details_count">
+        <item quantity="one">%1$d escalão · ordenados por clube e idade</item>
+        <item quantity="other">%1$d escalões · ordenados por clube e idade</item>
+    </plurals>
+    <string name="space_details_born">Nascidos em %1$s</string>
+    <plurals name="space_details_teams">
+        <item quantity="one">Equipa %1$s</item>
+        <item quantity="other">Equipas %1$s</item>
+    </plurals>
+    <string name="space_details_no_teams">Ainda sem equipas</string>
+    <string name="space_details_next_game">Próximo jogo · %1$s · vs %2$s</string>
+    <string name="space_details_add_age_groups">Adicionar escalões</string>
+    <string name="space_details_new_opponent">Novo adversário</string>
+    <string name="space_details_empty_title">Ainda não há escalões</string>
+    <string name="space_details_empty_body">Adiciona os escalões deste espaço. Cada um tem o nome e o emblema do clube por que joga, por exemplo "Povoense - Sub 11".</string>
+    <string name="msg_space_details_failed">Não foi possível carregar este espaço.</string>
+    <!-- Início: os espaços do treinador. -->
+    <string name="coach_home_my_space">O meu espaço</string>
+    <string name="coach_home_shared_spaces">Espaços onde colaboro</string>
+    <string name="coach_home_default_space_name">Espaço de %1$s</string>
+    <plurals name="coach_home_age_groups">
+        <item quantity="one">%1$d escalão</item>
+        <item quantity="other">%1$d escalões</item>
+    </plurals>
+    <plurals name="coach_home_opponents">
+        <item quantity="one">%1$d adversário</item>
+        <item quantity="other">%1$d adversários</item>
+    </plurals>
+    <string name="coach_home_no_age_groups">Sem escalões ainda</string>
+    <string name="coach_home_first_age_groups">Cria os teus primeiros escalões para começares a gravar jogos.</string>
+    <string name="coach_home_create_age_groups">Criar escalões</string>
+    <string name="coach_home_got_code">Recebeste um código de outro treinador?</string>
+    <!-- O assistente de escalões (a app de treinadores). -->
+    <string name="wizard_title">Adicionar escalões</string>
+    <string name="wizard_step_club">Clube</string>
+    <string name="wizard_step_age_groups">Escalões</string>
+    <string name="wizard_step_teams">Equipas</string>
+    <string name="wizard_step_of">%1$d de %2$d</string>
+    <string name="wizard_club_question">Por que clube jogam estes escalões?</string>
+    <string name="wizard_club_intro">O nome e o emblema do clube vão para o nome de cada escalão e equipa.</string>
+    <string name="wizard_crest_choose">Escolher emblema</string>
+    <string name="wizard_crest_optional">Opcional · sem imagem, usamos as iniciais</string>
+    <string name="wizard_club_name">Nome do clube *</string>
+    <string name="wizard_club_name_placeholder">Ex.: Povoense</string>
+    <string name="wizard_club_hint">Aparece em "Clube - Sub 11".</string>
+    <string name="wizard_club_name_required">O nome do clube é obrigatório.</string>
+    <string name="wizard_club_name_dash">O nome não pode ter " - ".</string>
+    <string name="wizard_used_clubs">Usados neste espaço</string>
+    <string name="wizard_club_hint_used">Toca num clube para preencher o nome e o emblema.</string>
+    <string name="wizard_pick_by_year">Escreve o ano de nascimento de cada escalão</string>
+    <string name="wizard_season">Época %1$s</string>
+    <string name="wizard_football">Futebol</string>
+    <string name="wizard_futsal">Futsal</string>
+    <string name="wizard_age_group_n">ESCALÃO %1$d</string>
+    <string name="wizard_remove">Remover</string>
+    <string name="wizard_birth_year">Ano de nascimento *</string>
+    <string name="wizard_birth_year_placeholder">Ex.: 2016</string>
+    <string name="wizard_year_missing">Escreve o ano de nascimento (4 dígitos).</string>
+    <string name="wizard_year_range">Um ano entre %1$d e %2$d.</string>
+    <string name="wizard_year_repeated">Este ano já está num escalão acima.</string>
+    <string name="wizard_year_taken_error">Este clube já tem um escalão deste ano nesta época.</string>
+    <string name="wizard_size_missing">Escolhe quantos jogadores em campo.</string>
+    <string name="wizard_add_age_group">Adicionar outro escalão</string>
+    <string name="wizard_team_size">Jogadores em campo</string>
+    <string name="wizard_join_younger">Juntar com %1$d (dois anos)</string>
+    <string name="wizard_teams_question">Quantas equipas em cada escalão?</string>
+    <string name="wizard_teams_born">Nascidos em %1$s · %2$d em campo</string>
+    <plurals name="wizard_summary_age_groups">
+        <item quantity="one">%1$d escalão</item>
+        <item quantity="other">%1$d escalões</item>
+    </plurals>
+    <plurals name="wizard_summary_teams">
+        <item quantity="one">%1$d equipa</item>
+        <item quantity="other">%1$d equipas</item>
+    </plurals>
+    <string name="wizard_back">Anterior</string>
+    <string name="wizard_next">Seguinte</string>
+    <string name="wizard_creating">A criar…</string>
+    <string name="wizard_create">Criar</string>
+    <string name="wizard_problem_plan">O teu plano não tem lugar para estes escalões esta época.</string>
+    <string name="wizard_problem_years">Este clube já tem escalões para os anos marcados, nesta época.</string>
+    <string name="wizard_problem_crest_too_big">Essa imagem é demasiado grande (5 MB no máximo).</string>
+    <string name="wizard_problem_failed">Não foi possível criar os escalões. Tenta outra vez.</string>
+    <string name="msg_wizard_failed_to_load">Não foi possível carregar o teu espaço.</string>
+    <string name="space_details_new">Novo</string>
+    <string name="space_details_created">%1$s e %2$s criados</string>
+    <string name="space_details_created_no_crest">%1$s e %2$s criados, mas o emblema não ficou em todos</string>
+    <string name="space_details_ok">OK</string>
 </resources>

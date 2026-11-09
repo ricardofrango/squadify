@@ -47,16 +47,12 @@ sealed class Screen {
     @SerialName("delete-account")
     data object DeleteAccount : Screen()
 
-    // Squadify for Coaches (TECHNICAL_DECISIONS §72): the coach app's home (every age group the coach
-    // has), setting up their own space, joining with a code, and inviting staff. Declared here with every other route so the back stack can
+    // Squadify for Coaches (TECHNICAL_DECISIONS §72): the coach app's home (the coach's spaces), a space's
+    // details, the age-group wizard, joining with a code, and inviting staff. Declared here with every other route so the back stack can
     // be saved and restored; their screens are in :app:coach.
     @Serializable
     @SerialName("space")
     data object CoachHome : Screen()
-
-    @Serializable
-    @SerialName("space-setup")
-    data object SpaceSetup : Screen()
 
     // Joining someone's age group as staff with the code they shared.
     @Serializable
@@ -67,6 +63,24 @@ sealed class Screen {
     @Serializable
     @SerialName("my-space")
     data object MySpace : Screen()
+
+    // The coach app: one space's details, its age groups and opponents (the owner's or one they're staff in).
+    // [newAgeGroupIds]: the ones the wizard just created, shown as new once with how many [newTeams], and
+    // whether every one got its crest ([crestSaved]).
+    @Serializable
+    @SerialName("space-details")
+    data class SpaceDetails(
+        val spaceId: String,
+        val newAgeGroupIds: List<String> = emptyList(),
+        val newTeams: Int = 0,
+        val crestSaved: Boolean = true
+    ) : Screen()
+
+    // The coach app's age-group wizard, into the coach's own space ([spaceId]); null before they have one,
+    // which the first age groups make.
+    @Serializable
+    @SerialName("add-age-groups")
+    data class AddAgeGroups(val spaceId: String? = null) : Screen()
 
     // What each plan has, with the coach's own plan marked, both from the coach server: from My Space's
     // Plan card and every plan box's See plans (the coach app).

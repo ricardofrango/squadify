@@ -135,15 +135,17 @@ object AgeGroups : Table("age_groups") {
     val startYear = integer("start_year").default(0)
     val endYear = integer("end_year").default(0)
     val teamSize = integer("team_size").nullable()
+    // The crest of the club the age group plays for (the coach app's age groups, named "{club} - Sub N";
+    // TECHNICAL_DECISIONS §72). Null: none, the app shows the initials. Unused by the clubs app.
+    val logoUrl = varchar("logo_url", 500).nullable()
     // When it was created, set by the database. On the coach server the first ones created stay in use
     // when a space goes down a plan (REQUIREMENTS §5c); older rows have the migration's time.
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
 
+    // No unique birth years: which age groups of a season may not share one is the servers' rule
+    // (AccessPolicy.shareBirthYears): all of a club's, only the same club's in a coach's space (clubs V36,
+    // coach V12 dropped unique_club_season_years).
     override val primaryKey = PrimaryKey(id)
-
-    init {
-        uniqueIndex("unique_club_season_years", clubId, seasonId, startYear, endYear)
-    }
 }
 
 object Teams : Table("teams") {

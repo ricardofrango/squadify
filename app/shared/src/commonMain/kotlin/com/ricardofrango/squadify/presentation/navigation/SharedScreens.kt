@@ -99,6 +99,11 @@ fun ScreenRegistry.sharedScreens(navigator: AppNavigator, createPlayersInAgeGrou
                 // Age Group Details (and the club below it) show the name and years: reload on return.
                 navigator.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                 navigator.popBackStack()
+            },
+            // Gone with its details: back to what listed it (the club, the space), which reloads.
+            onAgeGroupDeleted = {
+                if (!navigator.popBackStack<Screen.AgeGroupDetails>(inclusive = true)) navigator.popBackStack()
+                navigator.setIfAlive(navigator.currentBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
             }
         )
     }
@@ -398,6 +403,11 @@ fun ScreenRegistry.sharedScreens(navigator: AppNavigator, createPlayersInAgeGrou
             onSaved = {
                 navigator.setIfAlive(navigator.previousBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
                 navigator.popBackStack()
+            },
+            // Gone with its details: back to what listed it (the opponents, the space), which reloads.
+            onDeleted = {
+                if (!navigator.popBackStack<Screen.OpponentDetails>(inclusive = true)) navigator.popBackStack()
+                navigator.setIfAlive(navigator.currentBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
             }
         )
     }

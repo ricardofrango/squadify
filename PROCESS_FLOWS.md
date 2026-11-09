@@ -774,7 +774,7 @@ graph TD
     G -- name blank --> V2(["Throw ValidationException"])
     G -- startYear < endYear --> V2c(["Throw ValidationException: inverted range"])
     G -- teamSize set AND not in club.sport.teamSizes --> V2(["Throw ValidationException"])
-    G -- "shares any birth year with a taken span (in the DB, or an earlier item in this request) — birthYearsOverlap" --> CR[Note the item's index as clashing; don't mark its range taken]
+    G -- "shares any birth year with a taken span it competes with (in the DB, or an earlier item in this request) — AccessPolicy.shareBirthYears + birthYearsOverlap" --> CR[Note the item's index as clashing; don't mark its range taken]
     G -- valid --> H[Mark range as taken; build AgeGroup entity — teamSize nullable]
     CR --> G
     H --> G
@@ -785,6 +785,8 @@ graph TD
 ```
 
 `seasonId` is optional in the request only for the coach server, which fills in the current season before calling this use case (§13.5); on the clubs server a request without one is refused.
+
+**Which age groups compete for birth years** (2026-11-09) is the policy's `shareBirthYears(name, otherName)`: on the clubs server every age group of the season does (one per birth year, as before); on the coach server only those named after the same club, the name's part before " - " (`ageGroupClubName`), so "Povoense - Sub 11" and "CF Santa Iria - Sub 11" can both be 2016. The database no longer has a unique (club, season, start year, end year) constraint (clubs V36, coach V12): the rule is the code's. Update age group (§4.4) checks the same way, also when only the name changes.
 
 Every clashing item is reported, not only the first. The 409's `ErrorResponse.rows` lists them (0-based, in request order), so Create age groups marks each of those rows in red and names them in its message. Within the batch, the later of two items sharing a year is the one reported. The other row checks (blank name, inverted range, invalid team size) still stop at the first, and the screen prevents them before submitting.
 
@@ -824,6 +826,27 @@ existing teams keep their own (edit those in §4.6). The client's **Edit age gro
 Details ⋮, shown by `AgeGroupDetails.canEditAgeGroup`) applies the same checks before saving: years
 used by the season's other age groups are left out of the pickers, and a span that would shut players
 out is explained in amber and can't be saved.
+
+### 4.4a Delete Age Group (`DeleteAgeGroupUseCase`, `DELETE /v1/age-groups/{id}`)
+
+For good, from Edit age group's Delete (2026-11-09; `AgeGroupDetails.canDeleteAgeGroup` shows it), on both servers.
+
+```mermaid
+graph TD
+    A[Start: userId, ageGroupId] --> B[Fetch AgeGroup]
+    B -- not found --> N(["Throw NotFoundException"])
+    B --> C["AccessPolicy.requireDeleteAgeGroup — clubs: COORDINATOR+ (TODO: a configurable permission, TECHNICAL_DECISIONS §35); coach: the space's owner"]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D["AgeGroupRepository.deleteAgeGroup(id, deleteLonePlayers = AccessPolicy.deletesLonePlayers()), in one transaction"]
+    D --> D1["Its teams' games, then the teams (a game takes its call-ups, events, line-ups, stats, report)"]
+    D1 --> D2["Its training: ratings, sessions' exercises, sessions, exercises, plans"]
+    D2 --> D3["Its staff and pool, then the age group (the coach's invite codes cascade)"]
+    D3 --> L{"deleteLonePlayers? (the coach server)"}
+    L -- Yes --> L1["Its pool's players in no other age group and with nothing else left (games, ratings) are deleted"]
+    L -- No --> R
+    L1 --> R["After the commit: the crest and deleted players' photos leave storage; open screens hear each deleted game (ClubMatchesBus)"]
+    R --> Z(["204"])
+```
 
 ### 4.4b Get Age Group Details (`GetAgeGroupDetailsUseCase`)
 
@@ -1499,6 +1522,10 @@ graph TD
 `GET /opponents/{opponentId}` feeds Opponent details (design 38f). The client works out the head-to-head
 for whichever season is picked from `matches`, `scores` and each team's season, so changing season needs no
 request. `getScoresByMatches` reads the goal events of all the matches at once instead of one query per match.
+
+### 6.4b Delete Opponent (`DeleteOpponentUseCase`, `DELETE /v1/opponents/{id}`)
+
+For good, from Edit opponent's Delete (2026-11-09; `OpponentDetails.canDelete` shows it), on both servers: behind `AccessPolicy.requireDeleteOpponent` (clubs: COORDINATOR+, TODO a configurable permission, TECHNICAL_DECISIONS §35; coach: the space's owner). In one transaction every game against it is deleted (each with its call-ups, events, line-ups, stats and report: `matches.opponent_id` is RESTRICT, so they go first), then the opponent; after the commit its logo leaves storage and open screens hear each deleted game. 204.
 
 ### 6.5 Opponent Logo (`UploadOpponentLogoUseCase` / `DeleteOpponentLogoUseCase` / `GetOpponentLogoUseCase`)
 
@@ -2600,6 +2627,7 @@ erDiagram
         integer start_year "default 0 — younger/more recent birth year; == end_year for single-year groups"
         integer end_year "default 0 — older birth year; eligibility is always checked against this"
         integer team_size "nullable — default a-side count for this age group's teams"
+        varchar logo_url "nullable, 500 chars — the crest of the club it plays for (the coach app); /age-groups/{id}/logo/{imageId}.png"
         timestamp created_at "default CURRENT_TIMESTAMP — the coach server's plan keeps the first created"
     }
     TEAMS {
@@ -2943,6 +2971,7 @@ erDiagram
         int start_year
         int end_year "oldest birth year"
         int team_size
+        string logo_url "the crest of the club it plays for, nullable"
     }
     TEAMS {
         uuid id PK
@@ -3149,4 +3178,49 @@ All in one transaction, so a failure deletes nothing; the files go only once the
 ### 13.5 Automatic seasons (`CoachSeasons`)
 
 The season running today, July 1st to June 30th (`EUROPEAN_YEAR`): found by its type and dates, or created the first time, named "26/27". Used by the first setup and by `POST /v1/age-groups` without a `seasonId`, where the route checks `requireCreateAgeGroups` first, then fills in the season and calls `CreateAgeGroupsUseCase` (§4.3).
+
+### 13.7 A space's details (`GetSpaceDetailsUseCase`, `GET /v1/spaces/{id}`)
+
+The coach app's space details screen (2026-11-09): one space the coach is in, its age groups and its opponents. `GET /v1/spaces` (`GetSpacesUseCase`) also carries each space's owner's name (`ownerName`, for "de João Pereira") and how many opponents it has (`opponents`).
+
+```mermaid
+graph TD
+    A[Start: userId, spaceId] --> M{"The coach's membership of spaceId (getMemberships)"}
+    M -- none, space unknown --> N(["Throw NotFoundException"])
+    M -- none --> F(["Throw ForbiddenException — only the space's owner and staff"])
+    M -- found --> G["Age groups: all of the space's for the owner (CLUB_ADMIN), the ones they're staff on otherwise"]
+    G --> P["The plan, the age groups it locks, the current season (CoachSeasons) and, for the owner, ageGroupsLeft"]
+    P --> T["Each age group's active teams' names, sorted"]
+    T --> U["Each age group's next game: the space's upcoming games (getUpcomingMatchesByClub, soonest first), the first per age group, with its opponent's name"]
+    U --> Z(["SpaceDetails: space, isOwner, ownerName, plan, seasonName, ageGroups (SpaceAgeGroup: ageGroup, teams, nextMatch, locked), ageGroupsLeft, showsAds"])
+```
+
+The app sorts the age groups by the club each plays for (the name's part before " - ") and then youngest first. Its opponents tab is the shared opponents list (`OpponentsBrowser`, the same search and list as the Opponents screen) for the space.
+
+### 13.8 The age-group wizard (`AddAgeGroupsUseCase`, `POST /v1/space/age-groups`)
+
+The coach app's "Adicionar escalões" (2026-11-09): one club's age groups, with their teams, in the coach's own space and the current season, all at once.
+
+```mermaid
+graph TD
+    A["Start: userId, AddAgeGroupsRequest (clubName, ageGroups: name, startYear, endYear, teamSize?, teams; spaceName?, sport?)"] --> C{clubName blank, or has " - "?}
+    C -- Yes --> V(["Throw ValidationException"])
+    C -- No --> E{ageGroups empty?}
+    E -- Yes --> V
+    E -- No --> S{"Owns a space? (CLUB_ADMIN membership)"}
+    S -- No --> N{spaceName and sport given?}
+    N -- No --> V
+    N -- Yes --> NS["Create the space (clubs row) and the owner's membership"]
+    S -- Yes --> I
+    NS --> I{"Each age group: name, years, teamSize in the space's sport, 1..5 teams"}
+    I -- invalid --> V
+    I -- valid --> P["CoachSeasons.current; requireRoomForAgeGroups (the plan)"]
+    P -- no room --> PL(["Throw PlanLimitException — 403 PLAN_001"])
+    P --> K{"Shares a birth year with the same club's age group this season, already there or earlier in the request?"}
+    K -- Yes --> CN(["Throw ConflictException(rows) — 409"])
+    K -- No --> CR["Create the age groups, named \"{clubName} - {name}\", then each one's teams named A, B, …"]
+    CR --> Z(["AddedAgeGroups: space, ageGroups, teams"])
+```
+
+Everything is in one transaction, the new space included: a refusal leaves nothing behind. The app then uploads the club's crest to each new age group (`PUT /v1/age-groups/{id}/logo`), best effort: the picked image, or the crest an age group of the same club already has (downloaded and uploaded again). `GET /v1/spaces/{id}` gives the current season's id (`seasonId`) for the years a club already has.
 

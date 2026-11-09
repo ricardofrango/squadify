@@ -4,6 +4,10 @@ import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.coach.domain.CoachSeasons
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.ErrorResponse
+import com.ricardofrango.squadify.model.NewAgeGroup
+import com.ricardofrango.squadify.model.AddedAgeGroups
+import com.ricardofrango.squadify.model.AddAgeGroupsRequest
 import com.ricardofrango.squadify.model.AgeGroupDetails
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
 import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
@@ -14,6 +18,7 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.PlayerProfile
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
+import com.ricardofrango.squadify.model.SpaceDetails
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
 import io.ktor.client.call.body
@@ -105,6 +110,13 @@ class CoachSpaceTest {
             HttpStatusCode.Created,
             api.post("/v1/opponents?clubId=$spaceId") { json(owner, CreateOpponentRequest("Benfica")) }.status
         )
+        // The space's details: its age groups with their teams, the season; the opponents counted on /spaces.
+        val spaceDetails = api.get("/v1/spaces/$spaceId") { bearerAuth(owner) }.body<SpaceDetails>()
+        assertTrue(spaceDetails.isOwner)
+        assertEquals(setup.season.name, spaceDetails.seasonName)
+        assertEquals(listOf("Sub-12 A"), spaceDetails.ageGroups.single { it.ageGroup.id == setup.ageGroup.id }.teams)
+        assertEquals(1, api.get("/v1/spaces") { bearerAuth(owner) }.body<List<SpaceAgeGroups>>().single().opponents)
+
         assertEquals(HttpStatusCode.NoContent, api.delete("/v1/teams/${setup.team.id}") { bearerAuth(owner) }.status)
 
         // Someone outside the space sees and creates nothing in it.
@@ -116,6 +128,7 @@ class CoachSpaceTest {
             api.post("/v1/age-groups") { json(outsider, CreateAgeGroupsRequest(spaceId, items = listOf(AgeGroupItemRequest("Sub-16", 2011, 2011)))) }.status
         )
         assertTrue(api.get("/v1/spaces") { bearerAuth(outsider) }.body<List<SpaceAgeGroups>>().isEmpty())
+        assertEquals(HttpStatusCode.Forbidden, api.get("/v1/spaces/$spaceId") { bearerAuth(outsider) }.status)
     }
 
     @Test
@@ -128,5 +141,46 @@ class CoachSpaceTest {
         }
         assertEquals(HttpStatusCode.BadRequest, refused.status)
         assertTrue(api.get("/v1/spaces") { bearerAuth(owner) }.body<List<SpaceAgeGroups>>().isEmpty())
+    }
+
+    @Test
+    fun theWizardMakesTheSpaceAndNamesAgeGroupsAndTeamsAfterTheClub() = testApplication {
+        application { module() }
+        val api = jsonClient()
+        val coach = api.signUp()
+
+        // No space yet: the first age groups make it, with three teams.
+        val first = api.post("/v1/space/age-groups") {
+            json(coach, AddAgeGroupsRequest("Povoense", listOf(NewAgeGroup("Sub 11", 2016, 2016, teamSize = 7, teams = 3)), spaceName = "Espaço de Ana Coach", sport = SportType.FOOTBALL))
+        }
+        assertEquals(HttpStatusCode.Created, first.status)
+        val added = first.body<AddedAgeGroups>()
+        assertEquals("Espaço de Ana Coach", added.space.name)
+        assertEquals(listOf("Povoense - Sub 11"), added.ageGroups.map { it.name })
+        assertEquals(3, added.teams)
+        val spaceId = added.space.id
+        val details = api.get("/v1/spaces/$spaceId") { bearerAuth(coach) }.body<SpaceDetails>()
+        assertEquals(listOf("A", "B", "C"), details.ageGroups.single().teams)
+
+        // Free has one age group a season.
+        val overFree = api.post("/v1/space/age-groups") { json(coach, AddAgeGroupsRequest("Povoense", listOf(NewAgeGroup("Sub 12", 2015, 2015)))) }
+        assertEquals(HttpStatusCode.Forbidden, overFree.status)
+        assertEquals("PLAN_001", overFree.body<ErrorResponse>().code)
+        api.setPlan(spaceId, PlanLimits.PRO)
+
+        // Another club may have the same birth years; the same club may not.
+        assertEquals(
+            HttpStatusCode.Created,
+            api.post("/v1/space/age-groups") { json(coach, AddAgeGroupsRequest("CF Santa Iria", listOf(NewAgeGroup("Sub 11", 2016, 2016)))) }.status
+        )
+        assertEquals(
+            HttpStatusCode.Conflict,
+            api.post("/v1/space/age-groups") { json(coach, AddAgeGroupsRequest("povoense", listOf(NewAgeGroup("Sub 11", 2016, 2016)))) }.status
+        )
+        assertEquals(
+            HttpStatusCode.BadRequest,
+            api.post("/v1/space/age-groups") { json(coach, AddAgeGroupsRequest("Povoense - B", listOf(NewAgeGroup("Sub 13", 2014, 2014)))) }.status
+        )
+        assertEquals(2, api.get("/v1/spaces/$spaceId") { bearerAuth(coach) }.body<SpaceDetails>().ageGroups.size)
     }
 }

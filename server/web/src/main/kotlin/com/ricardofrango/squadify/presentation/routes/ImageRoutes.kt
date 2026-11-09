@@ -6,6 +6,9 @@ import com.ricardofrango.squadify.domain.usecase.DeletePlayerPhotoUseCase
 import com.ricardofrango.squadify.domain.usecase.DeleteUserAvatarUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubLogoUseCase
 import com.ricardofrango.squadify.domain.usecase.GetOpponentLogoUseCase
+import com.ricardofrango.squadify.domain.usecase.UploadAgeGroupLogoUseCase
+import com.ricardofrango.squadify.domain.usecase.DeleteAgeGroupLogoUseCase
+import com.ricardofrango.squadify.domain.usecase.GetAgeGroupLogoUseCase
 import com.ricardofrango.squadify.domain.usecase.GetPlayerPhotoUseCase
 import com.ricardofrango.squadify.domain.usecase.GetUserAvatarUseCase
 import com.ricardofrango.squadify.domain.usecase.UploadClubLogoUseCase
@@ -48,6 +51,9 @@ fun Route.imageRoutes() {
     val uploadOpponentLogoUseCase by inject<UploadOpponentLogoUseCase>()
     val deleteOpponentLogoUseCase by inject<DeleteOpponentLogoUseCase>()
     val getOpponentLogoUseCase by inject<GetOpponentLogoUseCase>()
+    val uploadAgeGroupLogoUseCase by inject<UploadAgeGroupLogoUseCase>()
+    val deleteAgeGroupLogoUseCase by inject<DeleteAgeGroupLogoUseCase>()
+    val getAgeGroupLogoUseCase by inject<GetAgeGroupLogoUseCase>()
     val uploadPlayerPhotoUseCase by inject<UploadPlayerPhotoUseCase>()
     val deletePlayerPhotoUseCase by inject<DeletePlayerPhotoUseCase>()
     val getPlayerPhotoUseCase by inject<GetPlayerPhotoUseCase>()
@@ -73,6 +79,27 @@ fun Route.imageRoutes() {
                 val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                 val imageId = call.parameters["file"]?.removeSuffix(".png") ?: return@get call.respond(HttpStatusCode.BadRequest)
                 call.respondImage(getClubLogoUseCase(currentUserId, clubId, imageId))
+            }
+        }
+
+        // The crest of the club an age group plays for (the coach app).
+        route("/age-groups/{ageGroupId}/logo") {
+            put {
+                val ageGroupId = call.parameters["ageGroupId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+                val currentUserId = call.userId ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                call.respond(LogoResponse(uploadAgeGroupLogoUseCase(currentUserId, ageGroupId, call.receiveImage())))
+            }
+            delete {
+                val ageGroupId = call.parameters["ageGroupId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                val currentUserId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                deleteAgeGroupLogoUseCase(currentUserId, ageGroupId)
+                call.respond(HttpStatusCode.NoContent)
+            }
+            get("/{file}") {
+                val ageGroupId = call.parameters["ageGroupId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val imageId = call.parameters["file"]?.removeSuffix(".png") ?: return@get call.respond(HttpStatusCode.BadRequest)
+                call.respondImage(getAgeGroupLogoUseCase(currentUserId, ageGroupId, imageId))
             }
         }
 

@@ -4,12 +4,13 @@ import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.SpacePlan
-import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
+import com.ricardofrango.squadify.model.SpaceDetails
+import com.ricardofrango.squadify.model.AddAgeGroupsRequest
+import com.ricardofrango.squadify.model.AddedAgeGroups
 import com.ricardofrango.squadify.domain.config.OwnSpace
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
-import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.StaffInvite
 
 /** Every space the coach is in; each load also keeps [OwnSpacePlan] up to date, the plans included. */
@@ -32,6 +33,43 @@ class GetSpacesUseCase(
             } catch (e: Exception) {
             }
         }
+}
+
+/** One space the coach is in, for its details screen (its age groups' teams and next games). */
+class GetSpaceDetailsUseCase(private val spaceRepository: SpaceRepository) {
+    suspend operator fun invoke(spaceId: String): SpaceDetails = spaceRepository.getSpaceDetails(spaceId)
+}
+
+/** What the age-group wizard made, and whether every age group got its crest (the crests come after). */
+data class AgeGroupsAdded(val added: AddedAgeGroups, val crestSaved: Boolean)
+
+/**
+ * The age-group wizard: creates one club's age groups and their teams (the space too, the first time),
+ * then gives each its crest, best effort: [crest], the picked image, or the one at [crestPath], an age
+ * group of the same club's.
+ */
+class AddAgeGroupsUseCase(private val spaceRepository: SpaceRepository) {
+    suspend operator fun invoke(request: AddAgeGroupsRequest, crest: ByteArray? = null, crestPath: String? = null): AgeGroupsAdded {
+        val added = spaceRepository.addAgeGroups(request)
+        val bytes = try {
+            crest ?: crestPath?.let { spaceRepository.imageBytes(it) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return AgeGroupsAdded(added, crestSaved = false)
+        } ?: return AgeGroupsAdded(added, crestSaved = true)
+        var saved = true
+        added.ageGroups.forEach { ageGroup ->
+            try {
+                spaceRepository.uploadAgeGroupCrest(ageGroup.id, bytes)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                saved = false
+            }
+        }
+        return AgeGroupsAdded(added, saved)
+    }
 }
 
 /**
@@ -107,10 +145,6 @@ class SaveStorePurchaseUseCase(
 class OwnSpacePlan {
     val space = MutableStateFlow<OwnSpace?>(null)
     val plans = MutableStateFlow<PlansResponse?>(null)
-}
-
-class SetUpSpaceUseCase(private val spaceRepository: SpaceRepository) {
-    suspend operator fun invoke(request: SetUpSpaceRequest): SpaceSetup = spaceRepository.setUpSpace(request)
 }
 
 class JoinWithCodeUseCase(private val spaceRepository: SpaceRepository) {

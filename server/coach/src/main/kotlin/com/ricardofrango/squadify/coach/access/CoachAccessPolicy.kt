@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.access
 
+import com.ricardofrango.squadify.model.ageGroupClubName
 import com.ricardofrango.squadify.coach.domain.CoachPlans
 import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.domain.access.AccessPolicy
@@ -75,6 +76,15 @@ class CoachAccessPolicy(
 
     override suspend fun requireEditAgeGroup(userId: String, scope: GameScope, errorMessage: String) = inAgeGroup(userId, scope, errorMessage)
 
+    // Deleting an age group (its games, training and lone players) or an opponent (its games): the owner's.
+    override suspend fun requireDeleteAgeGroup(userId: String, scope: GameScope, errorMessage: String) =
+        owner(userId, scope.clubId, errorMessage)
+
+    override suspend fun requireDeleteOpponent(userId: String, scope: GameScope, errorMessage: String) =
+        owner(userId, scope.clubId, errorMessage)
+
+    override fun deletesLonePlayers(): Boolean = true
+
     override suspend fun requireManageStaff(userId: String, scope: GameScope, errorMessage: String) =
         owner(userId, scope.clubId, ONLY_THE_OWNER_MANAGES_STAFF)
 
@@ -120,6 +130,10 @@ class CoachAccessPolicy(
         val inSeason = ageGroupRepository.getAgeGroupsByClub(clubId).count { it.seasonId == seasonId }
         if (inSeason + count > limit) throw PlanLimitException("The space's plan allows $limit age groups a season")
     }
+
+    // A space's age groups are named after the club each plays for: only a club's compete for birth years.
+    override fun shareBirthYears(name: String, otherName: String): Boolean =
+        ageGroupClubName(name)?.lowercase() == ageGroupClubName(otherName)?.lowercase()
 
     /** The caller's role in the space: refused unless their account is active and they belong to it. */
     private suspend fun member(userId: String, clubId: String, errorMessage: String): ClubRole = transactionManager.runInTransaction {

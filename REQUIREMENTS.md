@@ -177,6 +177,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
     - [x] Edit age group: name, birth-year span and default team size, from Age Group Details, for coordinators. A span that would leave players already in the pool ineligible is refused.
 - [x] **Phase 4: Match & Call-ups**: Calendar and attendance management.
     - [x] Opponent management (dedicated entity and table).
+    - [x] Deleting an age group (its teams, games, training; the coach app's lone players) and an opponent (its games), for good, in both apps (2026-11-09): a club's coordinators and admins, a coach space's owner.
+        - [ ] Configurable permissions for both in the clubs app (`TECHNICAL_DECISIONS.md` §35, TODO).
     - [x] Match creation and listing. A new match must say where it's played: Home, Away or Neutral, with no default. That prefills the location (our ground, the opponent's, or none), which stays editable, and can be changed in Edit match. The home side is shown first everywhere, and our club on neutral ground. See `TECHNICAL_DECISIONS.md` §63.
     - [x] Call-up management (batch player assignment). On Match details the call-up is a draft saved with "Save call-up" (one list of the pool, a tap selects or unselects a player), available once it has the team's minimum (its size). Saved and unchanged, the button becomes "Start match". Who sees what depends on their rights: the editor, the ready call-up and "Start match", a "not ready yet" message, or the details only. See `TECHNICAL_DECISIONS.md` §62.
 - [x] **Phase 5: Live Match & Stats**: Real-time events and automated statistics calculation.
@@ -388,5 +390,10 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [ ] Production: the coach server, its database and the push credentials on Railway production.
         - [x] Emails (the developer, 2026-10-30): in the language of the user's device, not only English, and a designed template with better lettering and the app's logo. Done on both servers (2026-11-06): one layout with the app's mark and name, in English or Portuguese from the app's `Accept-Language` (the user's own for the account emails, the admin's for the club ones; `TECHNICAL_DECISIONS.md` §14).
     - [x] Adding players in the coach app (the developer, 2026-11-09: the club's eligible-players list doesn't fit a coach's own space): an age group's "Add players" opens Create players straight away, the new players go into that age group (`CreatePlayersRequest.addToAgeGroup`, in the same transaction on the server, `PROCESS_FLOWS.md` §5.1), and the birth date can't be before 1 January of the age group's oldest birth year (a 2015 age group takes 2015, 2016, 2017…). The clubs app is unchanged: a coordinator may create players of any age (`sharedScreens(createPlayersInAgeGroup)`, on in the coach app only).
+    - [x] **Spaces instead of a list of age groups** (the developer, 2026-11-09, `TECHNICAL_DECISIONS.md` §72): age groups named after the club they play for, with its crest; one opponents list per space; sport per space.
+        - [x] An age group's crest (`age_groups.logo_url`).
+        - [x] Space details: its age groups (teams, next game) and its opponents.
+        - [x] The spaces list as Home ("Os meus espaços").
+        - [x] The age-group wizard (club, birth years, teams).
     - [ ] Later: moving an age group from the coach app to a club.
 - [ ] **Server integration tests for Squadify for Clubs** (the developer, 2026-10-30; `TECHNICAL_DECISIONS.md` §72): as on the coach server, tests that start the clubs server on its own test database (`squadify_test`, dropped after the run) and call its endpoints for the main flows: sign-up and invites, a club's structure, a game from scheduling to stats, the live feeds. `ApplicationTest` and `CorsTest` move onto it too, off `squadify_dev`.
