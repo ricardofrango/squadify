@@ -4,7 +4,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
@@ -14,6 +16,16 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreenLight
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+
+/**
+ * Whether [SquadifyMark] stands on a white tile, a rounded square: the coach app's splash and login
+ * (CoachApp.kt), to match its launch splash (the mark on its icon's white, the shape Samsung's launcher
+ * gives it) and its icon. The clubs app keeps the mark alone, on carbon.
+ */
+val LocalMarkOnTile = staticCompositionLocalOf { false }
+
+/** The tile's corners, a share of its side: a rounded square, as Samsung's launcher draws an icon. */
+private const val TILE_CORNER = 0.32f
 
 /**
  * The app's brand mark: a 3-3-4 formation of dots (the app icon's "18a" design, see
@@ -26,12 +38,16 @@ fun SquadifyMark(
     modifier: Modifier = Modifier,
     size: Dp = 96.dp,
     lightDotColor: Color = PitchGreenLight,
-    darkDotColor: Color = SquadifyGreen
+    darkDotColor: Color = SquadifyGreen,
+    onTile: Boolean = LocalMarkOnTile.current
 ) {
     Canvas(modifier = modifier.size(size)) {
         val w = this.size.width
         val h = this.size.height
         val dotRadius = w * 0.054f
+
+        // The tile is the whole [size]: the dots then fill it as the launch splash's mark fills its icon.
+        if (onTile) drawRoundRect(color = Color.White, cornerRadius = CornerRadius(w * TILE_CORNER))
 
         fun dot(xFrac: Float, yFrac: Float, color: Color) {
             drawCircle(color = color, radius = dotRadius, center = Offset(w * xFrac, h * yFrac))
