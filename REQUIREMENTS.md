@@ -391,7 +391,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
     - [/] **Spaces instead of a list of age groups** (the developer, 2026-11-09, `TECHNICAL_DECISIONS.md` §72): age groups named after the club they play for, with its crest; one opponents list per space; sport per space.
         - [x] An age group's crest (`age_groups.logo_url`).
         - [x] Space details: its age groups (teams, next game) and its opponents.
-        - [ ] The spaces list as Home ("Os meus espaços").
+        - [x] The spaces list as Home ("Os meus espaços").
         - [ ] The age-group wizard (club, birth years, teams).
     - [ ] Later: moving an age group from the coach app to a club.
 - [ ] **Server integration tests for Squadify for Clubs** (the developer, 2026-10-30; `TECHNICAL_DECISIONS.md` §72): as on the coach server, tests that start the clubs server on its own test database (`squadify_test`, dropped after the run) and call its endpoints for the main flows: sign-up and invites, a club's structure, a game from scheduling to stats, the live feeds. `ApplicationTest` and `CorsTest` move onto it too, off `squadify_dev`.

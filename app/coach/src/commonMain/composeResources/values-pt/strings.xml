@@ -20,19 +20,12 @@
     <string name="coach_app_name">Squadify Coach</string>
 
     <!-- The home: every age group the coach has -->
-    <string name="coach_home_title">Os meus escalões</string>
+    <string name="coach_home_title">Os meus espaços</string>
     <string name="cd_coach_menu">Menu</string>
-    <string name="coach_home_add_age_group">+ Adicionar escalão</string>
-    <string name="coach_home_my_age_groups">Os meus escalões</string>
-    <string name="coach_home_as_staff">Como equipa técnica</string>
-    <string name="coach_home_create_age_group">Criar escalão</string>
     <string name="coach_home_join">Entrar com um código</string>
     <string name="coach_home_locked">Bloqueado no plano %1$s, guardado até o plano o permitir</string>
     <string name="coach_menu_account">Conta</string>
     <string name="coach_menu_privacy_options">Opções de privacidade</string>
-    <string name="coach_home_born">Nascidos em %1$s · %2$s</string>
-    <string name="coach_home_empty_title">Ainda não tens escalões</string>
-    <string name="coach_home_empty_body">Cria o teu primeiro escalão, ou entra num com o código que alguém te enviou.</string>
     <string name="msg_coach_home_failed">Não foi possível carregar os teus escalões. Verifica a ligação e tenta outra vez.</string>
 
     <!-- Joining with a code -->
@@ -108,7 +101,6 @@
     <string name="msg_delete_account_load_failed">Não foi possível carregar a tua conta.</string>
 
     <!-- O meu clube ou equipa: o espaço do dono, o seu logótipo -->
-    <string name="coach_menu_my_space">O meu clube ou equipa</string>
     <string name="my_space_title">O meu clube ou equipa</string>
     <string name="my_space_logo_intro">O teu logótipo aparece nos teus escalões, nos teus jogos, no jogo ao vivo e nas notificações.</string>
     <string name="msg_my_space_failed">Não foi possível carregar o teu clube ou equipa. Verifica a ligação e tenta outra vez.</string>
@@ -168,4 +160,20 @@
     <string name="space_details_empty_title">Ainda não há escalões</string>
     <string name="space_details_empty_body">Adiciona os escalões deste espaço. Cada um tem o nome e o emblema do clube por que joga, por exemplo "Povoense - Sub 11".</string>
     <string name="msg_space_details_failed">Não foi possível carregar este espaço.</string>
+    <!-- Início: os espaços do treinador. -->
+    <string name="coach_home_my_space">O meu espaço</string>
+    <string name="coach_home_shared_spaces">Espaços onde colaboro</string>
+    <string name="coach_home_default_space_name">Espaço de %1$s</string>
+    <plurals name="coach_home_age_groups">
+        <item quantity="one">%1$d escalão</item>
+        <item quantity="other">%1$d escalões</item>
+    </plurals>
+    <plurals name="coach_home_opponents">
+        <item quantity="one">%1$d adversário</item>
+        <item quantity="other">%1$d adversários</item>
+    </plurals>
+    <string name="coach_home_no_age_groups">Sem escalões ainda</string>
+    <string name="coach_home_first_age_groups">Cria os teus primeiros escalões para começares a gravar jogos.</string>
+    <string name="coach_home_create_age_groups">Criar escalões</string>
+    <string name="coach_home_got_code">Recebeste um código de outro treinador?</string>
 </resources>

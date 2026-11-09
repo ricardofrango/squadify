@@ -4,6 +4,8 @@ import com.ricardofrango.squadify.coach.presentation.navigation.CoachSignedInHom
 import com.ricardofrango.squadify.coach.presentation.navigation.coachPushLinkBackStack
 import com.ricardofrango.squadify.model.PushLink
 import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeUiState
+import com.ricardofrango.squadify.coach.presentation.ui.home.SpaceClub
+import com.ricardofrango.squadify.coach.presentation.ui.home.clubsOf
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubStatus
@@ -18,8 +20,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
-// The coach app's home (REQUIREMENTS §5c): one list of the age groups of every space the coach is in, and
-// where Create age group leads.
+// The coach app's home (REQUIREMENTS §5c): the coach's own space and the ones they're staff in, and where
+// a tapped notification leads.
 class CoachHomeTest {
     private fun space(id: String, name: String) =
         Club(id = id, name = name, status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
@@ -30,55 +32,52 @@ class CoachHomeTest {
     private val mine = space("mine", "Fontelas FC")
     private val anas = space("anas", "Ana's team")
 
-    @Test
-    fun anAgeGroupOverThePlanIsListedLocked() {
-        val state = CoachHomeUiState.Loaded.of(
-            listOf(
-                SpaceAgeGroups(
-                    mine, isOwner = true, ageGroups = listOf(ageGroup("sub11", "mine", 2016), ageGroup("sub13", "mine", 2014)),
-                    plan = SpacePlan("FREE"), lockedAgeGroupIds = listOf("sub13")
-                )
-            )
-        )
-        assertEquals(listOf("sub11" to false, "sub13" to true), state.ageGroups.map { it.ageGroup.id to it.locked })
-        assertTrue(state.ageGroups.all { it.plan == SpacePlan("FREE") })
-    }
+    private fun named(id: String, spaceId: String, name: String, year: Int, logoUrl: String? = null) =
+        AgeGroup(id = id, clubId = spaceId, name = name, seasonId = "s", startYear = year, endYear = year, logoUrl = logoUrl)
 
     @Test
-    fun theOwnSpacesAgeGroupsComeFirstEachYoungestFirst() {
+    fun theOwnSpaceApartFromTheOnesTheyreStaffIn() {
         val state = CoachHomeUiState.Loaded.of(
             listOf(
                 SpaceAgeGroups(anas, isOwner = false, plan = SpacePlan("FREE"), ageGroups = listOf(ageGroup("ana-sub9", "anas", 2018))),
-                SpaceAgeGroups(mine, isOwner = true, plan = SpacePlan("FREE"), ageGroups = listOf(ageGroup("sub13", "mine", 2014), ageGroup("sub11", "mine", 2016)))
+                SpaceAgeGroups(mine, isOwner = true, plan = SpacePlan("FREE"), ageGroups = listOf(ageGroup("sub13", "mine", 2014)))
             )
         )
-        assertEquals(listOf("sub11", "sub13", "ana-sub9"), state.ageGroups.map { it.ageGroup.id })
-        assertEquals(listOf("Fontelas FC", "Fontelas FC", "Ana's team"), state.ageGroups.map { it.spaceName })
-        // Each row has its space, for the logo before it.
-        assertEquals(listOf(mine, mine, anas), state.ageGroups.map { it.space })
-        assertEquals(mine, state.ownSpace)
+        assertEquals(mine, state.ownSpace?.space)
+        assertEquals(listOf(anas), state.otherSpaces.map { it.space })
     }
 
     @Test
-    fun staffOnlyHaveNoSpaceToAddTo() {
-        // Create age group then sets up their own space first.
-        val state = CoachHomeUiState.Loaded.of(listOf(SpaceAgeGroups(anas, isOwner = false, plan = SpacePlan("FREE"), ageGroups = listOf(ageGroup("ana-sub9", "anas", 2018)))))
+    fun staffOnlyHaveNoSpaceOfTheirOwnYet() {
+        val state = CoachHomeUiState.Loaded.of(listOf(SpaceAgeGroups(anas, isOwner = false, plan = SpacePlan("FREE"), ageGroups = listOf(ageGroup("ana-sub9", "anas", 2018)))), userName = "Rui Costa")
         assertNull(state.ownSpace)
-        assertEquals(1, state.ageGroups.size)
+        assertEquals("Rui Costa", state.userName)
+        assertEquals(1, state.otherSpaces.size)
     }
 
     @Test
-    fun aNewAccountHasAnEmptyList() {
+    fun aNewAccountHasNoSpaces() {
         val state = CoachHomeUiState.Loaded.of(emptyList())
-        assertTrue(state.ageGroups.isEmpty())
         assertNull(state.ownSpace)
+        assertTrue(state.otherSpaces.isEmpty())
     }
 
     @Test
-    fun anOwnSpaceWithNoAgeGroupsLeftIsStillWhereNewOnesGo() {
-        val state = CoachHomeUiState.Loaded.of(listOf(SpaceAgeGroups(mine, isOwner = true, plan = SpacePlan("FREE"), ageGroups = emptyList())))
-        assertTrue(state.ageGroups.isEmpty())
-        assertEquals(mine, state.ownSpace)
+    fun aSpacesClubsAreNamedOnceWithTheFirstCrestFound() {
+        val space = SpaceAgeGroups(
+            mine, isOwner = true, plan = SpacePlan("PRO"),
+            ageGroups = listOf(
+                named("a", "mine", "Povoense - Sub 12", 2015),
+                named("b", "mine", "CF Santa Iria - Sub 9", 2018, logoUrl = "/age-groups/b/logo/1.png"),
+                named("c", "mine", "povoense - Sub 13", 2014, logoUrl = "/age-groups/c/logo/2.png"),
+                // Not named after a club: left out.
+                named("d", "mine", "Sub 10", 2017)
+            )
+        )
+        assertEquals(
+            listOf(SpaceClub("CF Santa Iria", "/age-groups/b/logo/1.png"), SpaceClub("Povoense", "/age-groups/c/logo/2.png")),
+            clubsOf(space)
+        )
     }
 
     @Test
@@ -87,11 +86,12 @@ class CoachHomeTest {
     }
 
     @Test
-    fun aTappedNotificationOpensItsTargetOverMyAgeGroups() {
-        assertEquals(listOf(Screen.CoachHome, Screen.MatchDetails("m")), coachPushLinkBackStack(PushLink.match("s", "m")))
-        assertEquals(listOf(Screen.CoachHome, Screen.TeamDetails("t")), coachPushLinkBackStack(PushLink.team("s", "t")))
-        assertEquals(listOf(Screen.CoachHome, Screen.AgeGroupDetails("a")), coachPushLinkBackStack(PushLink.ageGroup("s", "a")))
-        // A link to a space alone (never sent by the coach server): just the home.
-        assertEquals(listOf(Screen.CoachHome), coachPushLinkBackStack(PushLink.club("s")))
+    fun aTappedNotificationOpensItsTargetOverItsSpace() {
+        val home = listOf(Screen.CoachHome, Screen.SpaceDetails("s"))
+        assertEquals(home + Screen.MatchDetails("m"), coachPushLinkBackStack(PushLink.match("s", "m")))
+        assertEquals(home + Screen.TeamDetails("t"), coachPushLinkBackStack(PushLink.team("s", "t")))
+        assertEquals(home + Screen.AgeGroupDetails("a"), coachPushLinkBackStack(PushLink.ageGroup("s", "a")))
+        // A link to a space alone (never sent by the coach server): its details.
+        assertEquals(home, coachPushLinkBackStack(PushLink.club("s")))
     }
 }

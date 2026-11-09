@@ -20,19 +20,12 @@
     <string name="coach_app_name">Squadify Coach</string>
 
     <!-- The home: every age group the coach has -->
-    <string name="coach_home_title">My age groups</string>
+    <string name="coach_home_title">My spaces</string>
     <string name="cd_coach_menu">Menu</string>
-    <string name="coach_home_add_age_group">+ Add age group</string>
-    <string name="coach_home_my_age_groups">My age groups</string>
-    <string name="coach_home_as_staff">As staff</string>
-    <string name="coach_home_create_age_group">Create age group</string>
     <string name="coach_home_join">Join with a code</string>
     <string name="coach_home_locked">Locked on the %1$s plan, kept until the plan allows it</string>
     <string name="coach_menu_account">Account</string>
     <string name="coach_menu_privacy_options">Privacy options</string>
-    <string name="coach_home_born">Born %1$s · %2$s</string>
-    <string name="coach_home_empty_title">No age groups yet</string>
-    <string name="coach_home_empty_body">Create your first age group, or join one with the code someone shared with you.</string>
     <string name="msg_coach_home_failed">Couldn't load your age groups. Check your connection and try again.</string>
 
     <!-- Joining with a code -->
@@ -108,7 +101,6 @@
     <string name="msg_delete_account_load_failed">Couldn't load your account.</string>
 
     <!-- My club or team: the owner's own space, its logo -->
-    <string name="coach_menu_my_space">My club or team</string>
     <string name="my_space_title">My club or team</string>
     <string name="my_space_logo_intro">Your logo shows on your age groups, your games, the live game and notifications.</string>
     <string name="msg_my_space_failed">Couldn't load your club or team. Check your connection and try again.</string>
@@ -168,4 +160,20 @@
     <string name="space_details_empty_title">No age groups yet</string>
     <string name="space_details_empty_body">Add this space's age groups. Each one has the name and crest of the club it plays for, for example "Povoense - Sub 11".</string>
     <string name="msg_space_details_failed">Couldn't load this space.</string>
+    <!-- Home: the coach's spaces. -->
+    <string name="coach_home_my_space">My space</string>
+    <string name="coach_home_shared_spaces">Spaces I help in</string>
+    <string name="coach_home_default_space_name">%1$s's space</string>
+    <plurals name="coach_home_age_groups">
+        <item quantity="one">%1$d age group</item>
+        <item quantity="other">%1$d age groups</item>
+    </plurals>
+    <plurals name="coach_home_opponents">
+        <item quantity="one">%1$d opponent</item>
+        <item quantity="other">%1$d opponents</item>
+    </plurals>
+    <string name="coach_home_no_age_groups">No age groups yet</string>
+    <string name="coach_home_first_age_groups">Create your first age groups to start recording games.</string>
+    <string name="coach_home_create_age_groups">Create age groups</string>
+    <string name="coach_home_got_code">Got a code from another coach?</string>
 </resources>

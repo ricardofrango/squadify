@@ -40,6 +40,7 @@ class OwnSpacePlanTest {
             currentPlan = SpacePlan("FREE")
         )
         override suspend fun getSpaces() = spaces.also { spacesLoaded++ }
+        override suspend fun getSpaceDetails(spaceId: String): com.ricardofrango.squadify.model.SpaceDetails = error("not used")
         override suspend fun getPlans() = plans ?: error("offline")
         var requestFails = false
         // A local server sets the plan; a deployed one records the request.

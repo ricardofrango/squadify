@@ -264,14 +264,11 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
         val changed by entry.savedStateHandle.getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false).collectAsStateWithLifecycle()
         CoachHomeScreen(
             onSignedOut = { openAsRoot(Screen.Login) },
-            onOpenAgeGroup = { ageGroupId -> navigator.navigate(Screen.AgeGroupDetails(ageGroupId)) },
-            onCreateAgeGroups = { spaceId, spaceName, sport ->
-                navigator.navigate(Screen.CreateAgeGroups(spaceId, spaceName, sport.name))
-            },
+            onOpenSpace = { spaceId -> navigator.navigate(Screen.SpaceDetails(spaceId)) },
+            onCreateAgeGroups = { space -> navigator.navigate(Screen.CreateAgeGroups(space.id, space.name, space.sport.name)) },
             onSetUpSpace = { navigator.navigate(Screen.SpaceSetup) },
             onJoinWithCode = { navigator.navigate(Screen.JoinWithCode) },
             onOpenAccount = { navigator.navigate(Screen.Account) },
-            onOpenMySpace = { spaceId -> navigator.navigate(Screen.SpaceDetails(spaceId)) },
             onOpenPlans = { navigator.navigate(Screen.Plans) },
             refresh = changed,
             onRefreshed = { entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false }
