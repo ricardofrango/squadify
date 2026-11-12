@@ -663,6 +663,7 @@ Split across two mechanisms, deliberately not funneled entirely through GitHub A
     `.github/workflows/pr-checks.yml` runs it on every pull request to `develop` for the apps the
     pull request changes (the same script, from the base to the head), so a crashing build shows on the
     pull request before it's merged.
+- **Saving Actions minutes** (the developer, 2026-11-09: the private repository's 2,000 minutes a month ran out, ~2,100 used by the 9th: the web deploy ~720, the Firebase builds ~520, the deploy workflows' own tests ~315, the PR release checks ~315, the PR tests ~115). Commented out, not deleted, so each comes back by uncommenting: `deploy-web.yml`'s push trigger (staging's web client now deploys by hand, Run workflow with environment = staging; production unchanged), and the `test` and `release-check` jobs of `deploy-staging.yml` and `deploy-staging-coach.yml` (the PR's checks already ran them on the same code; the distribute jobs now need only `changes`). Railway deploys the servers without Actions, so they keep deploying when the minutes run out; the web client, the Firebase builds and the PR checks don't run until the month resets or the account pays for more.
 - **Pull requests to `develop`** (`.github/workflows/pr-checks.yml`, 2026-11-08): a **Tests** job on
   every pull request, whatever it changes: the five servers' tests (`:server:core`, `:server:data`,
   `:server:web`, `:server:clubs`, `:server:coach`, on a Postgres service as in the deploy workflows) and the
