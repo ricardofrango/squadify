@@ -159,13 +159,14 @@ private fun SeasonPill(text: String, onClick: (() -> Unit)?) {
  * Switching animates: the segments' widths, the label and the dark background move together.
  */
 @Composable
-fun StatsFilterSegments(selected: StatsFilter, onSelected: (StatsFilter) -> Unit, modifier: Modifier = Modifier, bottomSpacing: Dp = 14.dp) {
+fun StatsFilterSegments(selected: StatsFilter, onSelected: (StatsFilter) -> Unit, modifier: Modifier = Modifier, bottomSpacing: Dp = 14.dp, edgePadding: Dp = 0.dp) {
     SegmentedFilter(
         options = StatsFilter.entries,
         selected = selected,
         label = { stringResource(it.labelRes()) },
         onSelect = onSelected,
-        modifier = modifier.padding(bottom = bottomSpacing)
+        modifier = modifier.padding(bottom = bottomSpacing),
+        edgePadding = edgePadding
     )
 }
 

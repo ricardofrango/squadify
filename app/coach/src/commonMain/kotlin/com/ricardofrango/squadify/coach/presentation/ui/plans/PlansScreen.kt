@@ -51,6 +51,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import org.jetbrains.compose.resources.stringResource
@@ -185,7 +186,7 @@ fun PlansScreen(
                         selected = period,
                         label = { stringResource(if (it == BillingPeriod.MONTHLY) Res.string.plans_monthly else Res.string.plans_yearly) },
                         onSelect = { period = it; failed = false },
-                        shorten = false
+                        edgePadding = ScreenPadding.Horizontal
                     )
                 }
                 plans.forEachIndexed { index, details ->

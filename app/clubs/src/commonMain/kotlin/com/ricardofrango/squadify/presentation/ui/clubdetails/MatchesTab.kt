@@ -200,7 +200,8 @@ fun MatchesTab(
             selected = state.matchesStatus,
             label = { stringResource(it.labelRes()) },
             onSelect = actions::onMatchesStatusSelected,
-            modifier = Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 10.dp)
+            modifier = Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 10.dp),
+            edgePadding = ScreenPadding.Horizontal
         )
 
         if (!state.matchesLoaded) {

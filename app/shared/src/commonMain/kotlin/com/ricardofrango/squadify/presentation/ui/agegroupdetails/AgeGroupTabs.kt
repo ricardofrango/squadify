@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StaffNotInPlanNotic
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.TrainingNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
@@ -229,7 +230,7 @@ private fun LazyListScope.statsItems(
                         }
                     }
                 } else {
-                    item { StatsFilterSegments(recordState.filter, onFilterSelected, bottomSpacing = 0.dp) }
+                    item { StatsFilterSegments(recordState.filter, onFilterSelected, bottomSpacing = 0.dp, edgePadding = ScreenPadding.Horizontal) }
                     val combined = record.combined(recordState.filter)
                     if (combined.played == 0) {
                         item {
@@ -558,7 +559,7 @@ internal fun AgeGroupMatchesTab(
                     selected = teamFilter,
                     label = { id -> id?.let { teamNames[it] } ?: stringResource(Res.string.ag_all_teams) },
                     onSelect = onTeamFilter,
-                    shorten = false
+                    edgePadding = ScreenPadding.Horizontal
                 )
             }
         }
@@ -951,8 +952,7 @@ private fun LazyListScope.sessionItems(
                                 selected = view.calendar,
                                 label = { stringResource(if (it) Res.string.btn_calendar else Res.string.btn_list) },
                                 onSelect = view.onCalendar,
-                                modifier = Modifier.width(IntrinsicSize.Max),
-                                shorten = false
+                                modifier = Modifier.width(IntrinsicSize.Max)
                             )
                         }
                     }

@@ -445,7 +445,8 @@ private fun EventsTab(details: MatchDetails, modifier: Modifier) {
             selected = filter,
             label = { stringResource(it.labelRes()) },
             onSelect = { filter = it },
-            modifier = Modifier.padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top)
+            modifier = Modifier.padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top),
+            edgePadding = ScreenPadding.Horizontal
         )
         LazyColumn(
             Modifier.weight(1f),
