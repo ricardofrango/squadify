@@ -482,7 +482,7 @@ private fun PlayersTab(
                     }
                 } else {
                     val squad = record.squad(recordState.filter, squadSort)
-                    item { StatsFilterSegments(recordState.filter, onFilterSelected, bottomSpacing = 0.dp) }
+                    item { StatsFilterSegments(recordState.filter, onFilterSelected, bottomSpacing = 0.dp, edgePadding = ScreenPadding.Horizontal) }
                     if (squad.used.isEmpty() && squad.benchOnly.isEmpty()) {
                         item {
                             StatsCard(contentPadding = 16.dp) {

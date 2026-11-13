@@ -2,6 +2,8 @@ package com.ricardofrango.squadify.presentation.ui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.match_format_value
@@ -13,14 +15,13 @@ import squadify.app.shared.generated.resources.match_format_value
  * app's age-group wizard).
  */
 @Composable
-fun TeamSizeSelector(options: List<Int>, selected: Int?, onSelected: (Int) -> Unit, modifier: Modifier = Modifier, insidePaddedContent: Boolean = false) {
+fun TeamSizeSelector(options: List<Int>, selected: Int?, onSelected: (Int) -> Unit, modifier: Modifier = Modifier, edgePadding: Dp = 0.dp) {
     SegmentedFilter<Int?>(
         options = options,
         selected = selected,
         label = { stringResource(Res.string.match_format_value, it ?: 0) },
         onSelect = { it?.let(onSelected) },
         modifier = modifier,
-        shorten = false,
-        insidePaddedContent = insidePaddedContent
+        edgePadding = edgePadding
     )
 }

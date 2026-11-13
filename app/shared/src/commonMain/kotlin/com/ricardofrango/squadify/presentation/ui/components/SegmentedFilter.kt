@@ -1,24 +1,13 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
-import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -49,24 +38,26 @@ import androidx.compose.ui.unit.sp
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 
-// Every single-choice filter is one segmented control (the developer, 2026-10-26), the look the match
-// type filter had: an outlined bar, the selected segment filled with the bar's colour. Sorting keeps
-// the "Sort" label with chips (FilterChipRow's leadingLabel), as in the call-up.
+// Every single-choice filter is this one segmented control (the developer, 2026-10-26): an outlined bar,
+// the selected segment filled with the bar's colour. Sorting keeps the "Sort" label with chips
+// (FilterChipRow's leadingLabel), as in the call-up.
 
 /**
- * One choice of [options] as a segmented control.
+ * One choice of [options] as a segmented control, with one behaviour everywhere:
  *
- * - **A fixed set** (types, statuses, roles): the unselected segments show [shortLabel] ("Offic.",
- *   "Tourn.") and only the selected one its full name, so four or five fit side by side. Switching
- *   animates: the segments' widths, the label and the background move together.
- * - **Names** ([shorten] false, e.g. teams, which a cut would make alike: "Sub-1."): every segment
- *   shows its whole label; they fill the width when they fit and scroll sideways inside the outline
- *   when they don't.
- * - **Past the screen's edge** ([shorten] false and [insidePaddedContent], inside padded content):
- *   the whole bar, outline included, runs past the screen's padding to its edges and scrolls sideways,
- *   so the last options are scrolled to rather than cut inside the outline.
+ * - Every label is shown **whole**, on one line: a segment is as wide as its text needs, plus its padding.
+ * - When the segments together are **narrower** than the room, the bar stretches to fill it. A segment
+ *   that is already wider than an equal share keeps its own width; the rest share what is left equally.
+ * - When they are **wider**, the bar is as wide as they are and scrolls sideways, off the screen if it
+ *   has to. The outline scrolls with it, and [edgePadding] is part of the scrolled content on both
+ *   sides, so the first and last segments can be scrolled clear of the screen's edge.
+ *
+ * [edgePadding] is the side padding of the content the bar sits in (the screen's, [ScreenPadding.Horizontal]):
+ * the bar reaches out over it, to the edges of its parent, and keeps it as scrollable padding. Leave it
+ * 0 for a bar that isn't at the edges: inside a card, or next to something in a row.
  */
 @Composable
 fun <T> SegmentedFilter(
@@ -75,124 +66,116 @@ fun <T> SegmentedFilter(
     label: @Composable (T) -> String,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
-    shorten: Boolean = true,
-    insidePaddedContent: Boolean = false,
-    shortLabel: (T, String) -> String = { _, full -> shortFilterLabel(full) }
+    edgePadding: Dp = 0.dp
 ) {
     val shape = RoundedCornerShape(12.dp)
-    val outlined = modifier.fillMaxWidth().clip(shape).border(1.5.dp, CarbonGray.copy(alpha = 0.16f), shape)
-    if (shorten) {
-        Row(outlined.height(IntrinsicSize.Min)) {
+    Box(
+        modifier.fillMaxWidth().bleed(edgePadding).horizontalScroll(rememberScrollState()),
+        // The room the bar has to fill (the parent's width) reaches the row as its minimum width.
+        propagateMinConstraints = true
+    ) {
+        FillOrScrollRow(Modifier.padding(horizontal = edgePadding).clip(shape).border(1.5.dp, CarbonGray.copy(alpha = 0.16f), shape)) {
             options.forEach { option ->
-                val isSelected = option == selected
-                val full = label(option)
-                val short = shortLabel(option, full)
-                // The selected segment takes the room its full name needs; the others, their short label.
-                val weight by animateFloatAsState(
-                    (if (isSelected) full.length else short.length).coerceAtLeast(3).toFloat() + 2f,
-                    animationSpec = tween(FilterAnimationMillis), label = "segmentWeight"
-                )
-                Segment(full, if (isSelected) full else short, isSelected, Modifier.weight(weight).fillMaxHeight(), sidePadding = 4.dp) { onSelect(option) }
-            }
-        }
-    } else if (insidePaddedContent) {
-        BoxWithConstraints(modifier.fillMaxWidth().bleed(ScreenPadding.Horizontal)) {
-            // The screen's width minus its padding: the bar fills it when its options fit.
-            val room = maxWidth - ScreenPadding.Horizontal * 2
-            Box(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = ScreenPadding.Horizontal)) {
-                FillOrScrollRow(Modifier.widthIn(min = room).clip(shape).border(1.5.dp, CarbonGray.copy(alpha = 0.16f), shape)) {
-                    options.forEach { option ->
-                        val full = label(option)
-                        Segment(full, full, option == selected, Modifier, sidePadding = 14.dp) { onSelect(option) }
-                    }
-                }
-            }
-        }
-    } else {
-        // The row itself carries the outline: a Box between them would drop the outline's width from
-        // the row's constraints, leaving the segments short of the right edge with a blank gap there.
-        FillOrScrollRow(outlined.horizontalScroll(rememberScrollState())) {
-            options.forEach { option ->
-                val full = label(option)
-                Segment(full, full, option == selected, Modifier, sidePadding = 14.dp) { onSelect(option) }
+                val text = label(option)
+                Segment(text, option == selected) { onSelect(option) }
             }
         }
     }
 }
 
 @Composable
-private fun Segment(full: String, shown: String, isSelected: Boolean, modifier: Modifier, sidePadding: Dp, onClick: () -> Unit) {
+private fun Segment(text: String, isSelected: Boolean, onClick: () -> Unit) {
     val background by animateColorAsState(if (isSelected) ClubChrome else Color.White, tween(FilterAnimationMillis), label = "segmentBackground")
     val textColor by animateColorAsState(if (isSelected) Color.White else DeepCarbon, tween(FilterAnimationMillis), label = "segmentText")
     Box(
-        modifier
+        Modifier
             .heightIn(min = 40.dp)
             .background(background)
-            // The full name for screen readers, whatever is shown.
-            .semantics { role = Role.Tab; this.selected = isSelected; contentDescription = full }
+            .semantics { role = Role.Tab; this.selected = isSelected; contentDescription = text }
             .clickable(onClick = onClick)
-            .padding(horizontal = sidePadding, vertical = 8.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        AnimatedContent(
-            targetState = shown,
-            transitionSpec = { fadeIn(tween(FilterAnimationMillis)) togetherWith fadeOut(tween(FilterAnimationMillis / 2)) },
-            label = "segmentLabel"
-        ) { text ->
-            Text(
-                text,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
-                color = textColor,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                softWrap = false
-            )
-        }
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
+            color = textColor,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false
+        )
     }
 }
 
 /**
- * Its children side by side at their own widths, all as tall as the tallest. When they're narrower than
- * the room there is ([minWidth], the outline's width), the rest is shared out so they fill it; when
- * wider, the row is as wide as they are and the outline scrolls.
+ * Its children side by side, all as tall as the tallest, each as wide as its content needs; narrower than
+ * the room there is (the minimum width it is given), they're stretched to fill it ([fillWidths]), and
+ * wider, the row is as wide as they are.
  */
 @Composable
 private fun FillOrScrollRow(modifier: Modifier, content: @Composable () -> Unit) {
     Layout(content, modifier) { measurables, constraints ->
+        if (measurables.isEmpty()) return@Layout layout(constraints.minWidth, constraints.minHeight) {}
         val height = measurables.maxOf { it.maxIntrinsicHeight(Int.MAX_VALUE) }.coerceAtLeast(constraints.minHeight)
-        val widths = measurables.map { it.maxIntrinsicWidth(height) }
-        // The outline's own width, which horizontalScroll leaves out of the constraints.
-        val room = constraints.minWidth
-        val extra = if (widths.sum() < room && widths.isNotEmpty()) (room - widths.sum()) / widths.size else 0
-        val placeables = measurables.mapIndexed { i, m ->
-            val w = widths[i] + extra + if (i == widths.lastIndex && extra > 0) (room - widths.sum()) % widths.size else 0
-            m.measure(Constraints.fixed(w, height))
-        }
-        layout(maxOf(placeables.sumOf { it.width }, room), height) {
+        val natural = measurables.map { it.maxIntrinsicWidth(height) }
+        val widths = fillWidths(natural, constraints.minWidth)
+        val placeables = measurables.mapIndexed { i, m -> m.measure(Constraints.fixed(widths[i], height)) }
+        layout(placeables.sumOf { it.width }, height) {
             var x = 0
             placeables.forEach { it.placeRelative(x, 0); x += it.width }
         }
     }
 }
 
+/**
+ * [natural] widths stretched to add up to [room] when they fall short of it, else unchanged. A segment
+ * at least as wide as an equal share of what is left keeps its width (and leaves the others a larger
+ * share); the others get the same width each: "All teams" (wide) stays as it is, while "Team A" and
+ * "Team B" grow equally.
+ */
+internal fun fillWidths(natural: List<Int>, room: Int): List<Int> {
+    if (natural.isEmpty() || natural.sum() >= room) return natural
+    val keeps = BooleanArray(natural.size)
+    var left = room
+    var sharing = natural.size
+    var changed = true
+    while (changed && sharing > 0) {
+        changed = false
+        val share = left / sharing
+        for (i in natural.indices) {
+            if (!keeps[i] && natural[i] >= share) {
+                keeps[i] = true
+                left -= natural[i]
+                sharing--
+                changed = true
+            }
+        }
+    }
+    val share = if (sharing > 0) left / sharing else 0
+    // Whole pixels only: the last stretched segment takes the remainder, so the bar adds up to the room.
+    val lastStretched = natural.indices.lastOrNull { !keeps[it] }
+    return natural.mapIndexed { i, width ->
+        when {
+            keeps[i] -> width
+            i == lastStretched -> share + left - share * sharing
+            else -> share
+        }
+    }
+}
+
 private const val FilterAnimationMillis = 250
-
-/** "Official" → "Offic.", the "." saying it's cut; a label of 5 letters or fewer stays whole ("All", "Todos"). */
-fun shortFilterLabel(label: String): String = if (label.length <= ShortLabelLength) label else label.take(ShortLabelLength) + "."
-
-private const val ShortLabelLength = 5
 
 // ---- Previews ----
 
 @Composable
 private fun SegmentedFilterPreviewFrame() {
     SquadifyTheme {
-        Column(Modifier.fillMaxWidth().background(Color(0xFFF4F5F7)).padding(16.dp)) {
-            SegmentedFilter(listOf("All", "Goals", "Substitutions", "Cards"), "Goals", { it }, {})
+        Column(Modifier.fillMaxWidth().background(Color(0xFFF4F5F7)).padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp)) {
+            SegmentedFilter(listOf("All", "Goals", "Substitutions", "Cards"), "Goals", { it }, {}, edgePadding = ScreenPadding.Horizontal)
             Box(Modifier.height(12.dp))
-            SegmentedFilter(listOf("All teams", "Sub-15 A", "Sub-15 B"), "Sub-15 A", { it }, {}, shorten = false)
+            SegmentedFilter(listOf("Todas as equipas", "Infantis B1", "Infantis B2"), "Todas as equipas", { it }, {}, edgePadding = ScreenPadding.Horizontal)
             Box(Modifier.height(12.dp))
-            SegmentedFilter(listOf("All teams", "Sub-15 A", "Sub-15 B", "Sub-15 C", "Sub-15 D", "Sub-15 E"), "All teams", { it }, {}, shorten = false)
+            SegmentedFilter(listOf("All teams", "Sub-15 A", "Sub-15 B", "Sub-15 C", "Sub-15 D", "Sub-15 E"), "All teams", { it }, {}, edgePadding = ScreenPadding.Horizontal)
         }
     }
 }

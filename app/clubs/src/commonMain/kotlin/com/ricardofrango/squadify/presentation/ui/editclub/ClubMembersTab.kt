@@ -1,7 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
-import com.ricardofrango.squadify.presentation.ui.components.shortFilterLabel
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.ricardofrango.squadify.presentation.ui.components.LoadMoreEffect
 import com.ricardofrango.squadify.presentation.ui.components.loadingMoreItem
@@ -63,6 +62,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -342,8 +342,7 @@ private fun FilterChips(overview: ClubMembersOverview, selected: MembersFilter, 
         selected = selected,
         label = { f -> stringResource(f.labelRes()).let { if (f == MembersFilter.PENDING) "$it · $pending" else it } },
         onSelect = onSelect,
-        // Cut, Pending keeps its count: "Pende. 2".
-        shortLabel = { f, full -> if (f == MembersFilter.PENDING) "${shortFilterLabel(full.substringBefore(" · "))} $pending" else shortFilterLabel(full) }
+        edgePadding = ScreenPadding.Horizontal
     )
 }
 
