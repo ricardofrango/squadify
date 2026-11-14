@@ -45,8 +45,11 @@ interface AccessPolicy {
     /** Reads the match report and players' ratings. */
     suspend fun requireSeeRatings(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
 
-    /** Changes the club's own details, such as its logo. */
+    /** Changes the club's own details. */
     suspend fun requireEditClub(userId: String, clubId: String, errorMessage: String = DEFAULT_MESSAGE)
+
+    /** Uploads the club's logo. A coach's space has none (it's shown with the Squadify mark), so the coach server refuses. */
+    suspend fun requireUploadClubLogo(userId: String, clubId: String, errorMessage: String = DEFAULT_MESSAGE)
 
     /** Sees the club's lists: its age groups, teams and players, narrowed by [visibleAgeGroupIds]. */
     suspend fun requireViewClub(userId: String, clubId: String)
