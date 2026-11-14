@@ -263,7 +263,7 @@ private fun SpaceLogoHeader(state: MySpaceUiState.Loaded, onLogoPicked: (ByteArr
     val enabled = !state.isUpdatingLogo
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(contentAlignment = Alignment.Center) {
-            SpaceLogo(state.space, size = 64.dp)
+            SpaceCrest(state.space, size = 52.dp)
             if (state.isUpdatingLogo) CircularProgressIndicator(Modifier.size(64.dp), color = PitchGreen, strokeWidth = 2.dp)
         }
         Spacer(Modifier.width(16.dp))
