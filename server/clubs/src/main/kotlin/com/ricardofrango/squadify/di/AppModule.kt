@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.di
 
+import com.ricardofrango.squadify.data.repository.ExposedExportGrantRepository
+import com.ricardofrango.squadify.data.repository.ExposedImportRepository
+import com.ricardofrango.squadify.domain.repository.ExportGrantRepository
+import com.ricardofrango.squadify.domain.repository.ImportRepository
 import com.ricardofrango.squadify.security.JwtConfig
 import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
@@ -48,6 +52,8 @@ val appModule = module {
     single<TrainingExerciseRepository> { ExposedTrainingExerciseRepository() }
     single<TrainingRatingRepository> { ExposedTrainingRatingRepository() }
     single<FcmTokenRepository> { ExposedFcmTokenRepository() }
+    single<ExportGrantRepository> { ExposedExportGrantRepository() }
+    single<ImportRepository> { ExposedImportRepository() }
     single<ClubPermissionRepository> { ExposedClubPermissionRepository() }
 
     // Services

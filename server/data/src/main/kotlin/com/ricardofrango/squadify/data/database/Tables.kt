@@ -481,6 +481,40 @@ object TrainingRatingsTable : Table("training_ratings") {
     override val primaryKey = PrimaryKey(sessionId, playerId)
 }
 
+// Age group import and export (TECHNICAL_DECISIONS §81). A grant lets the other app's server read one of this
+// user's age groups once: only its hash is stored, it expires quickly and is used at most once.
+object ExportGrants : Table("export_grants") {
+    val tokenHash = varchar("token_hash", 64)
+    val userId = uuid("user_id").references(Users.id, onDelete = ReferenceOption.CASCADE)
+    val expiresAt = timestamp("expires_at")
+    val usedAt = timestamp("used_at").nullable()
+
+    override val primaryKey = PrimaryKey(tokenHash)
+}
+
+// The age group an import came from, and which target age group it became. Imported again, the same copy is updated.
+object ImportLinks : Table("import_links") {
+    val targetClubId = uuid("target_club_id").references(Clubs.id, onDelete = ReferenceOption.CASCADE)
+    val sourceServer = varchar("source_server", 255)
+    val sourceAgeGroupId = uuid("source_age_group_id")
+    val targetAgeGroupId = uuid("target_age_group_id").references(AgeGroups.id, onDelete = ReferenceOption.CASCADE)
+    val importedAt = timestamp("imported_at").defaultExpression(CurrentTimestamp)
+
+    override val primaryKey = PrimaryKey(targetClubId, sourceServer, sourceAgeGroupId)
+}
+
+// Each record an import wrote, by its source id and its target id, so an update finds the copy again (kind: TEAM, PLAYER...).
+object ImportRecords : Table("import_records") {
+    val targetClubId = uuid("target_club_id").references(Clubs.id, onDelete = ReferenceOption.CASCADE)
+    val sourceServer = varchar("source_server", 255)
+    val sourceAgeGroupId = uuid("source_age_group_id")
+    val kind = varchar("kind", 30)
+    val sourceId = uuid("source_id")
+    val targetId = uuid("target_id")
+
+    override val primaryKey = PrimaryKey(targetClubId, sourceServer, sourceAgeGroupId, kind, sourceId)
+}
+
 /**
  * The tables both databases have (TECHNICAL_DECISIONS §72): accounts, the club (a coach's space in the
  * coach database) and its members and structure, everything about games, and training. Each server's migrations
@@ -490,7 +524,8 @@ val sharedTables: List<Table> = listOf(
     Users, RefreshTokens, PasswordResetCodes, EmailChangeCodes, FcmTokens,
     Clubs, ClubMembers, Seasons, AgeGroups, Teams, Players, AgeGroupPlayers, AgeGroupStaff, Opponents,
     Matches, MatchCallUps, MatchEvents, MatchLineupChanges, MatchPlayerStatsTable, MatchReports,
-    TrainingPlansTable, TrainingSessionsTable, TrainingExercisesTable, TrainingSessionExercisesTable, TrainingRatingsTable
+    TrainingPlansTable, TrainingSessionsTable, TrainingExercisesTable, TrainingSessionExercisesTable, TrainingRatingsTable,
+    ExportGrants, ImportLinks, ImportRecords
 )
 
 /** The clubs database's own: parents' links, invites and configurable permissions. */
