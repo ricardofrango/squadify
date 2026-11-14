@@ -59,10 +59,10 @@ sealed class Screen {
     @SerialName("join")
     data object JoinWithCode : Screen()
 
-    // The owner's own space: its logo (the coach app's ☰ menu).
+    // A space's edit screen (My club or team): the owner's (the ☰ menu, [spaceId] null) or one they're staff in, where they can leave it.
     @Serializable
     @SerialName("my-space")
-    data object MySpace : Screen()
+    data class MySpace(val spaceId: String? = null) : Screen()
 
     // The coach app: one space's details, its age groups and opponents (the owner's or one they're staff in).
     // [newAgeGroupIds]: the ones the wizard just created, shown as new once with how many [newTeams], and

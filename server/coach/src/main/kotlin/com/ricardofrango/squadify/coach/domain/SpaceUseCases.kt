@@ -8,6 +8,8 @@ import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.coach.data.SpaceMembershipRepository
+import com.ricardofrango.squadify.domain.service.CurrentPasswordGuard
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.ForbiddenException
@@ -397,5 +399,20 @@ class RequestPlanUseCase(
         }
         email?.let { adminEmails.forEach { to -> mailer.sendPlanRequest(to, it) } }
         return response
+    }
+}
+
+/**
+ * A staff member leaves a space, after their own password (the owner can't; see [SpaceMembershipRepository]). One
+ * transaction: their membership and their age-group access go together.
+ */
+class LeaveSpaceUseCase(
+    private val spaceMembership: SpaceMembershipRepository,
+    private val currentPasswordGuard: CurrentPasswordGuard,
+    private val transactionManager: TransactionManager
+) {
+    suspend operator fun invoke(userId: String, spaceId: String, currentPassword: String) {
+        currentPasswordGuard.verify(userId, currentPassword)
+        transactionManager.runInTransaction { spaceMembership.leave(userId, spaceId) }
     }
 }

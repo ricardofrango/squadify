@@ -3240,3 +3240,21 @@ graph TD
 ```
 
 The same deletion as the account's (`AccountDeletionRepository.deleteSpace`, shared with `DeleteAccountUseCase`), in one transaction. Other spaces, and the owner's account, are untouched.
+
+### 13.10 Leaving a space (`LeaveSpaceUseCase`, `POST /v1/spaces/{id}/leave`)
+
+A staff member leaves a space from My club or team (2026-11-14). The owner can't leave: they delete the space instead.
+
+```mermaid
+graph TD
+    A["Signed in: the space's id, and the current password"] --> G{CurrentPasswordGuard}
+    G -- wrong --> W(["400 AUTH_003; the third in a row signs them out, AUTH_004"])
+    G -- right --> M{"A member of the space?"}
+    M -- No --> F(["403"])
+    M -- Yes --> O{"The owner?"}
+    O -- Yes --> F
+    O -- No --> D["Delete their staff rows for the space's age groups, then their membership in the space"]
+    D --> Z(["204"])
+```
+
+One transaction. Their account, their other spaces, and the reports and ratings they wrote here (which stay under the owner's name) are untouched.

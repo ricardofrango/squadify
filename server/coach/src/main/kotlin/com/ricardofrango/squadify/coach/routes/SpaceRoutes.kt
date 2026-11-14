@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.coach.routes
 import com.ricardofrango.squadify.presentation.routes.appLanguage
 import com.ricardofrango.squadify.coach.domain.AddAgeGroupsUseCase
 import com.ricardofrango.squadify.coach.domain.DeleteSpaceUseCase
+import com.ricardofrango.squadify.coach.domain.LeaveSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpaceDetailsUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.GetPlansUseCase
@@ -10,6 +11,7 @@ import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
 import com.ricardofrango.squadify.coach.domain.SetUpSpaceUseCase
 import com.ricardofrango.squadify.model.AddAgeGroupsRequest
 import com.ricardofrango.squadify.model.DeleteSpaceRequest
+import com.ricardofrango.squadify.model.LeaveSpaceRequest
 import com.ricardofrango.squadify.model.RequestPlanRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.security.userId
@@ -37,6 +39,7 @@ fun Route.spaceRoutes() {
     val getPlansUseCase by inject<GetPlansUseCase>()
     val requestPlanUseCase by inject<RequestPlanUseCase>()
     val deleteSpaceUseCase by inject<DeleteSpaceUseCase>()
+    val leaveSpaceUseCase by inject<LeaveSpaceUseCase>()
 
     authenticate("auth-jwt") {
         get("/spaces") {
@@ -66,6 +69,13 @@ fun Route.spaceRoutes() {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
             val spaceId = call.parameters["spaceId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
             deleteSpaceUseCase(currentUserId, spaceId, call.receive<DeleteSpaceRequest>())
+            call.respond(HttpStatusCode.NoContent)
+        }
+        // A staff member leaves the space, after their password (the owner can't: they delete it).
+        post("/spaces/{spaceId}/leave") {
+            val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+            val spaceId = call.parameters["spaceId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+            leaveSpaceUseCase(currentUserId, spaceId, call.receive<LeaveSpaceRequest>().currentPassword)
             call.respond(HttpStatusCode.NoContent)
         }
         post("/space") {

@@ -45,6 +45,9 @@ interface SpaceRepository {
 
     /** Deletes [spaceId] with everything in it, as its owner, after their [currentPassword]. */
     suspend fun deleteSpace(spaceId: String, currentPassword: String)
+
+    /** Leaves [spaceId] as a staff member, after their [currentPassword]: their access to its age groups goes too. */
+    suspend fun leaveSpace(spaceId: String, currentPassword: String)
 }
 
 /** The owner's invite codes for an age group (`/v1/age-groups/{id}/invites`). */

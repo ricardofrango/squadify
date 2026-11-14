@@ -104,6 +104,11 @@
     <string name="delete_space_plan">O plano não termina ao eliminar o espaço: cancela primeiro a subscrição na Google Play.</string>
     <string name="msg_delete_space_wrong_password">Palavra-passe errada.</string>
     <string name="msg_delete_space_failed">Não foi possível eliminar o espaço. Verifica a ligação e tenta outra vez.</string>
+    <string name="btn_leave_space">Sair do espaço</string>
+    <string name="leave_space_title">Sair deste espaço?</string>
+    <string name="leave_space_body">Perdes o acesso aos seus escalões. A tua conta fica, e também os relatórios e avaliações que escreveste, em nome do dono.</string>
+    <string name="msg_leave_space_wrong_password">Palavra-passe errada.</string>
+    <string name="msg_leave_space_failed">Não foi possível sair do espaço. Verifica a ligação e tenta outra vez.</string>
     <string name="msg_delete_account_load_failed">Não foi possível carregar a tua conta.</string>
 
     <!-- O meu clube ou equipa: o espaço do dono, o seu logótipo -->

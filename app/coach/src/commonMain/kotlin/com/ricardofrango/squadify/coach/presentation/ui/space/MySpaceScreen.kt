@@ -76,6 +76,11 @@ import squadify.app.coach.generated.resources.delete_space_title
 import squadify.app.coach.generated.resources.msg_delete_space_failed
 import squadify.app.coach.generated.resources.msg_delete_space_wrong_password
 import squadify.app.coach.generated.resources.btn_delete_account_deleting
+import squadify.app.coach.generated.resources.btn_leave_space
+import squadify.app.coach.generated.resources.leave_space_body
+import squadify.app.coach.generated.resources.leave_space_title
+import squadify.app.coach.generated.resources.msg_leave_space_failed
+import squadify.app.coach.generated.resources.msg_leave_space_wrong_password
 import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
@@ -96,20 +101,24 @@ import kotlin.time.Instant
 import squadify.app.shared.generated.resources.Res as SharedRes
 
 /**
- * The owner's own space, from the ☰ menu: its name and sport (a space has no logo: it's shown with the Squadify
- * mark), then the Plan card: the plan, this season's age groups against its limit, and See plans. At the foot,
- * deleting the space.
+ * A space's edit screen: its name and sport (a space has no logo: it's shown with the Squadify mark). The owner sees
+ * the Plan card and deleting the space; staff see only the header and "Leave space". [spaceId] null is the owner's own.
  */
 @Composable
 fun MySpaceScreen(
     onNavigateBack: () -> Unit,
     onSeePlans: () -> Unit,
     onSpaceDeleted: () -> Unit,
+    spaceId: String? = null,
+    onSpaceLeft: () -> Unit = {},
     viewModel: MySpaceViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
     val deleteDialog by viewModel.deleteDialog.collectAsStateWithLifecycle()
+    val leaveDialog by viewModel.leaveDialog.collectAsStateWithLifecycle()
+    LaunchedEffect(spaceId) { viewModel.open(spaceId) }
     LaunchedEffect(viewModel) { viewModel.spaceDeleted.collect { onSpaceDeleted() } }
+    LaunchedEffect(viewModel) { viewModel.spaceLeft.collect { onSpaceLeft() } }
     MySpaceContent(
         uiState = uiState,
         onRetry = viewModel::load,
@@ -119,7 +128,12 @@ fun MySpaceScreen(
         onOpenDeleteSpace = viewModel::onDeleteSpaceOpened,
         onDismissDeleteSpace = viewModel::onDeleteSpaceDismissed,
         onDeletePasswordChanged = viewModel::onDeletePasswordChanged,
-        onConfirmDeleteSpace = viewModel::onDeleteSpaceConfirmed
+        onConfirmDeleteSpace = viewModel::onDeleteSpaceConfirmed,
+        leaveDialog = leaveDialog,
+        onOpenLeaveSpace = viewModel::onLeaveSpaceOpened,
+        onDismissLeaveSpace = viewModel::onLeaveSpaceDismissed,
+        onLeavePasswordChanged = viewModel::onLeavePasswordChanged,
+        onConfirmLeaveSpace = viewModel::onLeaveSpaceConfirmed
     )
 }
 
@@ -133,7 +147,12 @@ private fun MySpaceContent(
     onOpenDeleteSpace: () -> Unit = {},
     onDismissDeleteSpace: () -> Unit = {},
     onDeletePasswordChanged: (String) -> Unit = {},
-    onConfirmDeleteSpace: () -> Unit = {}
+    onConfirmDeleteSpace: () -> Unit = {},
+    leaveDialog: LeaveSpaceDialog? = null,
+    onOpenLeaveSpace: () -> Unit = {},
+    onDismissLeaveSpace: () -> Unit = {},
+    onLeavePasswordChanged: (String) -> Unit = {},
+    onConfirmLeaveSpace: () -> Unit = {}
 ) {
     Scaffold(
         contentWindowInsets = ScreenWindowInsets,
@@ -155,15 +174,22 @@ private fun MySpaceContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 SectionCard { SpaceHeader(uiState) }
-                PlanCard(uiState.plan, uiState.ageGroupsThisSeason, onSeePlans = onSeePlans)
-                // Only the owner gets here: deleting the space takes its age groups, players, games and staff with it.
-                TextButton(onClick = onOpenDeleteSpace, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(Res.string.btn_delete_space), color = AlertRed, fontWeight = FontWeight.Bold)
+                if (uiState.isOwner) {
+                    PlanCard(uiState.plan, uiState.ageGroupsThisSeason, onSeePlans = onSeePlans)
+                    // Deleting the space takes its age groups, players, games and staff with it.
+                    TextButton(onClick = onOpenDeleteSpace, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(Res.string.btn_delete_space), color = AlertRed, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    // Staff leave the space: their access to its age groups goes with it, their account stays.
+                    TextButton(onClick = onOpenLeaveSpace, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(Res.string.btn_leave_space), color = AlertRed, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
     }
-    if (uiState is MySpaceUiState.Loaded && deleteDialog != null) {
+    if (uiState is MySpaceUiState.Loaded && uiState.isOwner && deleteDialog != null) {
         DeleteSpaceConfirmation(
             loaded = uiState,
             dialog = deleteDialog,
@@ -172,6 +198,59 @@ private fun MySpaceContent(
             onDismiss = onDismissDeleteSpace
         )
     }
+    if (uiState is MySpaceUiState.Loaded && !uiState.isOwner && leaveDialog != null) {
+        LeaveSpaceConfirmation(
+            dialog = leaveDialog,
+            onPasswordChanged = onLeavePasswordChanged,
+            onConfirm = onConfirmLeaveSpace,
+            onDismiss = onDismissLeaveSpace
+        )
+    }
+}
+
+/** A staff member's password to leave the space: they lose its age groups, and nothing else of theirs goes. */
+@Composable
+private fun LeaveSpaceConfirmation(
+    dialog: LeaveSpaceDialog,
+    onPasswordChanged: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    SquadifyDialog(
+        title = stringResource(Res.string.leave_space_title),
+        body = stringResource(Res.string.leave_space_body),
+        onDismiss = onDismiss,
+        content = {
+            Spacer(Modifier.height(12.dp))
+            FormTextField(
+                value = dialog.password,
+                onValueChange = onPasswordChanged,
+                label = stringResource(Res.string.delete_account_password),
+                enabled = !dialog.isLeaving,
+                isError = dialog.error == LeaveSpaceError.WRONG_PASSWORD,
+                keyboardType = KeyboardType.Password,
+                hidden = true,
+                imeAction = ImeAction.Done,
+                onImeAction = { if (dialog.canLeave) onConfirm() }
+            )
+            FormErrorLine(
+                when (dialog.error) {
+                    LeaveSpaceError.WRONG_PASSWORD -> stringResource(Res.string.msg_leave_space_wrong_password)
+                    LeaveSpaceError.FAILED -> stringResource(Res.string.msg_leave_space_failed)
+                    null -> null
+                }
+            )
+        },
+        buttons = {
+            DialogButtons(
+                confirmLabel = stringResource(Res.string.btn_leave_space),
+                onConfirm = onConfirm,
+                onDismiss = onDismiss,
+                destructive = true,
+                confirmEnabled = dialog.canLeave
+            )
+        }
+    )
 }
 
 /** The owner's password, and what goes with the space; the space is deleted at once and for good. */

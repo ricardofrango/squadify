@@ -1887,6 +1887,8 @@ succeeding, and moving to the more permissive `MANAGE_LIVE_MATCH` default (STAFF
 still succeeding.
 
 
+**Leaving a space** (2026-11-14, the coach app): `POST /v1/spaces/{id}/leave` with the staff member's password (`LeaveSpaceUseCase`, `ExposedSpaceMembershipRepository`), coach server only. The owner is refused. The space's age group staff rows and its membership go in one transaction. The space's edit screen takes a space id; the owner's view keeps the plan and deleting, staff see only the header and Leave space. The age group screens are not changed. `PROCESS_FLOWS.md` §13.10.
+
 **No space logo** (2026-11-14, the coach app): a space is not a club with a picture, so the coach server refuses logo uploads (`AccessPolicy.requireUploadClubLogo`: the clubs server keeps its owner-or-admin rule, the coach server always refuses) and the space's `logo_url` stays null. Age group crests are the club images the coach app shows.
 
 **Deleting a space** (2026-11-14, the coach app): `POST /v1/spaces/{id}/delete` with the owner's password, the same deletion as the account's (`AccountDeletionRepository.deleteSpace`), owner only (`requireEditClub`). A paid plan doesn't end with it: the store's subscription is cancelled in Google Play. `PROCESS_FLOWS.md` §13.9.

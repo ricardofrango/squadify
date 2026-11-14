@@ -104,6 +104,11 @@
     <string name="delete_space_plan">Its plan doesn't stop when you delete it: cancel the subscription in Google Play first.</string>
     <string name="msg_delete_space_wrong_password">Wrong password.</string>
     <string name="msg_delete_space_failed">Couldn't delete the space. Check your connection and try again.</string>
+    <string name="btn_leave_space">Leave space</string>
+    <string name="leave_space_title">Leave this space?</string>
+    <string name="leave_space_body">You lose access to its age groups. Your account stays, and so do the reports and ratings you wrote, under the owner's name.</string>
+    <string name="msg_leave_space_wrong_password">Wrong password.</string>
+    <string name="msg_leave_space_failed">Couldn't leave the space. Check your connection and try again.</string>
     <string name="msg_delete_account_load_failed">Couldn't load your account.</string>
 
     <!-- My club or team: the owner's own space, its logo -->

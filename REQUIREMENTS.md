@@ -395,6 +395,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [x] Space details: its age groups (teams, next game) and its opponents.
         - [x] The spaces list as Home ("Os meus espaços").
         - [x] The age-group wizard (club, birth years, teams).
+    - [x] Leaving a space (2026-11-14): a staff member leaves from My club or team, after their password. Their membership and access to every age group go; their account and their reports and ratings stay. The owner can't leave (see the ownership transfer item below). The owner's view shows the plan and deleting the space; staff see only the header and Leave space.
     - [x] No space logo (2026-11-14): the coach app's My club or team has no logo to change, and the coach server refuses uploads (`requireUploadClubLogo`), so the space's logo stays null and it's shown with the Squadify mark. Age group crests are unchanged.
     - [x] Deleting a space (2026-11-14): the owner's My club or team, after their password. The space goes with its age groups, players, games, training and staff access; their account stays. Staff can't delete it.
     - [ ] Later: transferring a space's ownership to another member (the developer, 2026-11-14), so the owner can leave it. Until then the owner can't leave their own space; they delete it.

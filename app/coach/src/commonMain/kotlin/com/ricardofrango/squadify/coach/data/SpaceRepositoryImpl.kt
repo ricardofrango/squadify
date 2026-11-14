@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.DeleteSpaceRequest
+import com.ricardofrango.squadify.model.LeaveSpaceRequest
 import com.ricardofrango.squadify.model.GooglePurchaseRequest
 import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.RequestPlanRequest
@@ -41,6 +42,13 @@ class SpaceRepositoryImpl(
         httpClient.post("${appConfig.baseUrl}/spaces/$spaceId/delete") {
             contentType(ContentType.Application.Json)
             setBody(DeleteSpaceRequest(currentPassword))
+        }.handleResponse<Unit>()
+    }
+
+    override suspend fun leaveSpace(spaceId: String, currentPassword: String) {
+        httpClient.post("${appConfig.baseUrl}/spaces/$spaceId/leave") {
+            contentType(ContentType.Application.Json)
+            setBody(LeaveSpaceRequest(currentPassword))
         }.handleResponse<Unit>()
     }
 

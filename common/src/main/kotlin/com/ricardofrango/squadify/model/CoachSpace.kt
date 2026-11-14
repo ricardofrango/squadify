@@ -285,3 +285,7 @@ data class DeleteAccountRequest(val currentPassword: String)
 /** Deleting a space (its owner only): the owner's current password, as for the account. */
 @Serializable
 data class DeleteSpaceRequest(val currentPassword: String)
+
+/** Leaving a space (a staff member only): their own current password. */
+@Serializable
+data class LeaveSpaceRequest(val currentPassword: String)

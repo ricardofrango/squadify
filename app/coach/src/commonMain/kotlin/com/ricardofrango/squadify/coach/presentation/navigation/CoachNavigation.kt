@@ -226,12 +226,15 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
     }
 
     // The owner's own space: a new logo reloads Home's rows.
-    screen<Screen.MySpace> {
+    screen<Screen.MySpace> { entry ->
+        val screen: Screen.MySpace = entry.toRoute()
         MySpaceScreen(
+            spaceId = screen.spaceId,
             onNavigateBack = { navigator.popBackStack() },
             onSeePlans = { navigator.navigate(Screen.Plans) },
-            // The space is gone: back to Home, which lists what's left.
-            onSpaceDeleted = { openAsRoot(Screen.CoachHome) }
+            // The space is gone or left: back to Home, which lists what's left.
+            onSpaceDeleted = { openAsRoot(Screen.CoachHome) },
+            onSpaceLeft = { openAsRoot(Screen.CoachHome) }
         )
     }
 
@@ -244,7 +247,7 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
             onNavigateBack = { navigator.popBackStack() },
             onOpenAgeGroup = { ageGroupId -> navigator.navigate(Screen.AgeGroupDetails(ageGroupId)) },
             onAddAgeGroups = { space -> navigator.navigate(Screen.AddAgeGroups(space.id)) },
-            onEditSpace = { navigator.navigate(Screen.MySpace) },
+            onEditSpace = { navigator.navigate(Screen.MySpace(spaceId = screen.spaceId)) },
             onOpenOpponent = { opponentId -> navigator.navigate(Screen.OpponentDetails(opponentId)) },
             onCreateOpponent = { name -> navigator.navigate(Screen.CreateOpponent(screen.spaceId, name = name)) },
             refresh = changed,

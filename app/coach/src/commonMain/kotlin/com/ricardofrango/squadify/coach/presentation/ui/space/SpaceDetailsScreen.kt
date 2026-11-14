@@ -206,7 +206,7 @@ private fun SpaceDetailsContent(
     Scaffold(
         contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
-        topBar = { SpaceHeader(loaded?.details, tab, onSelectTab = { tab = it }, onNavigateBack = onNavigateBack, onEditSpace = onEditSpace.takeIf { isOwner }) },
+        topBar = { SpaceHeader(loaded?.details, tab, onSelectTab = { tab = it }, onNavigateBack = onNavigateBack, onEditSpace = onEditSpace) },
         bottomBar = { AdBanner(spaceId = spaceId, alone = true) },
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
