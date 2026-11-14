@@ -388,7 +388,7 @@ private fun AgeGroupsStep(
             selected = state.sport,
             label = { stringResource(if (it == SportType.FOOTBALL) Res.string.wizard_football else Res.string.wizard_futsal) },
             onSelect = onSportChange,
-            shorten = false
+            edgePadding = ScreenPadding.Horizontal
         )
     }
     state.rows.forEachIndexed { index, row ->

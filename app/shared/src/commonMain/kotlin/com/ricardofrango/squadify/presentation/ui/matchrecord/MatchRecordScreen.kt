@@ -266,15 +266,14 @@ private fun RecordBody(
                     selected = state.halfLength,
                     label = { stringResource(Res.string.stats_minutes_value, it) },
                     onSelect = onHalfLength,
-                    shorten = false,
-                    insidePaddedContent = true
+                    edgePadding = ScreenPadding.Horizontal
                 )
             }
             // How many a side it was played: the team's own count unless this game was another.
             if (details.teamSizeOptions.size >= 2) {
                 item { SectionHeader(stringResource(Res.string.label_match_format)) }
                 item {
-                    TeamSizeSelector(options = details.teamSizeOptions, selected = state.teamSize, onSelected = onTeamSize, insidePaddedContent = true)
+                    TeamSizeSelector(options = details.teamSizeOptions, selected = state.teamSize, onSelected = onTeamSize, edgePadding = ScreenPadding.Horizontal)
                 }
             }
         }
@@ -423,7 +422,7 @@ private fun EventSheet(
                 onSelect = { k ->
                     draft = draft.copy(type = k.type, isOpponent = draft.isOpponent && k.hasSide, assistPlayerId = draft.assistPlayerId.takeIf { k == RecordEventKind.GOAL && draft.playerId != null })
                 },
-                shorten = false
+                edgePadding = ScreenPadding.Horizontal
             )
             if (kind.hasSide) {
                 // Whose goal (an own goal: whose player put it in their own net).
@@ -432,7 +431,7 @@ private fun EventSheet(
                     selected = draft.isOpponent,
                     label = { if (it) them else us },
                     onSelect = { opp -> draft = draft.copy(isOpponent = opp, playerId = draft.playerId.takeIf { !opp }, assistPlayerId = null) },
-                    shorten = false
+                    edgePadding = ScreenPadding.Horizontal
                 )
             }
             if (!draft.isOpponent) {
@@ -483,8 +482,7 @@ private fun EventSheet(
                         selected = draft.period,
                         label = { stringResource(if (it == 2) Res.string.label_second_half else Res.string.label_first_half) },
                         onSelect = { periodPicked = true; draft = draft.copy(period = it) },
-                        modifier = Modifier.weight(1f),
-                        shorten = false
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
