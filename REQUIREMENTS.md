@@ -408,10 +408,10 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - **Who:** in the coach app, the space's owner only, to import (into their own space, created if they have none) and to export. In the clubs app, the club's admins and coordinators, who choose the club when they manage several.
         - **Where:** an Import option next to adding age groups, in both apps, shown only when the other app is installed (any of its variants). It opens the other app to ask for permission, then lists the age groups that can be imported; one imported before shows Update.
         - **Between environments** (staging into production and back): platform admins only. Everyone else imports within their own environment.
-        - [ ] 1. The permission (a short-lived export grant), the bundle and the first import, on both servers.
+        - [x] 1. The permission (a short-lived export grant), the bundle and the first import, on both servers (server side, feature/age-group-import; the coach round trip is tested, the clubs side compiles and is not yet covered by a test).
         - [ ] 2. The coach app's Import (from the clubs app): detecting the other app, the handoff and the list.
         - [ ] 3. The clubs app's Import (from the coach app), choosing the club.
-        - [ ] 4. Update.
-        - [ ] 5. Training.
-        - [ ] 6. Images.
+        - [x] 4. Update (server side): importing again updates the copy.
+        - [x] 5. Training (server side, on Pro in the coach app).
+        - [x] 6. Images (server side): photos, opponent logos and the crest are copied as files.
 - [ ] **Server integration tests for Squadify for Clubs** (the developer, 2026-10-30; `TECHNICAL_DECISIONS.md` §72): as on the coach server, tests that start the clubs server on its own test database (`squadify_test`, dropped after the run) and call its endpoints for the main flows: sign-up and invites, a club's structure, a game from scheduling to stats, the live feeds. `ApplicationTest` and `CorsTest` move onto it too, off `squadify_dev`.
