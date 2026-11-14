@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.model
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 
 /**
  * One age group copied out of a server (TECHNICAL_DECISIONS §81): the source's ids throughout, so the importing
@@ -19,8 +20,38 @@ data class AgeGroupBundle(
     val players: List<BundlePlayer>,
     val ageGroupPlayers: List<BundleAgeGroupPlayer>,
     val opponents: List<BundleOpponent>,
-    val matches: List<BundleMatch>
+    val matches: List<BundleMatch>,
+    // Training (Pro in the coach app, TECHNICAL_DECISIONS §81): its exercises, sessions and plans.
+    val exercises: List<BundleExercise> = emptyList(),
+    val sessions: List<BundleSession> = emptyList(),
+    val plans: List<TrainingPlan> = emptyList()
 )
+
+@Serializable
+data class BundleExercise(
+    val id: String,
+    val name: String,
+    val description: String?,
+    val durationMinutes: Int?,
+    val objectives: String?
+)
+
+/** A training session, its exercises in order (their ids), and the ratings in hundredths. */
+@Serializable
+data class BundleSession(
+    val id: String,
+    val date: LocalDate,
+    val startTime: LocalTime,
+    val endTime: LocalTime,
+    val location: String?,
+    val notes: String?,
+    val cancelledAt: Instant?,
+    val exerciseIds: List<String>,
+    val ratings: List<BundleSessionRating>
+)
+
+@Serializable
+data class BundleSessionRating(val playerId: String, val hundredths: Int)
 
 @Serializable
 data class BundleSeason(

@@ -12,6 +12,10 @@ import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
+import com.ricardofrango.squadify.domain.repository.TrainingExerciseRepository
+import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
+import com.ricardofrango.squadify.domain.repository.TrainingRatingRepository
+import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.domain.stats.MatchPlayerStatsCalculator
 import com.ricardofrango.squadify.exception.ConflictException
@@ -30,6 +34,8 @@ import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.Team
+import com.ricardofrango.squadify.model.TrainingExercise
+import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.model.birthYearsOverlap
 import java.text.Normalizer
 import kotlin.time.Clock
@@ -65,6 +71,10 @@ class ImportAgeGroupUseCase(
     private val eventRepository: MatchEventRepository,
     private val reportRepository: MatchReportRepository,
     private val statsRepository: MatchPlayerStatsRepository,
+    private val trainingExercises: TrainingExerciseRepository,
+    private val trainingSessions: TrainingSessionRepository,
+    private val trainingRatings: TrainingRatingRepository,
+    private val trainingPlans: TrainingPlanRepository,
     private val now: () -> Instant = { Clock.System.now() }
 ) {
     suspend operator fun invoke(userId: String, targetClubId: String, sourceServer: String, bundle: AgeGroupBundle): ImportAgeGroupResult =
@@ -202,6 +212,54 @@ class ImportAgeGroupUseCase(
                 writeMatchContents(m, match, targetClubId, sourceServer, group.id, userId, playerIds, eventIds, knownEvents)
             }
 
+            // Training: the exercise library, then each session with its exercises in order and its ratings, then the plans.
+            if (bundle.exercises.isNotEmpty() || bundle.sessions.isNotEmpty() || bundle.plans.isNotEmpty()) {
+                accessPolicy.requireTrainingInPlan(targetClubId)
+            }
+            for (e in bundle.exercises) {
+                val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_EXERCISE, e.id)
+                val exercise = TrainingExercise(mapped ?: Uuid.random().toString(), ageGroupId, e.name, e.description, e.durationMinutes, e.objectives)
+                if (mapped != null) {
+                    trainingExercises.update(exercise)
+                } else {
+                    trainingExercises.create(exercise)
+                    importRepository.saveRecord(targetClubId, sourceServer, group.id, KIND_EXERCISE, e.id, exercise.id)
+                }
+            }
+            val exerciseIds = bundle.exercises.associate { e ->
+                e.id to importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_EXERCISE, e.id)!!
+            }
+            for (s in bundle.sessions) {
+                val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_SESSION, s.id)
+                val sessionId = mapped ?: Uuid.random().toString()
+                val session = TrainingSession(
+                    id = sessionId,
+                    ageGroupId = ageGroupId,
+                    date = s.date,
+                    startTime = s.startTime,
+                    endTime = s.endTime,
+                    location = s.location,
+                    notes = s.notes
+                )
+                if (mapped != null) {
+                    trainingSessions.update(session)
+                } else {
+                    trainingSessions.insertAll(listOf(session))
+                    importRepository.saveRecord(targetClubId, sourceServer, group.id, KIND_SESSION, s.id, sessionId)
+                }
+                // A session cancelled at the source is cancelled here, by the importer.
+                trainingSessions.setCancelled(sessionId, s.cancelledAt, if (s.cancelledAt != null) userId else null)
+                trainingExercises.setForSession(sessionId, s.exerciseIds.mapNotNull { exerciseIds[it] })
+                val ratings = s.ratings.mapNotNull { r -> playerIds[r.playerId]?.let { it to r.hundredths } }.toMap()
+                if (ratings.isNotEmpty()) trainingRatings.save(sessionId, ratings, userId)
+            }
+            for (p in bundle.plans) {
+                val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_PLAN, p.id)
+                val plan = p.copy(id = mapped ?: Uuid.random().toString(), ageGroupId = ageGroupId)
+                trainingPlans.save(plan, userId)
+                if (mapped == null) importRepository.saveRecord(targetClubId, sourceServer, group.id, KIND_PLAN, p.id, plan.id)
+            }
+
             ImportAgeGroupResult(
                 ageGroupId = ageGroupId,
                 teams = newTeams,
@@ -331,6 +389,9 @@ class ImportAgeGroupUseCase(
         const val KIND_MATCH = "MATCH"
         const val KIND_CALL_UP = "CALL_UP"
         const val KIND_EVENT = "EVENT"
+        const val KIND_EXERCISE = "EXERCISE"
+        const val KIND_SESSION = "SESSION"
+        const val KIND_PLAN = "PLAN"
 
         fun normalized(name: String): String =
             Normalizer.normalize(name.trim(), Normalizer.Form.NFD).replace(Regex("\\p{M}"), "").lowercase()

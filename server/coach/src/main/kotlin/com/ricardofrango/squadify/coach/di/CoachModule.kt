@@ -149,8 +149,8 @@ val coachModule = module {
     single<ImportRepository> { ExposedImportRepository() }
     factory { CreateExportGrantUseCase(get(), get()) }
     factory { ListExportableAgeGroupsUseCase(get(), get(), get(), get(), get(), get()) }
-    factory { ExportAgeGroupUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), sourceServer = CoachConfig.publicBaseUrl.orEmpty()) }
-    factory { ImportAgeGroupUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { ExportAgeGroupUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), sourceServer = CoachConfig.publicBaseUrl.orEmpty()) }
+    factory { ImportAgeGroupUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<MatchPlayerStatsRepository> { ExposedMatchPlayerStatsRepository() }
     single<MatchReportRepository> { ExposedMatchReportRepository() }
     // Training (Pro): the same repositories and use cases as the clubs server.

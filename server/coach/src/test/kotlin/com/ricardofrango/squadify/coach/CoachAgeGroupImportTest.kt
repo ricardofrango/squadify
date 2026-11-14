@@ -20,6 +20,13 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
+import com.ricardofrango.squadify.model.SaveExerciseRequest
+import com.ricardofrango.squadify.model.SaveTrainingSessionRequest
+import com.ricardofrango.squadify.model.SetSessionExercisesRequest
+import com.ricardofrango.squadify.model.TrainingExercise
+import com.ricardofrango.squadify.model.TrainingSession
+import com.ricardofrango.squadify.model.TrainingSessions
+import io.ktor.client.request.put
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.request.bearerAuth
@@ -29,6 +36,7 @@ import io.ktor.client.request.post
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlin.test.assertEquals
 import kotlin.time.Clock
 import org.junit.Test
@@ -58,6 +66,13 @@ class CoachAgeGroupImportTest {
         api.post("/v1/matches") {
             json(ana, CreateMatchRequest(setup.team.id, opponent.id, dateTime = Clock.System.now(), type = MatchType.FRIENDLY, venue = MatchVenue.HOME))
         }.body<Match>()
+        // Training is on Pro: one exercise, and a session with it.
+        api.setPlan(setup.space.id, PlanLimits.PRO)
+        val exercise = api.post("/v1/age-groups/${setup.ageGroup.id}/exercises") { json(ana, SaveExerciseRequest("Rondo")) }.body<TrainingExercise>()
+        val session = api.post("/v1/age-groups/${setup.ageGroup.id}/training-sessions") {
+            json(ana, SaveTrainingSessionRequest(LocalDate(2026, 3, 10), LocalTime(18, 0), LocalTime(19, 30), location = "Campo 2"))
+        }.body<TrainingSession>()
+        api.put("/v1/training-sessions/${session.id}/exercises") { json(ana, SetSessionExercisesRequest(listOf(exercise.id))) }
 
         // The export: a grant lists the age group, its bundle comes once, and the grant is spent.
         val grantResponse = api.post("/v1/export/grants") { bearerAuth(ana) }
@@ -68,6 +83,8 @@ class CoachAgeGroupImportTest {
         val bundle = api.get("/v1/export/age-groups/${setup.ageGroup.id}/bundle") { header("X-Export-Grant", grant.token) }.body<AgeGroupBundle>()
         assertEquals(1, bundle.players.size, "bundle: $bundle")
         assertEquals(1, bundle.matches.size)
+        assertEquals(1, bundle.exercises.size)
+        assertEquals(listOf(exercise.id), bundle.sessions.single().exerciseIds)
         assertEquals(HttpStatusCode.Unauthorized, api.get("/v1/export/age-groups/${setup.ageGroup.id}/bundle") { header("X-Export-Grant", grant.token) }.status)
 
         // The import into Ben's space (a Pro plan has room for the age group).
@@ -86,6 +103,9 @@ class CoachAgeGroupImportTest {
             assertEquals(1, result.players)
             assertEquals(1, result.opponents)
             assertEquals(1, result.matches)
+            // The session comes across with its exercise.
+            val copiedSessions = api.get("/v1/age-groups/${result.ageGroupId}/training-sessions") { bearerAuth(ben) }.body<TrainingSessions>().sessions
+            assertEquals(listOf(LocalTime(18, 0)), copiedSessions.map { it.startTime })
 
             // The copy is in Ben's space, with its player and match.
             val ageGroups = api.get("/v1/age-groups?clubId=$benSpace") { bearerAuth(ben) }.body<List<com.ricardofrango.squadify.model.AgeGroup>>()

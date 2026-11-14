@@ -13,6 +13,10 @@ import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
+import com.ricardofrango.squadify.domain.repository.TrainingExerciseRepository
+import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
+import com.ricardofrango.squadify.domain.repository.TrainingRatingRepository
+import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.UnauthorizedException
@@ -20,6 +24,9 @@ import com.ricardofrango.squadify.model.AgeGroupBundle
 import com.ricardofrango.squadify.model.BundleAgeGroup
 import com.ricardofrango.squadify.model.BundleAgeGroupPlayer
 import com.ricardofrango.squadify.model.BundleCallUp
+import com.ricardofrango.squadify.model.BundleExercise
+import com.ricardofrango.squadify.model.BundleSession
+import com.ricardofrango.squadify.model.BundleSessionRating
 import com.ricardofrango.squadify.model.BundleEvent
 import com.ricardofrango.squadify.model.BundleMatch
 import com.ricardofrango.squadify.model.BundleOpponent
@@ -33,6 +40,7 @@ import com.ricardofrango.squadify.model.ExportableAgeGroup
 import com.ricardofrango.squadify.model.MatchStatus
 import java.security.MessageDigest
 import java.security.SecureRandom
+import kotlin.math.roundToInt
 import java.util.Base64
 import kotlin.time.Instant
 
@@ -121,6 +129,10 @@ class ExportAgeGroupUseCase(
     private val eventRepository: MatchEventRepository,
     private val reportRepository: MatchReportRepository,
     private val statsRepository: MatchPlayerStatsRepository,
+    private val trainingSessions: TrainingSessionRepository,
+    private val trainingExercises: TrainingExerciseRepository,
+    private val trainingRatings: TrainingRatingRepository,
+    private val trainingPlans: TrainingPlanRepository,
     private val sourceServer: String,
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) {
@@ -177,6 +189,31 @@ class ExportAgeGroupUseCase(
 
             val opponents = matches.map { it.opponentId }.distinct().mapNotNull { opponentRepository.getOpponentById(it) }
 
+            // Training: the exercise library, each session with its exercises in order and its ratings, and the plans.
+            val exercises = trainingExercises.getByAgeGroup(ageGroup.id)
+            val stored = trainingSessions.getByAgeGroup(ageGroup.id)
+            val sessionIds = stored.map { it.session.id }
+            val ratingsBySession = trainingRatings.getForSessions(sessionIds)
+            val sessions = stored.map { row ->
+                val s = row.session
+                val ratings = ratingsBySession[s.id].orEmpty().map { r ->
+                    if (r.playerId !in players) playerRepository.getPlayerById(r.playerId)?.let { players[r.playerId] = it.toBundle() }
+                    BundleSessionRating(r.playerId, (r.rating * 100).roundToInt())
+                }
+                BundleSession(
+                    id = s.id,
+                    date = s.date,
+                    startTime = s.startTime,
+                    endTime = s.endTime,
+                    location = s.location,
+                    notes = s.notes,
+                    cancelledAt = s.cancelledAt,
+                    exerciseIds = trainingExercises.getForSession(s.id).map { it.id },
+                    ratings = ratings
+                )
+            }
+            val plans = trainingPlans.getByAgeGroup(ageGroup.id)
+
             AgeGroupBundle(
                 sourceServer = sourceServer,
                 season = BundleSeason(season.id, season.name, season.type, season.startDate, season.endDate),
@@ -185,7 +222,10 @@ class ExportAgeGroupUseCase(
                 players = players.values.toList(),
                 ageGroupPlayers = inGroup.map { BundleAgeGroupPlayer(it.id) },
                 opponents = opponents.map { it.toBundle() },
-                matches = bundleMatches
+                matches = bundleMatches,
+                exercises = exercises.map { BundleExercise(it.id, it.name, it.description, it.durationMinutes, it.objectives) },
+                sessions = sessions,
+                plans = plans
             )
         }
     }
