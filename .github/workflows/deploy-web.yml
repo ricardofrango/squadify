@@ -5,8 +5,7 @@ name: Deploy web
 # grew past its build time limit ("DeadlineExceeded: context deadline exceeded"). Now Railway's build is
 # an nginx image copying the files in (app/webApp/prebuilt/Dockerfile). See TECHNICAL_DECISIONS §13/§17.
 #
-# - Staging: by hand for now (Run workflow, environment = staging); the push trigger is commented out to
-#   save Actions minutes, see `on:`.
+# - Staging: on every push to develop that touches what the web client is built from.
 # - Production: from deploy-production.yml (which calls this after its test gate), or by hand here
 #   ("Run workflow", environment = production).
 #
@@ -16,23 +15,20 @@ name: Deploy web
 # or it would still run the long build on every push.
 
 on:
-  # OFF to save GitHub Actions minutes (the developer, 2026-11-09: the 2,000 a month ran out; this was a third
-  # of them, ~28 min a push). Staging's web client now deploys by hand: Actions -> Deploy web -> Run workflow
-  # (environment: staging). To deploy on every push again, uncomment the trigger below.
-  # push:
-  #   branches: [develop]
-  #   paths:
-  #     - "app/webApp/**"
-  #     - "app/shared/**"
-  #     - "app/clubs/**"
-  #     - "core/**"
-  #     - "common/**"
-  #     - "gradle/libs.versions.toml"
-  #     - "gradle/wrapper/**"
-  #     - "build.gradle.kts"
-  #     - "settings.gradle.kts"
-  #     - "gradle.properties"
-  #     - ".github/workflows/deploy-web.yml"
+  push:
+    branches: [develop]
+    paths:
+      - "app/webApp/**"
+      - "app/shared/**"
+      - "app/clubs/**"
+      - "core/**"
+      - "common/**"
+      - "gradle/libs.versions.toml"
+      - "gradle/wrapper/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/deploy-web.yml"
   workflow_dispatch:
     inputs:
       environment:
