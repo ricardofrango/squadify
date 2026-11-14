@@ -1,11 +1,11 @@
 # Squadify Coach — Privacy Policy
 
-_Last updated: {{EFFECTIVE_DATE}}_
+_Last updated: 14 November 2026_
 
-Squadify Coach ("the app") is published by **{{PUBLISHER_NAME}}** ("we", "us"). This policy explains what
+Squadify Coach ("the app") is published by **Squadify Team** (Portugal, 2890) ("we", "us"). This policy explains what
 data the app collects, why, who it is shared with, how long it is kept and the rights you have over it.
 
-If you have any question about this policy or your data, write to **{{CONTACT_EMAIL}}**.
+If you have any question about this policy or your data, write to **squadify.support@gmail.com**.
 
 ## 1. Who the app is for
 
@@ -122,7 +122,7 @@ European Commission's standard contractual clauses or the EU–US Data Privacy F
 ## 6. Your rights
 
 You can **see and correct** your account's details in the app (Account), and **delete your account and its
-data** in the app at any time. You can also write to us at **{{CONTACT_EMAIL}}** to:
+data** in the app at any time. You can also write to us at **squadify.support@gmail.com** to:
 
 - get a copy of your data, or have it sent to another service;
 - correct or delete it, or ask us to stop or limit using it;
