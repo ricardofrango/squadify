@@ -21,6 +21,14 @@ enum class AppEnvironment {
  * secrets never need to live in source -- see "issues to fix.md", Critical -- security.
  */
 object ServerConfig {
+
+    /** Other servers an age group may be imported from (IMPORT_SOURCES, comma-separated addresses; TECHNICAL_DECISIONS §81). */
+    val importSources: Set<String> = (System.getenv("IMPORT_SOURCES") ?: "").split(',')
+        .map { it.trim().trimEnd('/') }.filter { it.isNotEmpty() }.toSet()
+
+    /** Of those, the ones in another environment: imports from them are for platform admins only. */
+    val crossEnvironmentImportSources: Set<String> = (System.getenv("IMPORT_SOURCES_CROSS_ENVIRONMENT") ?: "").split(',')
+        .map { it.trim().trimEnd('/') }.filter { it.isNotEmpty() }.toSet()
     val environment: AppEnvironment = when (System.getenv("APP_ENV")?.trim()?.lowercase()) {
         "production", "prod" -> AppEnvironment.PRODUCTION
         else -> AppEnvironment.DEV

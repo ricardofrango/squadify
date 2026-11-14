@@ -10,6 +10,14 @@ import java.io.File
  * defaults to docker-compose's Postgres and a database of its own, `squadify_coach_dev`.
  */
 object CoachConfig {
+
+    /** Other servers an age group may be imported from (IMPORT_SOURCES, comma-separated addresses; TECHNICAL_DECISIONS §81). */
+    val importSources: Set<String> = (System.getenv("IMPORT_SOURCES") ?: "").split(',')
+        .map { it.trim().trimEnd('/') }.filter { it.isNotEmpty() }.toSet()
+
+    /** Of those, the ones in another environment: imports from them are for platform admins only. */
+    val crossEnvironmentImportSources: Set<String> = (System.getenv("IMPORT_SOURCES_CROSS_ENVIRONMENT") ?: "").split(',')
+        .map { it.trim().trimEnd('/') }.filter { it.isNotEmpty() }.toSet()
     private val appEnv = System.getenv("APP_ENV")?.trim()?.lowercase()
     val production: Boolean = appEnv in setOf("production", "prod")
 

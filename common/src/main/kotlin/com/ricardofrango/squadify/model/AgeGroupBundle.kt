@@ -178,3 +178,12 @@ data class ExportableAgeGroup(
     val endYear: Int,
     val seasonName: String
 )
+
+/** The importing server's request: copy [sourceAgeGroupId] from [sourceUrl] (using [grant]) into [clubId]. */
+@Serializable
+data class ImportAgeGroupRequest(
+    val clubId: String,
+    val sourceUrl: String,
+    val sourceAgeGroupId: String,
+    val grant: String
+)

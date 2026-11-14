@@ -56,13 +56,14 @@ object ExportGrantTokens {
 /** Creates an export grant for the signed-in user (the app asks for one when the user allows the import). */
 class CreateExportGrantUseCase(
     private val grants: ExportGrantRepository,
+    private val transactionManager: TransactionManager,
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) {
-    suspend operator fun invoke(userId: String): ExportGrantResponse {
+    suspend operator fun invoke(userId: String): ExportGrantResponse = transactionManager.runInTransaction {
         val token = ExportGrantTokens.newToken()
         val expiresAt = clock() + ExportGrantTokens.LIFETIME_MILLIS
         grants.create(ExportGrantTokens.hash(token), userId, expiresAt)
-        return ExportGrantResponse(token, Instant.fromEpochMilliseconds(expiresAt))
+        ExportGrantResponse(token, Instant.fromEpochMilliseconds(expiresAt))
     }
 }
 
@@ -77,11 +78,13 @@ class ListExportableAgeGroupsUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val seasonRepository: SeasonRepository,
     private val accessPolicy: AccessPolicy,
+    private val transactionManager: TransactionManager,
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) {
-    suspend operator fun invoke(token: String): List<ExportableAgeGroup> {
+    suspend operator fun invoke(token: String): List<ExportableAgeGroup> = transactionManager.runInTransaction {
         val userId = grants.userOf(ExportGrantTokens.hash(token), clock()) ?: throw UnauthorizedException("The export grant is invalid or expired")
-        return clubRepository.getClubsByUser(userId).flatMap { club ->
+        // Memberships only (club_members): the coach database has no parents' links, and the access check decides the rest.
+        clubRepository.getMemberships(userId).flatMap { (club, _) ->
             val mayExport = allowed { accessPolicy.requireEditClub(userId, club.id, EXPORT_MESSAGE) }
             if (!mayExport) return@flatMap emptyList()
             ageGroupRepository.getAgeGroupsByClub(club.id).map { ageGroup ->
@@ -122,8 +125,8 @@ class ExportAgeGroupUseCase(
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) {
     suspend operator fun invoke(token: String, ageGroupId: String): AgeGroupBundle {
-        val userId = grants.redeem(ExportGrantTokens.hash(token), clock()) ?: throw UnauthorizedException("The export grant is invalid, expired or used")
         return transactionManager.runInTransaction {
+            val userId = grants.redeem(ExportGrantTokens.hash(token), clock()) ?: throw UnauthorizedException("The export grant is invalid, expired or used")
             val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
             accessPolicy.requireEditClub(userId, ageGroup.clubId, EXPORT_MESSAGE)
             val season = seasonRepository.getSeasonById(ageGroup.seasonId) ?: throw NotFoundException("Season not found")

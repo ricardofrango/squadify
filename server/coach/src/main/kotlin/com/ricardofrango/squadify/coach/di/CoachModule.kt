@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.coach.di
 
+import com.ricardofrango.squadify.domain.usecase.CreateExportGrantUseCase
+import com.ricardofrango.squadify.domain.usecase.ExportAgeGroupUseCase
+import com.ricardofrango.squadify.domain.usecase.ImportAgeGroupUseCase
+import com.ricardofrango.squadify.domain.usecase.ListExportableAgeGroupsUseCase
 import com.ricardofrango.squadify.data.repository.ExposedExportGrantRepository
 import com.ricardofrango.squadify.data.repository.ExposedImportRepository
 import com.ricardofrango.squadify.domain.repository.ExportGrantRepository
@@ -143,6 +147,10 @@ val coachModule = module {
     single<FcmTokenRepository> { ExposedFcmTokenRepository() }
     single<ExportGrantRepository> { ExposedExportGrantRepository() }
     single<ImportRepository> { ExposedImportRepository() }
+    factory { CreateExportGrantUseCase(get(), get()) }
+    factory { ListExportableAgeGroupsUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { ExportAgeGroupUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), sourceServer = CoachConfig.publicBaseUrl.orEmpty()) }
+    factory { ImportAgeGroupUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<MatchPlayerStatsRepository> { ExposedMatchPlayerStatsRepository() }
     single<MatchReportRepository> { ExposedMatchReportRepository() }
     // Training (Pro): the same repositories and use cases as the clubs server.
