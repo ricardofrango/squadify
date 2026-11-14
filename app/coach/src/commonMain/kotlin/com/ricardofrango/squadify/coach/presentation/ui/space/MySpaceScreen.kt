@@ -46,7 +46,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -85,51 +84,34 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
-import io.github.vinceglb.filekit.dialogs.FileKitType
-import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
-import io.github.vinceglb.filekit.readBytes
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.coach.generated.resources.Res
 import squadify.app.coach.generated.resources.msg_my_space_failed
-import squadify.app.coach.generated.resources.my_space_logo_intro
 import squadify.app.coach.generated.resources.my_space_title
-import squadify.app.shared.generated.resources.btn_remove_logo
 import squadify.app.shared.generated.resources.btn_retry
-import squadify.app.shared.generated.resources.label_add_logo
-import squadify.app.shared.generated.resources.label_change_logo
-import squadify.app.shared.generated.resources.msg_logo_hint
-import squadify.app.shared.generated.resources.msg_logo_remove_failed
-import squadify.app.shared.generated.resources.msg_logo_saving
-import squadify.app.shared.generated.resources.msg_logo_too_big
-import squadify.app.shared.generated.resources.msg_logo_upload_failed
 import squadify.app.shared.generated.resources.sport_football
 import squadify.app.shared.generated.resources.sport_futsal
 import kotlin.time.Instant
 import squadify.app.shared.generated.resources.Res as SharedRes
 
 /**
- * The owner's own space, from the ☰ menu: its name and sport, and its logo with "Add logo" / "Change
- * logo" and "Remove", saved straight away. [onLogoChanged] runs each time it changes, so Home reloads.
- * Under it, the Plan card: the plan, this season's age groups against its limit, and See plans.
+ * The owner's own space, from the ☰ menu: its name and sport (a space has no logo: it's shown with the Squadify
+ * mark), then the Plan card: the plan, this season's age groups against its limit, and See plans. At the foot,
+ * deleting the space.
  */
 @Composable
 fun MySpaceScreen(
     onNavigateBack: () -> Unit,
-    onLogoChanged: () -> Unit,
     onSeePlans: () -> Unit,
     onSpaceDeleted: () -> Unit,
     viewModel: MySpaceViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
     val deleteDialog by viewModel.deleteDialog.collectAsStateWithLifecycle()
-    LaunchedEffect(viewModel) { viewModel.logoChanged.collect { onLogoChanged() } }
     LaunchedEffect(viewModel) { viewModel.spaceDeleted.collect { onSpaceDeleted() } }
     MySpaceContent(
         uiState = uiState,
-        onLogoPicked = viewModel::onLogoPicked,
-        onRemoveLogo = viewModel::onRemoveLogo,
         onRetry = viewModel::load,
         onSeePlans = onSeePlans,
         onNavigateBack = onNavigateBack,
@@ -144,8 +126,6 @@ fun MySpaceScreen(
 @Composable
 private fun MySpaceContent(
     uiState: MySpaceUiState,
-    onLogoPicked: (ByteArray) -> Unit,
-    onRemoveLogo: () -> Unit,
     onRetry: () -> Unit,
     onSeePlans: () -> Unit,
     onNavigateBack: () -> Unit,
@@ -174,8 +154,7 @@ private fun MySpaceContent(
                     .screenContentPadding(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                SectionCard { SpaceLogoHeader(uiState, onLogoPicked, onRemoveLogo) }
-                Text(stringResource(Res.string.my_space_logo_intro), style = MaterialTheme.typography.bodySmall, color = CarbonGray)
+                SectionCard { SpaceHeader(uiState) }
                 PlanCard(uiState.plan, uiState.ageGroupsThisSeason, onSeePlans = onSeePlans)
                 // Only the owner gets here: deleting the space takes its age groups, players, games and staff with it.
                 TextButton(onClick = onOpenDeleteSpace, modifier = Modifier.fillMaxWidth()) {
@@ -253,19 +232,11 @@ private fun DeleteSpaceConfirmation(
     )
 }
 
-/** The logo (or initials) with the space's name and sport, and the logo's actions under them. */
+/** The space's logo (the Squadify mark, as a space has none), its name and sport. */
 @Composable
-private fun SpaceLogoHeader(state: MySpaceUiState.Loaded, onLogoPicked: (ByteArray) -> Unit, onRemoveLogo: () -> Unit) {
-    val scope = rememberCoroutineScope()
-    val picker = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
-        if (file != null) scope.launch { onLogoPicked(file.readBytes()) }
-    }
-    val enabled = !state.isUpdatingLogo
+private fun SpaceHeader(state: MySpaceUiState.Loaded) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(contentAlignment = Alignment.Center) {
-            SpaceLogo(state.space, size = 64.dp)
-            if (state.isUpdatingLogo) CircularProgressIndicator(Modifier.size(64.dp), color = PitchGreen, strokeWidth = 2.dp)
-        }
+        SpaceLogo(state.space, size = 64.dp)
         Spacer(Modifier.width(16.dp))
         Column {
             Text(state.space.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
@@ -273,36 +244,6 @@ private fun SpaceLogoHeader(state: MySpaceUiState.Loaded, onLogoPicked: (ByteArr
                 stringResource(if (state.space.sport == SportType.FUTSAL) SharedRes.string.sport_futsal else SharedRes.string.sport_football),
                 style = MaterialTheme.typography.bodySmall,
                 color = CarbonGray
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(if (state.space.logoUrl == null) SharedRes.string.label_add_logo else SharedRes.string.label_change_logo),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = if (enabled) PitchGreen else PitchGreen.copy(alpha = 0.4f),
-                    modifier = Modifier.clickable(enabled = enabled) { picker.launch() }.padding(vertical = 4.dp)
-                )
-                if (state.space.logoUrl != null) {
-                    Text(" · ", color = DeepCarbon.copy(alpha = 0.3f))
-                    Text(
-                        stringResource(SharedRes.string.btn_remove_logo),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = if (enabled) AlertRed else AlertRed.copy(alpha = 0.4f),
-                        modifier = Modifier.clickable(enabled = enabled, onClick = onRemoveLogo).padding(vertical = 4.dp)
-                    )
-                }
-            }
-            Text(
-                state.logoProblem?.let {
-                    stringResource(
-                        when (it) {
-                            LogoProblem.TOO_BIG -> SharedRes.string.msg_logo_too_big
-                            LogoProblem.UPLOAD_FAILED -> SharedRes.string.msg_logo_upload_failed
-                            LogoProblem.REMOVE_FAILED -> SharedRes.string.msg_logo_remove_failed
-                        }
-                    )
-                } ?: stringResource(if (state.isUpdatingLogo) SharedRes.string.msg_logo_saving else SharedRes.string.msg_logo_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = if (state.logoProblem != null) MaterialTheme.colorScheme.error else DeepCarbon.copy(alpha = 0.5f)
             )
         }
     }
@@ -399,7 +340,7 @@ private val previewSpace = Club(id = "space-1", name = "Fontelas FC", status = C
 private fun MySpacePreview() {
     SquadifyTheme {
         CompositionLocalProvider(LocalPlans provides previewPlans) {
-            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan("FREE"), ageGroupsThisSeason = 1), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan("FREE"), ageGroupsThisSeason = 1), onRetry = {}, onSeePlans = {}, onNavigateBack = {})
         }
     }
 }
@@ -409,7 +350,7 @@ private fun MySpacePreview() {
 private fun MySpaceLandscapePreview() {
     SquadifyTheme {
         CompositionLocalProvider(LocalPlans provides previewPlans) {
-            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan("FREE")), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan("FREE")), onRetry = {}, onSeePlans = {}, onNavigateBack = {})
         }
     }
 }
@@ -419,17 +360,7 @@ private fun MySpaceLandscapePreview() {
 private fun MySpaceBasicPreview() {
     SquadifyTheme {
         CompositionLocalProvider(LocalPlans provides previewPlans) {
-            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan("BASIC"), ageGroupsThisSeason = 2), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
-        }
-    }
-}
-
-@Preview
-@Composable
-private fun MySpaceProblemPreview() {
-    SquadifyTheme {
-        CompositionLocalProvider(LocalPlans provides previewPlans) {
-            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan("FREE"), logoProblem = LogoProblem.TOO_BIG), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan("BASIC"), ageGroupsThisSeason = 2), onRetry = {}, onSeePlans = {}, onNavigateBack = {})
         }
     }
 }
@@ -439,7 +370,7 @@ private fun MySpaceProblemPreview() {
 private fun MySpaceFailedPreview() {
     SquadifyTheme {
         CompositionLocalProvider(LocalPlans provides previewPlans) {
-            MySpaceContent(MySpaceUiState.Failed, onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+            MySpaceContent(MySpaceUiState.Failed, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
         }
     }
 }

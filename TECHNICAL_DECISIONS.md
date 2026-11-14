@@ -1887,6 +1887,8 @@ succeeding, and moving to the more permissive `MANAGE_LIVE_MATCH` default (STAFF
 still succeeding.
 
 
+**No space logo** (2026-11-14, the coach app): a space is not a club with a picture, so the coach server refuses logo uploads (`AccessPolicy.requireUploadClubLogo`: the clubs server keeps its owner-or-admin rule, the coach server always refuses) and the space's `logo_url` stays null. Age group crests are the club images the coach app shows.
+
 **Deleting a space** (2026-11-14, the coach app): `POST /v1/spaces/{id}/delete` with the owner's password, the same deletion as the account's (`AccountDeletionRepository.deleteSpace`), owner only (`requireEditClub`). A paid plan doesn't end with it: the store's subscription is cancelled in Google Play. `PROCESS_FLOWS.md` §13.9.
 
 **Deleting an age group or an opponent** (2026-11-09, both apps, `PROCESS_FLOWS.md` §4.4a, §6.4b): a club's coordinators and admins only, fixed for now (`ClubAccessPolicy.requireDeleteAgeGroup` / `requireDeleteOpponent`). **TODO:** configurable permissions for them (a `DELETE_AGE_GROUP` and a `DELETE_OPPONENT`, like `CREATE_TEAM`), when a club asks. On the coach server it's the space's owner (`CoachAccessPolicy`), and deleting an age group also deletes its players in no other age group (`AccessPolicy.deletesLonePlayers`; a club keeps them on its roster). The apps show Delete on Edit age group (pinned, as Edit team's) and Edit opponent (at the end of the form) when the server says so, confirm with what goes with it (teams and games; the coach app's lone players; an opponent's games, played ones too), then go back to the list the details came from. Delete buttons are the shared `DestructiveButton` (Edit team's too).

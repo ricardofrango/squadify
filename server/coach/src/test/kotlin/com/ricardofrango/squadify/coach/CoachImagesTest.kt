@@ -37,6 +37,7 @@ import java.io.File
 import javax.imageio.ImageIO
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 // Images on the coach server (TECHNICAL_DECISIONS §57, §72): the space's logo is the owner's, players'
@@ -89,17 +90,12 @@ class CoachImagesTest {
         assertEquals(HttpStatusCode.OK, api.post("/v1/invites/${invite.code}/accept") { bearerAuth(joao) }.status)
         val outsider = api.signUp()
 
-        // The space's logo: only the owner changes it; members see it, in /spaces too; pushes get it without signing in.
+        // A space has no logo, even for its owner: the upload is refused and the space's logo stays null.
         assertEquals(HttpStatusCode.Forbidden, api.upload("/v1/clubs/$spaceId/logo", joao).status)
-        val logo = api.upload("/v1/clubs/$spaceId/logo", ana).body<LogoResponse>().logoUrl
-        assertTrue(logo.startsWith("/clubs/$spaceId/logo/"))
-        assertTrue(stored(logo).isFile)
-        assertEquals(logo, api.get("/v1/spaces") { bearerAuth(joao) }.body<List<SpaceAgeGroups>>().single().space.logoUrl)
+        assertEquals(HttpStatusCode.Forbidden, api.upload("/v1/clubs/$spaceId/logo", ana).status)
+        assertNull(api.get("/v1/spaces") { bearerAuth(joao) }.body<List<SpaceAgeGroups>>().single().space.logoUrl)
         // Staff see whose space it is.
         assertEquals("Ana Coach", api.get("/v1/spaces") { bearerAuth(joao) }.body<List<SpaceAgeGroups>>().single().ownerName)
-        assertEquals(HttpStatusCode.OK, api.get("/v1$logo") { bearerAuth(joao) }.status)
-        assertEquals(HttpStatusCode.Forbidden, api.get("/v1$logo") { bearerAuth(outsider) }.status)
-        assertEquals(HttpStatusCode.OK, api.get("/v1/public$logo").status)
 
         // Players' photos: João for Sub-12's players, not Sub-14's; outsiders can't see them.
         val ruiPhoto = api.upload("/v1/players/${rui.id}/photo", joao).body<PhotoResponse>().photoUrl
@@ -132,6 +128,6 @@ class CoachImagesTest {
 
         // Ana deletes her account: her space's images and her photo go with it.
         assertEquals(HttpStatusCode.NoContent, api.post("/v1/users/me/delete") { json(ana, DeleteAccountRequest("password1")) }.status)
-        listOf(logo, ruiPhoto, ritaPhoto, opponentLogo, crest, anaPhoto).forEach { assertFalse(stored(it).exists(), it) }
+        listOf(ruiPhoto, ritaPhoto, opponentLogo, crest, anaPhoto).forEach { assertFalse(stored(it).exists(), it) }
     }
 }

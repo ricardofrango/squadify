@@ -21,7 +21,7 @@ private suspend fun loadClubForEdit(
     clubId: String
 ): Club = transactionManager.runInTransaction {
     val club = clubRepository.getClubById(clubId) ?: throw NotFoundException("Club not found")
-    accessPolicy.requireEditClub(userId, clubId, "Only club admins or coordinators can change the club's logo")
+    accessPolicy.requireUploadClubLogo(userId, clubId, "Only club admins or coordinators can change the club's logo")
     club
 }
 

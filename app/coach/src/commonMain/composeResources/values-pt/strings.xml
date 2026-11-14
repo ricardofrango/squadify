@@ -108,7 +108,6 @@
 
     <!-- O meu clube ou equipa: o espaço do dono, o seu logótipo -->
     <string name="my_space_title">O meu clube ou equipa</string>
-    <string name="my_space_logo_intro">O teu logótipo aparece nos teus escalões, nos teus jogos, no jogo ao vivo e nas notificações.</string>
     <string name="msg_my_space_failed">Não foi possível carregar o teu clube ou equipa. Verifica a ligação e tenta outra vez.</string>
     <!-- Plans: My Space's Plan card and the Plans screen (REQUIREMENTS §5c) -->
     <string name="plan_card_title">Plano</string>

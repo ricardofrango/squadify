@@ -108,7 +108,6 @@
 
     <!-- My club or team: the owner's own space, its logo -->
     <string name="my_space_title">My club or team</string>
-    <string name="my_space_logo_intro">Your logo shows on your age groups, your games, the live game and notifications.</string>
     <string name="msg_my_space_failed">Couldn't load your club or team. Check your connection and try again.</string>
     <!-- Plans: My Space's Plan card and the Plans screen (REQUIREMENTS §5c) -->
     <string name="plan_card_title">Plan</string>

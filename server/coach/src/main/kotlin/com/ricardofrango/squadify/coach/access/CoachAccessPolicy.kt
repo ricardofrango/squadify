@@ -52,6 +52,11 @@ class CoachAccessPolicy(
     // The space's own details (its logo): the owner's.
     override suspend fun requireEditClub(userId: String, clubId: String, errorMessage: String) = owner(userId, clubId, errorMessage)
 
+    // A space has no logo: the app shows it with the Squadify mark, and the server keeps the column null.
+    override suspend fun requireUploadClubLogo(userId: String, clubId: String, errorMessage: String) {
+        throw ForbiddenException("A space has no logo")
+    }
+
     override suspend fun requireViewClub(userId: String, clubId: String) = requireMember(userId, clubId)
 
     // The owner sees every age group; staff the ones they're on. Not the ones the plan locks for them.
