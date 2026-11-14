@@ -20,6 +20,7 @@ import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupBundle
 import com.ricardofrango.squadify.model.AgeGroupPlayer
+import com.ricardofrango.squadify.model.BundleMatch
 import com.ricardofrango.squadify.model.ImportAgeGroupResult
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchCallUp
@@ -37,14 +38,18 @@ import kotlin.uuid.Uuid
 
 /**
  * Copies an age group from another server into [targetClubId] (TECHNICAL_DECISIONS §81). One transaction: a refusal
- * writes nothing. The importer must be allowed to edit the target club ([AccessPolicy.requireEditClub]). Every
- * record gets a new id here and is remembered by its source id, so an update can find it later.
+ * writes nothing. The importer must be allowed to edit the target club ([AccessPolicy.requireEditClub]).
  *
- * Matching: a player with the same name and birth date in the target is reused; an opponent with the same name
- * (ignoring case and accents) is reused; a season with the source's dates is reused. Staff are not copied.
+ * Every source record is found through import_records: one already there is updated to the source's version; one
+ * not there is created here and remembered. So a first import creates everything, and importing again updates the
+ * copy: what came from the source takes its current version, what was created only here stays, and what was deleted
+ * at the source stays here. A match's line-up history is replaced with the source's (its changes have no ids).
  *
- * Refused: an age group already imported from this source; a birth-year clash in the target season; a plan
- * without room (the coach server); a team size the target's sport doesn't play.
+ * Matching, for a first import: a player with the same name and birth date in the club is reused, an opponent with
+ * the same name (ignoring case and accents) is reused, and a season with the source's dates is reused.
+ *
+ * Refused: a birth-year clash in the target season (a first import); a plan without room (the coach server); a team
+ * size the target's sport doesn't play.
  */
 class ImportAgeGroupUseCase(
     private val accessPolicy: AccessPolicy,
@@ -66,101 +71,104 @@ class ImportAgeGroupUseCase(
         transactionManager.runInTransaction {
             accessPolicy.requireEditClub(userId, targetClubId, "Only club admins or coordinators can import an age group")
             val club = clubRepository.getClubById(targetClubId) ?: throw NotFoundException("Club not found")
-
-            importRepository.findAgeGroup(targetClubId, sourceServer, bundle.ageGroup.id)?.let {
-                throw ConflictException("This age group was already imported from there")
-            }
-
-            // The season: the one with the source's dates, found or made here.
-            val sourceSeason = bundle.season
-            val season = seasonRepository.findByDetails(targetClubId, sourceSeason.type, sourceSeason.startDate, sourceSeason.endDate)
-                ?: seasonRepository.createSeason(
-                    Season(Uuid.random().toString(), targetClubId, sourceSeason.name, sourceSeason.type, sourceSeason.startDate, sourceSeason.endDate, active = true)
-                )
-            accessPolicy.requireRoomForAgeGroups(targetClubId, season.id, 1)
-
-            // A birth-year clash in the target season is refused, as the age-group wizard does.
-            val group = bundle.ageGroup
-            val clash = ageGroupRepository.findByClubAndSeason(targetClubId, season.id).firstOrNull { other ->
-                accessPolicy.shareBirthYears(group.name, other.name) && birthYearsOverlap(group.startYear, group.endYear, other.startYear, other.endYear)
-            }
-            if (clash != null) {
-                throw ConflictException("The club already has \"${clash.name}\" for these birth years this season")
-            }
-
-            val sportSizes = club.sport.teamSizes
+            val sizes = club.sport.teamSizes
             fun sizeFor(teamSize: Int?): Int? = teamSize?.also {
-                if (it !in sportSizes) throw ValidationException("Team size $it is not played in ${club.sport}")
+                if (it !in sizes) throw ValidationException("Team size $it is not played in ${club.sport}")
             }
 
-            val ageGroupId = Uuid.random().toString()
-            ageGroupRepository.createAgeGroup(
-                AgeGroup(
-                    id = ageGroupId,
-                    clubId = targetClubId,
-                    name = group.name,
-                    seasonId = season.id,
-                    startYear = group.startYear,
-                    endYear = group.endYear,
-                    teamSize = sizeFor(group.teamSize),
-                    logoUrl = null
+            val group = bundle.ageGroup
+            val linkedAgeGroupId = importRepository.findAgeGroup(targetClubId, sourceServer, group.id)
+            val ageGroupId = if (linkedAgeGroupId == null) {
+                createAgeGroup(userId, targetClubId, sourceServer, bundle, ::sizeFor)
+            } else {
+                val existing = ageGroupRepository.getAgeGroupById(linkedAgeGroupId) ?: throw NotFoundException("The imported age group is gone")
+                ageGroupRepository.updateAgeGroup(
+                    existing.copy(name = group.name, startYear = group.startYear, endYear = group.endYear, teamSize = sizeFor(group.teamSize))
                 )
-            )
-            importRepository.saveAgeGroupLink(targetClubId, sourceServer, group.id, ageGroupId)
+                linkedAgeGroupId
+            }
+            val seasonId = ageGroupRepository.getAgeGroupById(ageGroupId)!!.seasonId
 
             // Teams.
             val teamIds = HashMap<String, String>()
-            val teams = bundle.teams.map { t ->
-                val id = Uuid.random().toString()
-                teamIds[t.id] = id
-                importRepository.saveRecord(targetClubId, sourceServer, group.id, KIND_TEAM, t.id, id)
-                Team(id, targetClubId, ageGroupId, season.id, t.name, t.code, t.active, sizeFor(t.teamSize))
-            }
-            teamRepository.createTeams(teams)
-
-            // Players: the same name and birth date in the club is the same person.
-            val existingPlayers = playerRepository.getPlayersByClub(targetClubId).associateBy { playerKey(it.firstName, it.lastName, it.birthDate.toString()) }
-            val playerIds = HashMap<String, String>()
-            val newPlayers = mutableListOf<Player>()
-            for (p in bundle.players) {
-                val existing = existingPlayers[playerKey(p.firstName, p.lastName, p.birthDate.toString())]
-                val id = existing?.id ?: Uuid.random().toString().also {
-                    newPlayers += Player(it, targetClubId, p.firstName, p.lastName, p.birthDate, p.shirtNumber, null, p.active, p.position, p.heightCm, p.weightKg, p.emergencyContact)
+            var newTeams = 0
+            for (t in bundle.teams) {
+                val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_TEAM, t.id)
+                val team = Team(mapped ?: Uuid.random().toString(), targetClubId, ageGroupId, seasonId, t.name, t.code, t.active, sizeFor(t.teamSize))
+                if (mapped != null) {
+                    teamRepository.updateTeam(team)
+                } else {
+                    teamRepository.createTeams(listOf(team))
+                    importRepository.saveRecord(targetClubId, sourceServer, group.id, KIND_TEAM, t.id, team.id)
+                    newTeams++
                 }
-                playerIds[p.id] = id
-                importRepository.saveRecord(targetClubId, sourceServer, group.id, KIND_PLAYER, p.id, id)
+                teamIds[t.id] = team.id
             }
-            if (newPlayers.isNotEmpty()) playerRepository.createPlayers(newPlayers)
+
+            // Players: the record, else the same person in the club, else a new player.
+            val playerIds = HashMap<String, String>()
+            var newPlayers = 0
+            val byKey = playerRepository.getPlayersByClub(targetClubId).associateBy { playerKey(it.firstName, it.lastName, it.birthDate.toString()) }
+            for (p in bundle.players) {
+                val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_PLAYER, p.id)
+                if (mapped != null) {
+                    playerRepository.updatePlayer(
+                        Player(mapped, targetClubId, p.firstName, p.lastName, p.birthDate, p.shirtNumber, null, p.active, p.position, p.heightCm, p.weightKg, p.emergencyContact)
+                    )
+                    playerIds[p.id] = mapped
+                    continue
+                }
+                val same = byKey[playerKey(p.firstName, p.lastName, p.birthDate.toString())]
+                if (same != null) {
+                    playerIds[p.id] = same.id
+                } else {
+                    val player = Player(Uuid.random().toString(), targetClubId, p.firstName, p.lastName, p.birthDate, p.shirtNumber, null, p.active, p.position, p.heightCm, p.weightKg, p.emergencyContact)
+                    playerRepository.createPlayers(listOf(player))
+                    playerIds[p.id] = player.id
+                    newPlayers++
+                }
+                importRepository.saveRecord(targetClubId, sourceServer, group.id, KIND_PLAYER, p.id, playerIds.getValue(p.id))
+            }
+            val inGroup = playerRepository.getPlayersByAgeGroup(ageGroupId).map { it.id }.toSet()
             val links = bundle.ageGroupPlayers.mapNotNull { link ->
-                playerIds[link.playerId]?.let { AgeGroupPlayer(Uuid.random().toString(), ageGroupId, it) }
+                playerIds[link.playerId]?.takeIf { it !in inGroup }?.let { AgeGroupPlayer(Uuid.random().toString(), ageGroupId, it) }
             }
             if (links.isNotEmpty()) playerRepository.addPlayersToAgeGroup(links)
 
-            // Opponents: the same name in the club is the same club.
-            val existingOpponents = opponentRepository.getOpponentsByClub(targetClubId).associateBy { normalized(it.name) }
+            // Opponents: the record, else the same name in the club, else a new opponent.
             val opponentIds = HashMap<String, String>()
             var newOpponents = 0
+            val byName = opponentRepository.getOpponentsByClub(targetClubId).associateBy { normalized(it.name) }
             for (o in bundle.opponents) {
-                val existing = existingOpponents[normalized(o.name)]
-                val id = existing?.id ?: Uuid.random().toString().also {
-                    newOpponents++
-                    opponentRepository.createOpponent(
-                        Opponent(it, targetClubId, o.name, o.shortName, null, o.stadiumName, o.stadiumAddress, o.contactEmail, o.contactPhone, o.notes)
-                    )
+                val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_OPPONENT, o.id)
+                val opponent = Opponent(mapped ?: Uuid.random().toString(), targetClubId, o.name, o.shortName, null, o.stadiumName, o.stadiumAddress, o.contactEmail, o.contactPhone, o.notes)
+                val id = when {
+                    mapped != null -> mapped.also { opponentRepository.updateOpponent(opponent) }
+                    byName[normalized(o.name)] != null -> byName.getValue(normalized(o.name)).id
+                    else -> opponent.id.also {
+                        opponentRepository.createOpponent(opponent)
+                        newOpponents++
+                    }
                 }
                 opponentIds[o.id] = id
-                importRepository.saveRecord(targetClubId, sourceServer, group.id, KIND_OPPONENT, o.id, id)
+                if (mapped == null) importRepository.saveRecord(targetClubId, sourceServer, group.id, KIND_OPPONENT, o.id, id)
             }
 
-            // Matches: new ids throughout, so events and the call-ups they refer to are mapped first.
-            val matchIds = HashMap<String, String>()
+            // Matches: each with its call-ups, line-ups, events, ratings and report.
+            // Source event id -> target event id, and whether the target already has it (an update).
             val eventIds = HashMap<String, String>()
+            val knownEvents = HashSet<String>()
             bundle.matches.forEach { m ->
-                matchIds[m.id] = Uuid.random().toString()
-                m.events.forEach { e -> eventIds[e.id] = Uuid.random().toString() }
+                m.events.forEach { e ->
+                    val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_EVENT, e.id)
+                    if (mapped != null) knownEvents += e.id
+                    eventIds[e.id] = mapped ?: Uuid.random().toString()
+                }
             }
+            var newMatches = 0
             for (m in bundle.matches) {
-                val matchId = matchIds.getValue(m.id)
+                val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_MATCH, m.id)
+                val matchId = mapped ?: Uuid.random().toString()
                 val match = Match(
                     id = matchId,
                     clubId = targetClubId,
@@ -184,79 +192,145 @@ class ImportAgeGroupUseCase(
                     teamSize = sizeFor(m.teamSize) ?: m.teamSize,
                     sport = club.sport
                 )
-                matchRepository.createMatch(match)
-                importRepository.saveRecord(targetClubId, sourceServer, group.id, KIND_MATCH, m.id, matchId)
-
-                val callUps = m.callUps.mapNotNull { c ->
-                    playerIds[c.playerId]?.let { MatchCallUp(Uuid.random().toString(), matchId, it, c.status, c.notes, c.isStarting, c.pitchSlot) }
+                if (mapped != null) {
+                    matchRepository.updateMatch(match)
+                } else {
+                    matchRepository.createMatch(match)
+                    importRepository.saveRecord(targetClubId, sourceServer, group.id, KIND_MATCH, m.id, matchId)
+                    newMatches++
                 }
-                callUps.forEach { matchRepository.createCallUp(it) }
-
-                m.lineupChanges.forEach { change ->
-                    val slots = change.slots.mapNotNull { (slot, sourcePlayer) -> playerIds[sourcePlayer]?.let { slot to it } }.toMap()
-                    matchRepository.addLineupChange(matchId, change.copy(slots = slots))
-                }
-
-                val events = m.events.map { e ->
-                    MatchEvent(
-                        id = eventIds.getValue(e.id),
-                        matchId = matchId,
-                        type = e.type,
-                        minute = e.minute,
-                        playerId = e.playerId?.let { playerIds[it] },
-                        opponentPlayerName = e.opponentPlayerName,
-                        isOpponent = e.isOpponent,
-                        createdAt = e.createdAt,
-                        period = e.period,
-                        relatedEventId = e.relatedEventId?.let { eventIds[it] }
-                    )
-                }
-                events.forEach { eventRepository.addEvent(it) }
-
-                // A finished match's player lines are worked out as the source did, then its ratings are put back.
-                if (m.fullTimeMinute != null) {
-                    val lines = MatchPlayerStatsCalculator.calculate(match, callUps, events)
-                    statsRepository.replaceForMatch(matchId, lines)
-                    val ratings = m.ratings.mapNotNull { r -> playerIds[r.playerId]?.let { it to r.rating } }.toMap()
-                    if (ratings.isNotEmpty()) statsRepository.updateRatings(matchId, ratings)
-                }
-
-                m.report?.let { r ->
-                    reportRepository.upsert(
-                        MatchReport(
-                            matchId = matchId,
-                            tactic = r.tactic,
-                            positiveAspects = r.positiveAspects,
-                            lessPositiveAspects = r.lessPositiveAspects,
-                            aspectsToImprove = r.aspectsToImprove,
-                            teamNotes = r.teamNotes,
-                            opponentTactic = r.opponentTactic,
-                            opponentStrengths = r.opponentStrengths,
-                            opponentWeaknesses = r.opponentWeaknesses,
-                            opponentBestPlayers = r.opponentBestPlayers,
-                            opponentAdditionalInfo = r.opponentAdditionalInfo,
-                            completedAt = r.completedAt,
-                            updatedAt = now(),
-                            updatedByUserId = userId
-                        )
-                    )
-                }
+                writeMatchContents(m, match, targetClubId, sourceServer, group.id, userId, playerIds, eventIds, knownEvents)
             }
 
             ImportAgeGroupResult(
                 ageGroupId = ageGroupId,
-                teams = teams.size,
-                players = newPlayers.size,
+                teams = newTeams,
+                players = newPlayers,
                 opponents = newOpponents,
-                matches = bundle.matches.size
+                matches = newMatches
             )
         }
+
+    /** The age group of a first import: its season, its birth years (a clash is refused), and its link. */
+    private suspend fun createAgeGroup(
+        userId: String,
+        targetClubId: String,
+        sourceServer: String,
+        bundle: AgeGroupBundle,
+        sizeFor: (Int?) -> Int?
+    ): String {
+        val source = bundle.season
+        val season = seasonRepository.findByDetails(targetClubId, source.type, source.startDate, source.endDate)
+            ?: seasonRepository.createSeason(
+                Season(Uuid.random().toString(), targetClubId, source.name, source.type, source.startDate, source.endDate, active = true)
+            )
+        accessPolicy.requireRoomForAgeGroups(targetClubId, season.id, 1)
+        val group = bundle.ageGroup
+        val clash = ageGroupRepository.findByClubAndSeason(targetClubId, season.id).firstOrNull { other ->
+            accessPolicy.shareBirthYears(group.name, other.name) && birthYearsOverlap(group.startYear, group.endYear, other.startYear, other.endYear)
+        }
+        if (clash != null) throw ConflictException("The club already has \"${clash.name}\" for these birth years this season")
+        val id = Uuid.random().toString()
+        ageGroupRepository.createAgeGroup(
+            AgeGroup(id, targetClubId, group.name, season.id, group.startYear, group.endYear, sizeFor(group.teamSize), logoUrl = null)
+        )
+        importRepository.saveAgeGroupLink(targetClubId, sourceServer, group.id, id)
+        return id
+    }
+
+    /**
+     * A match's contents from the source: call-ups and line-ups (the line-ups replaced), events and the report. A
+     * finished match's player lines are worked out again, and its ratings put back.
+     */
+    private suspend fun writeMatchContents(
+        m: BundleMatch,
+        match: Match,
+        targetClubId: String,
+        sourceServer: String,
+        sourceAgeGroupId: String,
+        userId: String,
+        playerIds: Map<String, String>,
+        eventIds: Map<String, String>,
+        knownEvents: Set<String>
+    ) {
+        val callUps = m.callUps.mapNotNull { c ->
+            val player = playerIds[c.playerId] ?: return@mapNotNull null
+            val mapped = importRepository.findRecord(targetClubId, sourceServer, sourceAgeGroupId, KIND_CALL_UP, c.id)
+            val callUp = MatchCallUp(mapped ?: Uuid.random().toString(), match.id, player, c.status, c.notes, c.isStarting, c.pitchSlot)
+            if (mapped != null) {
+                matchRepository.updateCallUp(callUp)
+            } else {
+                matchRepository.createCallUp(callUp)
+                importRepository.saveRecord(targetClubId, sourceServer, sourceAgeGroupId, KIND_CALL_UP, c.id, callUp.id)
+            }
+            callUp
+        }
+
+        matchRepository.deleteLineupChanges(match.id)
+        m.lineupChanges.forEach { change ->
+            val slots = change.slots.mapNotNull { (slot, sourcePlayer) -> playerIds[sourcePlayer]?.let { slot to it } }.toMap()
+            matchRepository.addLineupChange(match.id, change.copy(slots = slots))
+        }
+
+        val events = m.events.map { e ->
+            MatchEvent(
+                id = eventIds.getValue(e.id),
+                matchId = match.id,
+                type = e.type,
+                minute = e.minute,
+                playerId = e.playerId?.let { playerIds[it] },
+                opponentPlayerName = e.opponentPlayerName,
+                isOpponent = e.isOpponent,
+                createdAt = e.createdAt,
+                period = e.period,
+                relatedEventId = e.relatedEventId?.let { eventIds[it] }
+            )
+        }
+        m.events.zip(events).forEach { (source, event) ->
+            if (source.id in knownEvents) {
+                eventRepository.updateEvent(event)
+            } else {
+                eventRepository.addEvent(event)
+                importRepository.saveRecord(targetClubId, sourceServer, sourceAgeGroupId, KIND_EVENT, source.id, event.id)
+            }
+        }
+
+        if (m.fullTimeMinute != null) {
+            val lines = MatchPlayerStatsCalculator.calculate(match, callUps, events)
+            statsRepository.replaceForMatch(match.id, lines)
+            val ratings = m.ratings.mapNotNull { r -> playerIds[r.playerId]?.let { it to r.rating } }.toMap()
+            if (ratings.isNotEmpty()) statsRepository.updateRatings(match.id, ratings)
+        }
+
+        m.report?.let { r ->
+            reportRepository.upsert(
+                MatchReport(
+                    matchId = match.id,
+                    tactic = r.tactic,
+                    positiveAspects = r.positiveAspects,
+                    lessPositiveAspects = r.lessPositiveAspects,
+                    aspectsToImprove = r.aspectsToImprove,
+                    teamNotes = r.teamNotes,
+                    opponentTactic = r.opponentTactic,
+                    opponentStrengths = r.opponentStrengths,
+                    opponentWeaknesses = r.opponentWeaknesses,
+                    opponentBestPlayers = r.opponentBestPlayers,
+                    opponentAdditionalInfo = r.opponentAdditionalInfo,
+                    completedAt = r.completedAt,
+                    updatedAt = now(),
+                    updatedByUserId = userId
+                )
+            )
+        }
+    }
 
     private companion object {
         const val KIND_TEAM = "TEAM"
         const val KIND_PLAYER = "PLAYER"
         const val KIND_OPPONENT = "OPPONENT"
         const val KIND_MATCH = "MATCH"
+        const val KIND_CALL_UP = "CALL_UP"
+        const val KIND_EVENT = "EVENT"
 
         fun normalized(name: String): String =
             Normalizer.normalize(name.trim(), Normalizer.Form.NFD).replace(Regex("\\p{M}"), "").lowercase()

@@ -117,6 +117,7 @@ data class BundlePlayerRating(val playerId: String, val rating: Int?)
 
 @Serializable
 data class BundleCallUp(
+    val id: String,
     val playerId: String,
     val status: CallUpStatus,
     val notes: String?,

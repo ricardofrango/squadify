@@ -197,7 +197,7 @@ private fun com.ricardofrango.squadify.model.Player.toBundle() = BundlePlayer(
     id, firstName, lastName, birthDate, shirtNumber, photoUrl, active, position, heightCm, weightKg, emergencyContact
 )
 
-private fun com.ricardofrango.squadify.model.MatchCallUp.toBundle() = BundleCallUp(playerId, status, notes, isStarting, pitchSlot)
+private fun com.ricardofrango.squadify.model.MatchCallUp.toBundle() = BundleCallUp(id, playerId, status, notes, isStarting, pitchSlot)
 
 private fun com.ricardofrango.squadify.model.MatchEvent.toBundle() = BundleEvent(
     id, type, minute, playerId, opponentPlayerName, isOpponent, period, relatedEventId, createdAt

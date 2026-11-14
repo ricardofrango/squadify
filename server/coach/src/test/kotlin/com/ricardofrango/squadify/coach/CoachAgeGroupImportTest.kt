@@ -3,7 +3,7 @@ package com.ricardofrango.squadify.coach
 import com.ricardofrango.squadify.coach.di.coachModule
 import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.domain.usecase.ImportAgeGroupUseCase
-import com.ricardofrango.squadify.exception.ConflictException
+import com.ricardofrango.squadify.model.ImportAgeGroupResult
 import com.ricardofrango.squadify.model.AgeGroupBundle
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
 import com.ricardofrango.squadify.model.CreateMatchRequest
@@ -30,7 +30,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import kotlinx.datetime.LocalDate
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.time.Clock
 import org.junit.Test
 import org.koin.core.context.stopKoin
@@ -92,8 +91,10 @@ class CoachAgeGroupImportTest {
             val ageGroups = api.get("/v1/age-groups?clubId=$benSpace") { bearerAuth(ben) }.body<List<com.ricardofrango.squadify.model.AgeGroup>>()
             assertEquals(setOf("Sub-10", "Sub-12"), ageGroups.map { it.name }.toSet())
 
-            // The same age group again is refused: its update comes in a later phase.
-            assertFailsWith<ConflictException> { importUseCase(benId, benSpace, "https://ana.example", bundle) }
+            // Imported again, the same copy is updated: nothing new is created, and there is still one copy.
+            val again = importUseCase(benId, benSpace, "https://ana.example", bundle)
+            assertEquals(ImportAgeGroupResult(result.ageGroupId, teams = 0, players = 0, opponents = 0, matches = 0), again)
+            assertEquals(2, api.get("/v1/age-groups?clubId=$benSpace") { bearerAuth(ben) }.body<List<com.ricardofrango.squadify.model.AgeGroup>>().size)
         } finally {
             stopKoin()
         }
