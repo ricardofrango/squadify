@@ -399,5 +399,19 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
     - [x] No space logo (2026-11-14): the coach app's My club or team has no logo to change, and the coach server refuses uploads (`requireUploadClubLogo`), so the space's logo stays null and it's shown with the Squadify mark. Age group crests are unchanged.
     - [x] Deleting a space (2026-11-14): the owner's My club or team, after their password. The space goes with its age groups, players, games, training and staff access; their account stays. Staff can't delete it.
     - [ ] Later: transferring a space's ownership to another member (the developer, 2026-11-14), so the owner can leave it. Until then the owner can't leave their own space; they delete it.
-    - [ ] Later: moving an age group from the coach app to a club.
+    - [ ] **Copying an age group between the two apps** (the developer, 2026-11-14; planned, `TECHNICAL_DECISIONS.md` §81), from the coach app to a club or from a club to the coach app. Android only.
+        - **A copy:** the source age group stays as it is.
+        - **What comes across:** the age group, its teams and its players (one with the same name and birth date in the target is reused); the opponents its matches use (one with the same name is reused); its scheduled and finished matches with everything (call-ups, line-ups, events, reports, results); its training (sessions, exercises, attendance, ratings, plans; hidden below Pro in the coach app); the images (players' photos, opponents' logos, the crest). A match in progress is left out; a later update brings it once it's finished. Staff don't come across: only whoever imports has access.
+        - **Season:** the one with the source season's dates, found or created in the target.
+        - **Importing again updates the copy:** what came from the source takes the source's current version; what was created only in the copy stays; what was deleted in the source stays in the copy.
+        - **Refused:** into a club that already has an age group with those birth years that season (naming it); into a coach space whose plan has no room (with See plans).
+        - **Who:** in the coach app, the space's owner only, to import (into their own space, created if they have none) and to export. In the clubs app, the club's admins and coordinators, who choose the club when they manage several.
+        - **Where:** an Import option next to adding age groups, in both apps, shown only when the other app is installed (any of its variants). It opens the other app to ask for permission, then lists the age groups that can be imported; one imported before shows Update.
+        - **Between environments** (staging into production and back): platform admins only. Everyone else imports within their own environment.
+        - [ ] 1. The permission (a short-lived export grant), the bundle and the first import, on both servers.
+        - [ ] 2. The coach app's Import (from the clubs app): detecting the other app, the handoff and the list.
+        - [ ] 3. The clubs app's Import (from the coach app), choosing the club.
+        - [ ] 4. Update.
+        - [ ] 5. Training.
+        - [ ] 6. Images.
 - [ ] **Server integration tests for Squadify for Clubs** (the developer, 2026-10-30; `TECHNICAL_DECISIONS.md` §72): as on the coach server, tests that start the clubs server on its own test database (`squadify_test`, dropped after the run) and call its endpoints for the main flows: sign-up and invites, a club's structure, a game from scheduling to stats, the live feeds. `ApplicationTest` and `CorsTest` move onto it too, off `squadify_dev`.

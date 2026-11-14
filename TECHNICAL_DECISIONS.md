@@ -3647,3 +3647,30 @@ had), with "Ana Silva is managing this game" and Take over.
 manages it, as before. An older app doesn't know the new fields, so it shows its usual controls; the
 server still refuses its actions while someone else manages the game, and it shows that as an error.
 
+## 81. Copying an Age Group Between the Clubs and Coach Apps *(planned)*
+
+**Status:** planned with the developer on 2026-11-14, not built. What it does and its phases are in `REQUIREMENTS.md` §8 (Phase 9, "Copying an age group between the two apps"). This section records how, so each phase's PR builds the same design. It is the first coach feature that also changes the clubs server: both directions are needed, so both servers export and import.
+
+**The problem.** The two apps have separate accounts on separate servers and databases (§72: "Accounts are not shared"). The importing app can't ask the other server anything: its user isn't known there.
+
+**Access: a handoff through the other installed app.**
+1. The importing app shows Import only when the other app is installed. Android: `<queries>` declares the other app's three ids (production, `.stg`, `.dev`); with more than one installed, the user picks.
+2. Import opens the other app, signed in there, which asks the user to allow it and asks its own server for an **export grant**: short-lived, single-use, read-only, tied to that user. It returns the grant and its server's address to the importing app.
+3. The importing app sends both to **its own** server, which calls the source server with the grant. The phone moves no data.
+
+**Server to server.** The target server pulls the list of exportable age groups, then one age group's **bundle** (the age group, teams, players, the opponents its matches use, its matches that aren't in progress with all their data, later its training and images), maps the ids and writes it in **one transaction**: a failure imports nothing.
+
+**Trust.** A grant is redeemed by calling back the server that issued it, so there are no shared secrets between servers. Each server has a list of the servers it may pull from. The same environment is open to every user with the right role; another environment (staging into production and back) only to platform admins (`PLATFORM_ADMIN_EMAILS`), so test data can't be pulled into production by a user who happens to have both apps.
+
+**Who may.** Each server checks its own rule through its own `AccessPolicy`, for exporting and importing alike: the coach server, the space's owner; the clubs server, the club's admins and coordinators.
+
+**Where the code goes.** The bundle model in `common`; the export and import use cases in `:server:core`, shared by both servers as the game use cases are; the routes in `:server:web`.
+
+**Remembering what was imported.** Two new tables in each database (a Flyway migration per server): `import_links` (the source server and source age group, the target age group) and `import_records` (per record, its source id and target id). They make a second import an **update**: a record with an `import_records` row takes the source's current version; a record without one was created in the copy and is left alone; a source record that's gone is left in the copy.
+
+**Matching.** A player with the same name and birth date in the target is reused, and an opponent with the same name (ignoring case and accents); otherwise each is created. The season is the target's with the source season's dates, found or created.
+
+**Refusals, before anything is written.** The clubs server: the club already has an age group with those birth years that season (the error names it). The coach server: the plan has no room (`PLAN_001`, as the age-group wizard). Training arrives whatever the plan and stays hidden below Pro, as after a downgrade.
+
+**Left out.** Staff (accounts differ between the apps). A match in progress (the next update brings it, finished). iOS (Android first).
+
