@@ -69,8 +69,14 @@ data class BundleAgeGroup(
     val startYear: Int,
     val endYear: Int,
     val teamSize: Int?,
-    val logoUrl: String?
+    val logoUrl: String?,
+    // The crest's file (TECHNICAL_DECISIONS §81: images are copied as files), when the age group has one.
+    val logo: BundleImage? = null
 )
+
+/** An image file, base64-encoded in the bundle (it's copied to the target's own storage). */
+@Serializable
+data class BundleImage(val contentType: String, val base64: String)
 
 @Serializable
 data class BundleTeam(
@@ -93,7 +99,8 @@ data class BundlePlayer(
     val position: PlayerPosition?,
     val heightCm: Int?,
     val weightKg: Int?,
-    val emergencyContact: String?
+    val emergencyContact: String?,
+    val photo: BundleImage? = null
 )
 
 @Serializable
@@ -109,7 +116,8 @@ data class BundleOpponent(
     val stadiumAddress: String?,
     val contactEmail: String?,
     val contactPhone: String?,
-    val notes: String?
+    val notes: String?,
+    val logo: BundleImage? = null
 )
 
 /** A match that isn't in progress (a live one is skipped, see §81). */

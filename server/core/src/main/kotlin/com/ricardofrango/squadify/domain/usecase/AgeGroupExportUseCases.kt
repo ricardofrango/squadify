@@ -17,11 +17,13 @@ import com.ricardofrango.squadify.domain.repository.TrainingExerciseRepository
 import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
 import com.ricardofrango.squadify.domain.repository.TrainingRatingRepository
 import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
+import com.ricardofrango.squadify.domain.service.ImageStorage
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.UnauthorizedException
 import com.ricardofrango.squadify.model.AgeGroupBundle
 import com.ricardofrango.squadify.model.BundleAgeGroup
+import com.ricardofrango.squadify.model.BundleImage
 import com.ricardofrango.squadify.model.BundleAgeGroupPlayer
 import com.ricardofrango.squadify.model.BundleCallUp
 import com.ricardofrango.squadify.model.BundleExercise
@@ -39,9 +41,9 @@ import com.ricardofrango.squadify.model.ExportGrantResponse
 import com.ricardofrango.squadify.model.ExportableAgeGroup
 import com.ricardofrango.squadify.model.MatchStatus
 import java.security.MessageDigest
+import java.util.Base64
 import java.security.SecureRandom
 import kotlin.math.roundToInt
-import java.util.Base64
 import kotlin.time.Instant
 
 /** The export grant's token: random, shown once; only its SHA-256 is stored (TECHNICAL_DECISIONS §81). */
@@ -133,6 +135,7 @@ class ExportAgeGroupUseCase(
     private val trainingExercises: TrainingExerciseRepository,
     private val trainingRatings: TrainingRatingRepository,
     private val trainingPlans: TrainingPlanRepository,
+    private val imageStorage: ImageStorage,
     private val sourceServer: String,
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) {
@@ -148,13 +151,13 @@ class ExportAgeGroupUseCase(
                 .filter { it.status != MatchStatus.LIVE && it.status != MatchStatus.HALF_TIME }
 
             val players = LinkedHashMap<String, BundlePlayer>()
-            inGroup.forEach { players[it.id] = it.toBundle() }
+            inGroup.forEach { players[it.id] = playerBundle(it) }
             val bundleMatches = matches.map { match ->
                 val callUps = matchRepository.getCallUpsForMatch(match.id)
-                callUps.forEach { p -> players.getOrPut(p.player.id) { p.player.toBundle() } }
+                callUps.forEach { p -> if (p.player.id !in players) players[p.player.id] = playerBundle(p.player) }
                 val events = eventRepository.getEventsByMatch(match.id)
                 events.mapNotNull { it.playerId }.distinct().forEach { id ->
-                    if (id !in players) playerRepository.getPlayerById(id)?.let { players[id] = it.toBundle() }
+                    if (id !in players) playerRepository.getPlayerById(id)?.let { players[id] = playerBundle(it) }
                 }
                 val stats = statsRepository.getByMatch(match.id)
                 val report = reportRepository.getByMatch(match.id)
@@ -197,7 +200,7 @@ class ExportAgeGroupUseCase(
             val sessions = stored.map { row ->
                 val s = row.session
                 val ratings = ratingsBySession[s.id].orEmpty().map { r ->
-                    if (r.playerId !in players) playerRepository.getPlayerById(r.playerId)?.let { players[r.playerId] = it.toBundle() }
+                    if (r.playerId !in players) playerRepository.getPlayerById(r.playerId)?.let { players[r.playerId] = playerBundle(it) }
                     BundleSessionRating(r.playerId, (r.rating * 100).roundToInt())
                 }
                 BundleSession(
@@ -217,11 +220,11 @@ class ExportAgeGroupUseCase(
             AgeGroupBundle(
                 sourceServer = sourceServer,
                 season = BundleSeason(season.id, season.name, season.type, season.startDate, season.endDate),
-                ageGroup = BundleAgeGroup(ageGroup.id, ageGroup.name, ageGroup.startYear, ageGroup.endYear, ageGroup.teamSize, ageGroup.logoUrl),
+                ageGroup = BundleAgeGroup(ageGroup.id, ageGroup.name, ageGroup.startYear, ageGroup.endYear, ageGroup.teamSize, ageGroup.logoUrl, logo = ageGroup.logoUrl?.let { AgeGroupLogos.keyOf(ageGroup.id, it) }?.let { image(it) }),
                 teams = teams.map { BundleTeam(it.id, it.name, it.code, it.active, it.teamSize) },
                 players = players.values.toList(),
                 ageGroupPlayers = inGroup.map { BundleAgeGroupPlayer(it.id) },
-                opponents = opponents.map { it.toBundle() },
+                opponents = opponents.map { opponentBundle(it) },
                 matches = bundleMatches,
                 exercises = exercises.map { BundleExercise(it.id, it.name, it.description, it.durationMinutes, it.objectives) },
                 sessions = sessions,
@@ -229,12 +232,24 @@ class ExportAgeGroupUseCase(
             )
         }
     }
+
+    /** A player with its photo, read from storage, so the bundle carries the file. */
+    private suspend fun playerBundle(p: com.ricardofrango.squadify.model.Player): BundlePlayer =
+        p.toBundle(photo = p.photoUrl?.let { PlayerPhotos.keyOf(p.id, it) }?.let { image(it) })
+
+    private suspend fun opponentBundle(o: com.ricardofrango.squadify.model.Opponent): BundleOpponent =
+        o.toBundle(logo = o.logoUrl?.let { OpponentLogos.keyOf(o.id, it) }?.let { image(it) })
+
+    /** The file at [key] as a bundle image, or null when there's none. */
+    private suspend fun image(key: String): BundleImage? =
+        imageStorage.get(key)?.let { BundleImage("image/png", Base64.getEncoder().encodeToString(it)) }
+
 }
 
 private const val EXPORT_MESSAGE = "Only club admins or coordinators can copy an age group out of the club"
 
-private fun com.ricardofrango.squadify.model.Player.toBundle() = BundlePlayer(
-    id, firstName, lastName, birthDate, shirtNumber, photoUrl, active, position, heightCm, weightKg, emergencyContact
+private fun com.ricardofrango.squadify.model.Player.toBundle(photo: BundleImage?) = BundlePlayer(
+    id, firstName, lastName, birthDate, shirtNumber, photoUrl, active, position, heightCm, weightKg, emergencyContact, photo
 )
 
 private fun com.ricardofrango.squadify.model.MatchCallUp.toBundle() = BundleCallUp(id, playerId, status, notes, isStarting, pitchSlot)
@@ -248,6 +263,6 @@ private fun com.ricardofrango.squadify.model.MatchReport.toBundle() = BundleRepo
     opponentWeaknesses, opponentBestPlayers, opponentAdditionalInfo, completedAt
 )
 
-private fun com.ricardofrango.squadify.model.Opponent.toBundle() = BundleOpponent(
-    id, name, shortName, logoUrl, stadiumName, stadiumAddress, contactEmail, contactPhone, notes
+private fun com.ricardofrango.squadify.model.Opponent.toBundle(logo: BundleImage?) = BundleOpponent(
+    id, name, shortName, logoUrl, stadiumName, stadiumAddress, contactEmail, contactPhone, notes, logo
 )

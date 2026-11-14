@@ -16,12 +16,14 @@ import com.ricardofrango.squadify.domain.repository.TrainingExerciseRepository
 import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
 import com.ricardofrango.squadify.domain.repository.TrainingRatingRepository
 import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
+import com.ricardofrango.squadify.domain.service.ImageStorage
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.domain.stats.MatchPlayerStatsCalculator
 import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.BundleImage
 import com.ricardofrango.squadify.model.AgeGroupBundle
 import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.BundleMatch
@@ -38,6 +40,7 @@ import com.ricardofrango.squadify.model.TrainingExercise
 import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.model.birthYearsOverlap
 import java.text.Normalizer
+import java.util.Base64
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -75,6 +78,7 @@ class ImportAgeGroupUseCase(
     private val trainingSessions: TrainingSessionRepository,
     private val trainingRatings: TrainingRatingRepository,
     private val trainingPlans: TrainingPlanRepository,
+    private val imageStorage: ImageStorage,
     private val now: () -> Instant = { Clock.System.now() }
 ) {
     suspend operator fun invoke(userId: String, targetClubId: String, sourceServer: String, bundle: AgeGroupBundle): ImportAgeGroupResult =
@@ -92,8 +96,9 @@ class ImportAgeGroupUseCase(
                 createAgeGroup(userId, targetClubId, sourceServer, bundle, ::sizeFor)
             } else {
                 val existing = ageGroupRepository.getAgeGroupById(linkedAgeGroupId) ?: throw NotFoundException("The imported age group is gone")
+                val logo = group.logo?.let { putImage(AgeGroupLogos, linkedAgeGroupId, it, existing.logoUrl) } ?: existing.logoUrl
                 ageGroupRepository.updateAgeGroup(
-                    existing.copy(name = group.name, startYear = group.startYear, endYear = group.endYear, teamSize = sizeFor(group.teamSize))
+                    existing.copy(name = group.name, startYear = group.startYear, endYear = group.endYear, teamSize = sizeFor(group.teamSize), logoUrl = logo)
                 )
                 linkedAgeGroupId
             }
@@ -122,8 +127,10 @@ class ImportAgeGroupUseCase(
             for (p in bundle.players) {
                 val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_PLAYER, p.id)
                 if (mapped != null) {
+                    val previous = playerRepository.getPlayerById(mapped)?.photoUrl
+                    val photo = p.photo?.let { putImage(PlayerPhotos, mapped, it, previous) } ?: previous
                     playerRepository.updatePlayer(
-                        Player(mapped, targetClubId, p.firstName, p.lastName, p.birthDate, p.shirtNumber, null, p.active, p.position, p.heightCm, p.weightKg, p.emergencyContact)
+                        Player(mapped, targetClubId, p.firstName, p.lastName, p.birthDate, p.shirtNumber, photo, p.active, p.position, p.heightCm, p.weightKg, p.emergencyContact)
                     )
                     playerIds[p.id] = mapped
                     continue
@@ -132,7 +139,9 @@ class ImportAgeGroupUseCase(
                 if (same != null) {
                     playerIds[p.id] = same.id
                 } else {
-                    val player = Player(Uuid.random().toString(), targetClubId, p.firstName, p.lastName, p.birthDate, p.shirtNumber, null, p.active, p.position, p.heightCm, p.weightKg, p.emergencyContact)
+                    val id = Uuid.random().toString()
+                    val photo = p.photo?.let { putImage(PlayerPhotos, id, it, null) }
+                    val player = Player(id, targetClubId, p.firstName, p.lastName, p.birthDate, p.shirtNumber, photo, p.active, p.position, p.heightCm, p.weightKg, p.emergencyContact)
                     playerRepository.createPlayers(listOf(player))
                     playerIds[p.id] = player.id
                     newPlayers++
@@ -151,7 +160,10 @@ class ImportAgeGroupUseCase(
             val byName = opponentRepository.getOpponentsByClub(targetClubId).associateBy { normalized(it.name) }
             for (o in bundle.opponents) {
                 val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_OPPONENT, o.id)
-                val opponent = Opponent(mapped ?: Uuid.random().toString(), targetClubId, o.name, o.shortName, null, o.stadiumName, o.stadiumAddress, o.contactEmail, o.contactPhone, o.notes)
+                val opponentId = mapped ?: Uuid.random().toString()
+                val previousLogo = mapped?.let { opponentRepository.getOpponentById(it)?.logoUrl }
+                val logo = o.logo?.let { putImage(OpponentLogos, opponentId, it, previousLogo) } ?: previousLogo
+                val opponent = Opponent(opponentId, targetClubId, o.name, o.shortName, logo, o.stadiumName, o.stadiumAddress, o.contactEmail, o.contactPhone, o.notes)
                 val id = when {
                     mapped != null -> mapped.also { opponentRepository.updateOpponent(opponent) }
                     byName[normalized(o.name)] != null -> byName.getValue(normalized(o.name)).id
@@ -269,6 +281,18 @@ class ImportAgeGroupUseCase(
             )
         }
 
+    /**
+     * Stores a copied image under [ownerId] in this server's storage, replacing [previousUrl]'s file. Its URL is
+     * returned; a server without image storage can't copy the image, so the import is refused rather than losing it.
+     */
+    private suspend fun putImage(paths: ImagePaths, ownerId: String, image: BundleImage, previousUrl: String?): String {
+        if (!imageStorage.isAvailable) throw ValidationException("This server has no image storage, so the photos and logos can't be copied")
+        val imageId = Uuid.random().toString()
+        imageStorage.put(paths.key(ownerId, imageId), Base64.getDecoder().decode(image.base64), image.contentType)
+        previousUrl?.let { paths.keyOf(ownerId, it) }?.let { imageStorage.delete(it) }
+        return paths.url(ownerId, imageId)
+    }
+
     /** The age group of a first import: its season, its birth years (a clash is refused), and its link. */
     private suspend fun createAgeGroup(
         userId: String,
@@ -289,8 +313,9 @@ class ImportAgeGroupUseCase(
         }
         if (clash != null) throw ConflictException("The club already has \"${clash.name}\" for these birth years this season")
         val id = Uuid.random().toString()
+        val logo = group.logo?.let { putImage(AgeGroupLogos, id, it, null) }
         ageGroupRepository.createAgeGroup(
-            AgeGroup(id, targetClubId, group.name, season.id, group.startYear, group.endYear, sizeFor(group.teamSize), logoUrl = null)
+            AgeGroup(id, targetClubId, group.name, season.id, group.startYear, group.endYear, sizeFor(group.teamSize), logoUrl = logo)
         )
         importRepository.saveAgeGroupLink(targetClubId, sourceServer, group.id, id)
         return id

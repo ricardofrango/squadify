@@ -27,6 +27,10 @@ import com.ricardofrango.squadify.model.TrainingExercise
 import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.model.TrainingSessions
 import io.ktor.client.request.put
+import io.ktor.client.request.setBody
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import javax.imageio.ImageIO
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.request.bearerAuth
@@ -38,6 +42,7 @@ import io.ktor.server.testing.testApplication
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.time.Clock
 import org.junit.Test
 import org.koin.core.context.stopKoin
@@ -47,6 +52,10 @@ import org.koin.dsl.koinApplication
 // with a grant (single use), and Ben's space imports it. Ben gets the teams, players, opponent and match; the
 // second import of the same age group is refused.
 class CoachAgeGroupImportTest {
+
+    private val png: ByteArray = ByteArrayOutputStream().also {
+        ImageIO.write(BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB), "png", it)
+    }.toByteArray()
 
     @Test
     fun anAgeGroupCopiedFromAnotherSpaceArrivesWithItsContents() = testApplication {
@@ -58,10 +67,13 @@ class CoachAgeGroupImportTest {
         val setup = api.post("/v1/space") {
             json(ana, SetUpSpaceRequest("Ana's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-12", 2015, 2015, teamSize = 4), "Sub-12 A"))
         }.body<SpaceSetup>()
-        val created = api.post("/v1/players") {
+        val created0 = api.post("/v1/players") {
             json(ana, CreatePlayersRequest(setup.space.id, listOf(CreatePlayer("Rui", "Costa", LocalDate(2015, 4, 2))), ageGroupId = setup.ageGroup.id, addToAgeGroup = true))
         }.body<List<Player>>()
-        assertEquals(1, created.size, "created: $created")
+        assertEquals(1, created0.size, "created: $created0")
+        val rui = created0.single()
+        // Rui's photo: it comes across as a file.
+        assertEquals(HttpStatusCode.OK, api.put("/v1/players/${rui.id}/photo") { bearerAuth(ana); setBody(png) }.status)
         val opponent = api.post("/v1/opponents?clubId=${setup.space.id}") { json(ana, CreateOpponentRequest("Benfica")) }.body<Opponent>()
         api.post("/v1/matches") {
             json(ana, CreateMatchRequest(setup.team.id, opponent.id, dateTime = Clock.System.now(), type = MatchType.FRIENDLY, venue = MatchVenue.HOME))
@@ -101,6 +113,8 @@ class CoachAgeGroupImportTest {
             val result = importUseCase(benId, benSpace, "https://ana.example", bundle)
             assertEquals(1, result.teams)
             assertEquals(1, result.players)
+            val copiedPlayers = api.get("/v1/players?clubId=$benSpace") { bearerAuth(ben) }.body<List<Player>>()
+            assertNotNull(copiedPlayers.single().photoUrl, "the copied player has no photo")
             assertEquals(1, result.opponents)
             assertEquals(1, result.matches)
             // The session comes across with its exercise.
