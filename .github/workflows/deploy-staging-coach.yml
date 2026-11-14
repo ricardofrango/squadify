@@ -8,54 +8,35 @@ name: Deploy coach staging
 on:
   push:
     branches: [develop]
+    # Only what the coach Android app is built from: app/coachAndroidApp, app/coach, app/shared and core,
+    # the version catalog/wrapper/root build files, and this file (so an edit here runs on the same push).
+    paths:
+      - "app/coachAndroidApp/**"
+      - "app/coach/**"
+      - "app/shared/**"
+      - "core/**"
+      - "gradle/libs.versions.toml"
+      - "gradle/wrapper/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/deploy-staging-coach.yml"
 
 jobs:
-  # Only when the push changes what the coach app's APK is built from (.github/scripts/android_apps_changed.py:
-  # its modules and the shared ones, the catalog entries they use, the root build files, the CI that builds
-  # it), so a push of docs, servers or only the clubs app publishes nothing new to testers.
-  changes:
+  test:
     runs-on: ubuntu-latest
-    outputs:
-      coach: ${{ steps.apps.outputs.coach }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          fetch-depth: 0
-      - id: apps
-        run: python3 .github/scripts/android_apps_changed.py ${{ github.event.before }} ${{ github.sha }} | tee -a "$GITHUB_OUTPUT"
-
-  # OFF to save GitHub Actions minutes (the developer, 2026-11-09: the 2,000 a month ran out). The PR's
-  # checks (pr-checks.yml) already ran this on the same code before the merge. To turn it back on, uncomment
-  # it and put it back in the distribute job's `needs`.
-  # test:
-  #   needs: changes
-  #   if: needs.changes.outputs.coach == 'true'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-java@v4
-  #       with:
-  #         distribution: temurin
-  #         java-version: "21"
-  #     - uses: gradle/actions/setup-gradle@v6
-  #     - uses: android-actions/setup-android@v4
-  #     - run: ./gradlew :app:shared:testAndroidHostTest :app:coach:testAndroidHostTest --no-daemon
-
-  # OFF to save GitHub Actions minutes (the developer, 2026-11-09: the 2,000 a month ran out). The PR's
-  # checks (pr-checks.yml) already ran this on the same code before the merge. To turn it back on, uncomment
-  # it and put it back in the distribute job's `needs`.
-  # # The release build opened on an emulator first: one that crashes on start never reaches testers.
-  # release-check:
-  #   needs: changes
-  #   if: needs.changes.outputs.coach == 'true'
-  #   uses: ./.github/workflows/android-release-check.yml
-  #   with:
-  #     app: coach
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: android-actions/setup-android@v4
+      - run: ./gradlew :app:shared:testAndroidHostTest :app:coach:testAndroidHostTest --no-daemon
 
   firebase-distribute-coach-android-staging:
-    # needs: [changes, test, release-check]  (test and release-check are off, see above)
-    needs: changes
-    if: needs.changes.outputs.coach == 'true'
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
