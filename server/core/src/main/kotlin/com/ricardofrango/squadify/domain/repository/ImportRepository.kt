@@ -7,6 +7,9 @@ package com.ricardofrango.squadify.domain.repository
 interface ExportGrantRepository {
     suspend fun create(tokenHash: String, userId: String, expiresAtEpochMillis: Long)
 
+    /** The user of the grant if it's valid at [nowEpochMillis] and unused, without using it (to list what it can read). */
+    suspend fun userOf(tokenHash: String, nowEpochMillis: Long): String?
+
     /** The user of the grant if it's valid at [nowEpochMillis] and unused, marking it used; null otherwise. */
     suspend fun redeem(tokenHash: String, nowEpochMillis: Long): String?
 }

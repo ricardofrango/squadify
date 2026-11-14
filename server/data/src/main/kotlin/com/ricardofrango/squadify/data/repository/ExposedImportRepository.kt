@@ -25,6 +25,13 @@ class ExposedExportGrantRepository : ExportGrantRepository {
         }
     }
 
+    override suspend fun userOf(tokenHash: String, nowEpochMillis: Long): String? {
+        val now = Instant.fromEpochMilliseconds(nowEpochMillis)
+        return ExportGrants.selectAll().where {
+            (ExportGrants.tokenHash eq tokenHash) and ExportGrants.usedAt.isNull() and ExportGrants.expiresAt.greater(now)
+        }.singleOrNull()?.get(ExportGrants.userId)?.toString()
+    }
+
     override suspend fun redeem(tokenHash: String, nowEpochMillis: Long): String? {
         val now = Instant.fromEpochMilliseconds(nowEpochMillis)
         // Only a grant that's unused and not expired is taken: the update matches it once, so a second use finds nothing.

@@ -107,8 +107,13 @@ data class BundleMatch(
     val callUps: List<BundleCallUp>,
     val lineupChanges: List<MatchLineupChange>,
     val events: List<BundleEvent>,
+    val ratings: List<BundlePlayerRating>,
     val report: BundleReport?
 )
+
+/** The coach's rating of a player in a finished match (MatchPlayerStats.rating), kept as the source has it. */
+@Serializable
+data class BundlePlayerRating(val playerId: String, val rating: Int?)
 
 @Serializable
 data class BundleCallUp(
@@ -128,7 +133,8 @@ data class BundleEvent(
     val opponentPlayerName: String?,
     val isOpponent: Boolean,
     val period: Int?,
-    val relatedEventId: String?
+    val relatedEventId: String?,
+    val createdAt: Instant
 )
 
 /** The coach's post-match report; its author is the source's user, mapped to a user the target knows, or null. */
@@ -155,4 +161,20 @@ data class ImportAgeGroupResult(
     val players: Int,
     val opponents: Int,
     val matches: Int
+)
+
+/** A grant to read one of the caller's age groups from another server (TECHNICAL_DECISIONS §81). */
+@Serializable
+data class ExportGrantResponse(val token: String, val expiresAt: Instant)
+
+/** An age group that can be copied out of a server, for the importing app's list. */
+@Serializable
+data class ExportableAgeGroup(
+    val id: String,
+    val clubId: String,
+    val clubName: String,
+    val name: String,
+    val startYear: Int,
+    val endYear: Int,
+    val seasonName: String
 )
