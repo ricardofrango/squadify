@@ -28,3 +28,4 @@ keystore/squadify-keystore.jks
 
 # Images stored on disk by the coach server in development (LocalImageStorage)
 server/coach/uploads/
+legal/coach/dist/
