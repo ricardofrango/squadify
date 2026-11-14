@@ -592,6 +592,14 @@ reach navigation at all. Fixed since: `Screen.CreateAgeGroups`/`Screen.CreateTea
 
 ## 17. CI/CD: Staging Auto-Deploy, Manual Production Deploy
 
+**Current state (2026-11-14, PR #222):** the workflows are back as they were at PR #210 (2026-11-08,
+merge `56fcdcb8`). `develop` has no `pr-checks.yml`, no `android-release-check.yml` and no
+`.github/scripts/`. Pushes to `develop` run the deploy workflows' own tests and the web deploy on its
+`paths` filter; Actions minutes are not saved by commenting jobs out. The bullets below that describe the
+changed-apps script, the release check, the PR checks and the minutes savings describe the period
+2026-11-08 to 2026-11-14, and are kept as history until the developer re-adopts them. Where they
+conflict with this note, this note is current.
+
 **Branch strategy** (per the developer, 2026-09-20): `develop` is the integration branch -- every PR
 branches from and merges into `develop`, and that's what "staging" tracks. `main` is the release branch,
 updated only when the developer deliberately merges `develop` into it; nothing deploys automatically from
