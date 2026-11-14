@@ -3647,8 +3647,6 @@ had), with "Ana Silva is managing this game" and Take over.
 manages it, as before. An older app doesn't know the new fields, so it shows its usual controls; the
 server still refuses its actions while someone else manages the game, and it shows that as an error.
 
----
-
 ## 81. Copying an Age Group Between the Clubs and Coach Apps *(planned)*
 
 **Status:** planned with the developer on 2026-11-14, not built. What it does and its phases are in `REQUIREMENTS.md` §8 (Phase 9, "Copying an age group between the two apps"). This section records how, so each phase's PR builds the same design. It is the first coach feature that also changes the clubs server: both directions are needed, so both servers export and import.
