@@ -236,7 +236,7 @@ private fun DeleteSpaceConfirmation(
 @Composable
 private fun SpaceHeader(state: MySpaceUiState.Loaded) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        SpaceLogo(state.space, size = 64.dp)
+        SpaceCrest(state.space, size = 52.dp)
         Spacer(Modifier.width(16.dp))
         Column {
             Text(state.space.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
