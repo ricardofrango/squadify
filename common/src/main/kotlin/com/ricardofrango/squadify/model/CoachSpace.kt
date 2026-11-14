@@ -281,3 +281,7 @@ data class AccountDeletionSummary(
 /** Deleting the account: the current password, as for every other account change. */
 @Serializable
 data class DeleteAccountRequest(val currentPassword: String)
+
+/** Deleting a space (its owner only): the owner's current password, as for the account. */
+@Serializable
+data class DeleteSpaceRequest(val currentPassword: String)

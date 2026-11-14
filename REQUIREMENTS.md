@@ -395,5 +395,6 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [x] Space details: its age groups (teams, next game) and its opponents.
         - [x] The spaces list as Home ("Os meus espaços").
         - [x] The age-group wizard (club, birth years, teams).
+    - [x] Deleting a space (2026-11-14): the owner's My club or team, after their password. The space goes with its age groups, players, games, training and staff access; their account stays. Staff can't delete it.
     - [ ] Later: moving an age group from the coach app to a club.
 - [ ] **Server integration tests for Squadify for Clubs** (the developer, 2026-10-30; `TECHNICAL_DECISIONS.md` §72): as on the coach server, tests that start the clubs server on its own test database (`squadify_test`, dropped after the run) and call its endpoints for the main flows: sign-up and invites, a club's structure, a game from scheduling to stats, the live feeds. `ApplicationTest` and `CorsTest` move onto it too, off `squadify_dev`.

@@ -164,3 +164,8 @@ class CreateStaffInviteUseCase(private val staffInviteRepository: StaffInviteRep
 class RevokeStaffInviteUseCase(private val staffInviteRepository: StaffInviteRepository) {
     suspend operator fun invoke(ageGroupId: String, code: String) = staffInviteRepository.revokeInvite(ageGroupId, JoinCode.normalize(code))
 }
+
+/** Deletes a space at its owner's request, after their password: its age groups, players, games and staff go. */
+class DeleteSpaceUseCase(private val spaceRepository: SpaceRepository) {
+    suspend operator fun invoke(spaceId: String, currentPassword: String) = spaceRepository.deleteSpace(spaceId, currentPassword)
+}

@@ -57,6 +57,12 @@ interface AccountDeletionRepository {
      * deleted once the rows are.
      */
     suspend fun delete(userId: String): List<String>
+
+    /**
+     * Deletes [spaceId] with everything in it, as its owner asks (the coach's space, not the account: the
+     * owner keeps it and their other spaces). Returns the storage keys of its images, as [delete] does.
+     */
+    suspend fun deleteSpace(spaceId: String): List<String>
 }
 
 class ExposedAccountDeletionRepository : AccountDeletionRepository {
@@ -77,6 +83,8 @@ class ExposedAccountDeletionRepository : AccountDeletionRepository {
             staff = ClubMembers.selectAll().where { (ClubMembers.clubId eq spaceId) and (ClubMembers.userId neq user) }.count().toInt()
         )
     }
+
+    override suspend fun deleteSpace(spaceId: String): List<String> = deleteSpace(spaceId.toUuid())
 
     override suspend fun delete(userId: String): List<String> {
         val user = userId.toUuid()

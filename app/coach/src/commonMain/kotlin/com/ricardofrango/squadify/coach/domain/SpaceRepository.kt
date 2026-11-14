@@ -42,6 +42,9 @@ interface SpaceRepository {
 
     /** Joins the code's age group as staff, returning its space. */
     suspend fun acceptInvite(code: String): CoachSpace
+
+    /** Deletes [spaceId] with everything in it, as its owner, after their [currentPassword]. */
+    suspend fun deleteSpace(spaceId: String, currentPassword: String)
 }
 
 /** The owner's invite codes for an age group (`/v1/age-groups/{id}/invites`). */

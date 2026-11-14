@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -60,6 +61,22 @@ import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
+import com.ricardofrango.squadify.presentation.ui.components.DialogButtons
+import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
+import com.ricardofrango.squadify.presentation.ui.components.FormTextField
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyDialog
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import org.jetbrains.compose.resources.pluralStringResource
+import squadify.app.coach.generated.resources.btn_delete_space
+import squadify.app.coach.generated.resources.delete_account_age_groups
+import squadify.app.coach.generated.resources.delete_account_password
+import squadify.app.coach.generated.resources.delete_space_body
+import squadify.app.coach.generated.resources.delete_space_plan
+import squadify.app.coach.generated.resources.delete_space_title
+import squadify.app.coach.generated.resources.msg_delete_space_failed
+import squadify.app.coach.generated.resources.msg_delete_space_wrong_password
+import squadify.app.coach.generated.resources.btn_delete_account_deleting
 import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
@@ -102,17 +119,25 @@ fun MySpaceScreen(
     onNavigateBack: () -> Unit,
     onLogoChanged: () -> Unit,
     onSeePlans: () -> Unit,
+    onSpaceDeleted: () -> Unit,
     viewModel: MySpaceViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val deleteDialog by viewModel.deleteDialog.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) { viewModel.logoChanged.collect { onLogoChanged() } }
+    LaunchedEffect(viewModel) { viewModel.spaceDeleted.collect { onSpaceDeleted() } }
     MySpaceContent(
         uiState = uiState,
         onLogoPicked = viewModel::onLogoPicked,
         onRemoveLogo = viewModel::onRemoveLogo,
         onRetry = viewModel::load,
         onSeePlans = onSeePlans,
-        onNavigateBack = onNavigateBack
+        onNavigateBack = onNavigateBack,
+        deleteDialog = deleteDialog,
+        onOpenDeleteSpace = viewModel::onDeleteSpaceOpened,
+        onDismissDeleteSpace = viewModel::onDeleteSpaceDismissed,
+        onDeletePasswordChanged = viewModel::onDeletePasswordChanged,
+        onConfirmDeleteSpace = viewModel::onDeleteSpaceConfirmed
     )
 }
 
@@ -123,7 +148,12 @@ private fun MySpaceContent(
     onRemoveLogo: () -> Unit,
     onRetry: () -> Unit,
     onSeePlans: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    deleteDialog: DeleteSpaceDialog? = null,
+    onOpenDeleteSpace: () -> Unit = {},
+    onDismissDeleteSpace: () -> Unit = {},
+    onDeletePasswordChanged: (String) -> Unit = {},
+    onConfirmDeleteSpace: () -> Unit = {}
 ) {
     Scaffold(
         contentWindowInsets = ScreenWindowInsets,
@@ -147,9 +177,80 @@ private fun MySpaceContent(
                 SectionCard { SpaceLogoHeader(uiState, onLogoPicked, onRemoveLogo) }
                 Text(stringResource(Res.string.my_space_logo_intro), style = MaterialTheme.typography.bodySmall, color = CarbonGray)
                 PlanCard(uiState.plan, uiState.ageGroupsThisSeason, onSeePlans = onSeePlans)
+                // Only the owner gets here: deleting the space takes its age groups, players, games and staff with it.
+                TextButton(onClick = onOpenDeleteSpace, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(Res.string.btn_delete_space), color = AlertRed, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
+    if (uiState is MySpaceUiState.Loaded && deleteDialog != null) {
+        DeleteSpaceConfirmation(
+            loaded = uiState,
+            dialog = deleteDialog,
+            onPasswordChanged = onDeletePasswordChanged,
+            onConfirm = onConfirmDeleteSpace,
+            onDismiss = onDismissDeleteSpace
+        )
+    }
+}
+
+/** The owner's password, and what goes with the space; the space is deleted at once and for good. */
+@Composable
+private fun DeleteSpaceConfirmation(
+    loaded: MySpaceUiState.Loaded,
+    dialog: DeleteSpaceDialog,
+    onPasswordChanged: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    SquadifyDialog(
+        title = stringResource(Res.string.delete_space_title),
+        body = stringResource(Res.string.delete_space_body),
+        onDismiss = onDismiss,
+        content = {
+            if (loaded.ageGroupCount > 0) {
+                Text(
+                    pluralStringResource(Res.plurals.delete_account_age_groups, loaded.ageGroupCount, loaded.ageGroupCount),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = DeepCarbon
+                )
+            }
+            // Deleting doesn't end a paid plan: the store's subscription has to be cancelled there.
+            if (loaded.plan.id != "FREE") {
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(Res.string.delete_space_plan), style = MaterialTheme.typography.bodySmall, color = CarbonGray)
+            }
+            Spacer(Modifier.height(12.dp))
+            FormTextField(
+                value = dialog.password,
+                onValueChange = onPasswordChanged,
+                label = stringResource(Res.string.delete_account_password),
+                enabled = !dialog.isDeleting,
+                isError = dialog.error == DeleteSpaceError.WRONG_PASSWORD,
+                keyboardType = KeyboardType.Password,
+                hidden = true,
+                imeAction = ImeAction.Done,
+                onImeAction = { if (dialog.canDelete) onConfirm() }
+            )
+            FormErrorLine(
+                when (dialog.error) {
+                    DeleteSpaceError.WRONG_PASSWORD -> stringResource(Res.string.msg_delete_space_wrong_password)
+                    DeleteSpaceError.FAILED -> stringResource(Res.string.msg_delete_space_failed)
+                    null -> null
+                }
+            )
+        },
+        buttons = {
+            DialogButtons(
+                confirmLabel = stringResource(if (dialog.isDeleting) Res.string.btn_delete_account_deleting else Res.string.btn_delete_space),
+                onConfirm = onConfirm,
+                onDismiss = onDismiss,
+                destructive = true,
+                confirmEnabled = dialog.canDelete
+            )
+        }
+    )
 }
 
 /** The logo (or initials) with the space's name and sport, and the logo's actions under them. */

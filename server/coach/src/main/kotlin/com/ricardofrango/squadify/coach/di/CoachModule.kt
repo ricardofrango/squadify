@@ -17,6 +17,7 @@ import com.ricardofrango.squadify.model.PlanChange
 import com.ricardofrango.squadify.coach.domain.PlanRequestMailer
 import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
 import com.ricardofrango.squadify.coach.domain.DeleteAccountUseCase
+import com.ricardofrango.squadify.coach.domain.DeleteSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.GetAccountDeletionSummaryUseCase
 import com.ricardofrango.squadify.coach.domain.GetAdminSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.PlatformAdmins
@@ -244,6 +245,7 @@ val coachModule = module {
     single<AccountDeletionRepository> { ExposedAccountDeletionRepository() }
     factory { GetAccountDeletionSummaryUseCase(get(), get()) }
     factory { DeleteAccountUseCase(get(), get(), get(), get()) }
+    factory { DeleteSpaceUseCase(get(), get(), get(), get(), get()) }
 
     // Who may do what: the space's owner everywhere, its staff in their age groups.
     // Plans (REQUIREMENTS §5c): what each space's plan allows and locks, and the admin who sets them.
