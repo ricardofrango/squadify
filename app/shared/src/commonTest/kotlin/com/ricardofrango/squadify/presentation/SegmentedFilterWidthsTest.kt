@@ -29,8 +29,8 @@ class SegmentedFilterWidthsTest {
     }
 
     @Test
-    fun aKeptWideSegmentCanPushAnotherPastItsShareToo() {
-        // Equal share is 150: 200 keeps; then 100 left over two, share 50: 120 keeps; 80 ends up alone with 20.. no: it keeps too.
-        assertEquals(listOf(200, 120, 80), fillWidths(listOf(200, 120, 80), 400).also { assertEquals(400, it.sum()) })
+    fun segmentsThatAlreadyFillTheRoomExactlyKeepTheirWidths() {
+        // 200 + 120 + 80 is exactly the room, so nothing is stretched.
+        assertEquals(listOf(200, 120, 80), fillWidths(listOf(200, 120, 80), 400))
     }
 }

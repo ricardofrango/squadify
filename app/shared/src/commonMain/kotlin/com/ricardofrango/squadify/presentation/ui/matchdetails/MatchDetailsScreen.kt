@@ -731,7 +731,7 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
             }
             if (canChangeTeamSize) {
                 Text(stringResource(Res.string.label_match_format).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.55f))
-                TeamSizeSelector(options = details.teamSizeOptions, selected = teamSize, onSelected = { teamSize = it })
+                TeamSizeSelector(options = details.teamSizeOptions, selected = teamSize, onSelected = { teamSize = it }, edgePadding = 24.dp)
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(Res.string.label_venue).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.55f))
