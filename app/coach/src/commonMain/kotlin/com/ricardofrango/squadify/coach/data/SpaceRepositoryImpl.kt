@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.data.remote.handleResponse
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
+import com.ricardofrango.squadify.model.DeleteSpaceRequest
 import com.ricardofrango.squadify.model.GooglePurchaseRequest
 import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.RequestPlanRequest
@@ -35,6 +36,13 @@ class SpaceRepositoryImpl(
 
     override suspend fun getSpaces(): List<SpaceAgeGroups> =
         httpClient.get("${appConfig.baseUrl}/spaces").handleResponse()
+
+    override suspend fun deleteSpace(spaceId: String, currentPassword: String) {
+        httpClient.post("${appConfig.baseUrl}/spaces/$spaceId/delete") {
+            contentType(ContentType.Application.Json)
+            setBody(DeleteSpaceRequest(currentPassword))
+        }.handleResponse<Unit>()
+    }
 
     override suspend fun getSpaceDetails(spaceId: String): SpaceDetails =
         httpClient.get("${appConfig.baseUrl}/spaces/$spaceId").handleResponse()

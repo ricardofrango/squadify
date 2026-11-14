@@ -3224,3 +3224,19 @@ graph TD
 
 Everything is in one transaction, the new space included: a refusal leaves nothing behind. The app then uploads the club's crest to each new age group (`PUT /v1/age-groups/{id}/logo`), best effort: the picked image, or the crest an age group of the same club already has (downloaded and uploaded again). `GET /v1/spaces/{id}` gives the current season's id (`seasonId`) for the years a club already has.
 
+### 13.9 Deleting a space (`DeleteSpaceUseCase`, `POST /v1/spaces/{id}/delete`)
+
+The owner deletes their space from My club or team (2026-11-14), after their password. The account stays, with any other space it's staff in.
+
+```mermaid
+graph TD
+    A["Signed in: the space's id, and the current password"] --> G{CurrentPasswordGuard}
+    G -- wrong --> W(["400 AUTH_003; the third in a row signs them out, AUTH_004"])
+    G -- right --> O{"requireEditClub: the caller is the space's owner?"}
+    O -- No --> F(["403"])
+    O -- Yes --> S["Delete the space: matches (with call-ups, events, line-ups, stats, reports), teams, staff and pool rows, age groups (with invite codes), players, opponents, seasons, members, the space"]
+    S --> I["After the commit: delete the images' files (the space's logo, players' photos, opponents' logos, age groups' crests). One that fails is logged and left"]
+    I --> Z(["204"])
+```
+
+The same deletion as the account's (`AccountDeletionRepository.deleteSpace`, shared with `DeleteAccountUseCase`), in one transaction. Other spaces, and the owner's account, are untouched.

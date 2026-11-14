@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.coach.data.StaffInviteRepositoryImpl
 import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.AddAgeGroupsUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpaceDetailsUseCase
+import com.ricardofrango.squadify.coach.domain.DeleteSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.LoadPlansUseCase
 import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
@@ -48,6 +49,7 @@ val coachModule = module {
     single { OwnSpacePlan() }
     single { CoachAds() }
     factory { GetSpacesUseCase(get(), get(), get(), get()) }
+    factory { DeleteSpaceUseCase(get()) }
     factory { GetSpaceDetailsUseCase(get()) }
     factory { AddAgeGroupsUseCase(get()) }
     factory { LoadPlansUseCase(get(), get()) }

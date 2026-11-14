@@ -55,6 +55,7 @@ class OwnSpacePlanTest {
             return now
         }
         override suspend fun acceptInvite(code: String): CoachSpace = error("not used")
+        override suspend fun deleteSpace(spaceId: String, currentPassword: String): Unit = error("not used")
     }
 
     @Test

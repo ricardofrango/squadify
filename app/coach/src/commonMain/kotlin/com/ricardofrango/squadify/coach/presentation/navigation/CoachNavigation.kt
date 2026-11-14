@@ -230,7 +230,9 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
         MySpaceScreen(
             onNavigateBack = { navigator.popBackStack() },
             onLogoChanged = { navigator.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true) },
-            onSeePlans = { navigator.navigate(Screen.Plans) }
+            onSeePlans = { navigator.navigate(Screen.Plans) },
+            // The space is gone: back to Home, which lists what's left.
+            onSpaceDeleted = { openAsRoot(Screen.CoachHome) }
         )
     }
 

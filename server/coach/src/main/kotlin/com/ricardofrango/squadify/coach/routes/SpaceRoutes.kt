@@ -2,12 +2,14 @@ package com.ricardofrango.squadify.coach.routes
 
 import com.ricardofrango.squadify.presentation.routes.appLanguage
 import com.ricardofrango.squadify.coach.domain.AddAgeGroupsUseCase
+import com.ricardofrango.squadify.coach.domain.DeleteSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpaceDetailsUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.GetPlansUseCase
 import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
 import com.ricardofrango.squadify.coach.domain.SetUpSpaceUseCase
 import com.ricardofrango.squadify.model.AddAgeGroupsRequest
+import com.ricardofrango.squadify.model.DeleteSpaceRequest
 import com.ricardofrango.squadify.model.RequestPlanRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.security.userId
@@ -34,6 +36,7 @@ fun Route.spaceRoutes() {
     val addAgeGroupsUseCase by inject<AddAgeGroupsUseCase>()
     val getPlansUseCase by inject<GetPlansUseCase>()
     val requestPlanUseCase by inject<RequestPlanUseCase>()
+    val deleteSpaceUseCase by inject<DeleteSpaceUseCase>()
 
     authenticate("auth-jwt") {
         get("/spaces") {
@@ -57,6 +60,13 @@ fun Route.spaceRoutes() {
         post("/space/age-groups") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
             call.respond(HttpStatusCode.Created, addAgeGroupsUseCase(currentUserId, call.receive<AddAgeGroupsRequest>()))
+        }
+        // The owner deletes the space, with everything in it, after their password (not the account).
+        post("/spaces/{spaceId}/delete") {
+            val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+            val spaceId = call.parameters["spaceId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+            deleteSpaceUseCase(currentUserId, spaceId, call.receive<DeleteSpaceRequest>())
+            call.respond(HttpStatusCode.NoContent)
         }
         post("/space") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
