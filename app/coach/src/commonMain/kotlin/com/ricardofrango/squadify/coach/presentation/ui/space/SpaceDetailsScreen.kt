@@ -33,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import squadify.app.coach.generated.resources.wizard_summary_teams
 import squadify.app.coach.generated.resources.wizard_summary_age_groups
 import squadify.app.coach.generated.resources.space_details_ok
+import squadify.app.coach.generated.resources.space_details_import_training_skipped
 import squadify.app.coach.generated.resources.space_details_import_age_groups
 import squadify.app.coach.generated.resources.space_details_new
 import squadify.app.coach.generated.resources.space_details_created_no_crest
@@ -168,6 +169,8 @@ fun SpaceDetailsScreen(
     // opens the popup; anything else goes on, and the server refuses again if the room has gone by the time it's made.
     val scope = rememberCoroutineScope()
     var planRefused by remember { mutableStateOf(false) }
+    // The imports that left out their training (the space's plan has none): counted, so each shows once.
+    var importedWithoutTraining by remember { mutableIntStateOf(0) }
     fun askRoom(then: () -> Unit) {
         scope.launch {
             try {
@@ -197,6 +200,8 @@ fun SpaceDetailsScreen(
         opponents = { OpponentsBrowser(spaceId, onOpponentClick = { onOpenOpponent(it.id) }, onCreateOpponent = onCreateOpponent, refresh = refresh) },
         onCreateOpponent = { onCreateOpponent("") },
         onImport = if (handoff.installed) ({ askRoom(handoff::start) }) else null,
+        importedWithoutTraining = importedWithoutTraining,
+        trainingSkippedMessage = stringResource(Res.string.space_details_import_training_skipped),
         newAgeGroupIds = newAgeGroupIds,
         createdMessage = if (newAgeGroupIds.isEmpty()) null else stringResource(
             if (crestSaved) Res.string.space_details_created else Res.string.space_details_created_no_crest,
@@ -211,8 +216,9 @@ fun SpaceDetailsScreen(
             clubSport = details?.space?.sport ?: SportType.FOOTBALL,
             ownPlan = details?.plan,
             handoff = handoff,
-            onImported = {
+            onImported = { result ->
                 importing = null
+                if (result.trainingSkipped) importedWithoutTraining++
                 viewModel.load(spaceId, force = true)
             },
             onDismiss = { importing = null }
@@ -238,7 +244,9 @@ private fun SpaceDetailsContent(
     onCreateOpponent: () -> Unit,
     newAgeGroupIds: List<String> = emptyList(),
     createdMessage: String? = null,
-    onImport: (() -> Unit)? = null
+    onImport: (() -> Unit)? = null,
+    importedWithoutTraining: Int = 0,
+    trainingSkippedMessage: String = ""
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val snackbar = remember { SnackbarHostState() }
@@ -250,6 +258,9 @@ private fun SpaceDetailsContent(
             announced = true
             snackbar.showSnackbar(createdMessage, actionLabel = ok, duration = SnackbarDuration.Long)
         }
+    }
+    LaunchedEffect(importedWithoutTraining) {
+        if (importedWithoutTraining > 0) snackbar.showSnackbar(trainingSkippedMessage, duration = SnackbarDuration.Long)
     }
     val loaded = state as? SpaceDetailsUiState.Loaded
     val isOwner = loaded?.details?.isOwner == true

@@ -200,7 +200,9 @@ data class ImportAgeGroupResult(
     val teams: Int,
     val players: Int,
     val opponents: Int,
-    val matches: Int
+    val matches: Int,
+    /** The source's training wasn't copied: the space's plan doesn't include training. The age group itself was. */
+    val trainingSkipped: Boolean = false
 )
 
 /** A grant to read one of the caller's age groups from another server (TECHNICAL_DECISIONS §81). */

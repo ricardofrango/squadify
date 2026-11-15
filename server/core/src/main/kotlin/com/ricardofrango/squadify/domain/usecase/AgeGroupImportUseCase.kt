@@ -220,10 +220,15 @@ class ImportAgeGroupUseCase(
             }
 
             // Training: the exercise library, then each session with its exercises in order and its ratings, then the plans.
-            if (bundle.exercises.isNotEmpty() || bundle.sessions.isNotEmpty() || bundle.plans.isNotEmpty()) {
-                accessPolicy.requireTrainingInPlan(targetClubId)
-            }
-            for (e in bundle.exercises) {
+            // Not on the club's plan (a Free or Basic space): the age group is still copied, without its training, and the
+            // result says so.
+            val trainingAllowed = allowed { accessPolicy.requireTrainingInPlan(targetClubId) }
+            val hasTraining = bundle.exercises.isNotEmpty() || bundle.sessions.isNotEmpty() || bundle.plans.isNotEmpty()
+            val trainingSkipped = hasTraining && !trainingAllowed
+            val exercises = if (trainingAllowed) bundle.exercises else emptyList()
+            val sessions = if (trainingAllowed) bundle.sessions else emptyList()
+            val plans = if (trainingAllowed) bundle.plans else emptyList()
+            for (e in exercises) {
                 val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_EXERCISE, e.id)
                 val exercise = TrainingExercise(mapped ?: Uuid.random().toString(), ageGroupId, e.name, e.description, e.durationMinutes, e.objectives)
                 if (mapped != null) {
@@ -233,10 +238,10 @@ class ImportAgeGroupUseCase(
                     importRepository.saveRecord(targetClubId, sourceServer, group.id, KIND_EXERCISE, e.id, exercise.id)
                 }
             }
-            val exerciseIds = bundle.exercises.associate { e ->
+            val exerciseIds = exercises.associate { e ->
                 e.id to importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_EXERCISE, e.id)!!
             }
-            for (s in bundle.sessions) {
+            for (s in sessions) {
                 val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_SESSION, s.id)
                 val sessionId = mapped ?: Uuid.random().toString()
                 val session = TrainingSession(
@@ -260,7 +265,7 @@ class ImportAgeGroupUseCase(
                 val ratings = s.ratings.mapNotNull { r -> playerIds[r.playerId]?.let { it to r.hundredths } }.toMap()
                 if (ratings.isNotEmpty()) trainingRatings.save(sessionId, ratings, userId)
             }
-            for (p in bundle.plans) {
+            for (p in plans) {
                 val mapped = importRepository.findRecord(targetClubId, sourceServer, group.id, KIND_PLAN, p.id)
                 val plan = p.copy(id = mapped ?: Uuid.random().toString(), ageGroupId = ageGroupId)
                 trainingPlans.save(plan, userId)
@@ -272,7 +277,8 @@ class ImportAgeGroupUseCase(
                 teams = newTeams,
                 players = newPlayers,
                 opponents = newOpponents,
-                matches = newMatches
+                matches = newMatches,
+                trainingSkipped = trainingSkipped
             )
         }
 

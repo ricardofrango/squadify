@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.domain.repository.AgeGroupImportRepository
+import com.ricardofrango.squadify.model.ImportAgeGroupResult
 import com.ricardofrango.squadify.model.ImportBlock
 import com.ricardofrango.squadify.model.ImportableAgeGroup
 import com.ricardofrango.squadify.model.SpacePlan
@@ -67,7 +68,7 @@ fun AgeGroupImportDialog(
     clubSport: SportType,
     ownPlan: SpacePlan?,
     handoff: AgeGroupHandoff,
-    onImported: () -> Unit,
+    onImported: (ImportAgeGroupResult) -> Unit,
     onDismiss: () -> Unit
 ) {
     val repository: AgeGroupImportRepository = koinInject()
@@ -125,8 +126,7 @@ fun AgeGroupImportDialog(
                                         importFailed = false
                                         scope.launch {
                                             try {
-                                                repository.importAgeGroup(clubId, handoff.sourceUrl, ageGroup.id, handoff.grant)
-                                                onImported()
+                                                onImported(repository.importAgeGroup(clubId, handoff.sourceUrl, ageGroup.id, handoff.grant))
                                             } catch (e: Exception) {
                                                 importing = null
                                                 importFailed = true
