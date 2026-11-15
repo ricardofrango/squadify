@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.allowed
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.ImportRepository
@@ -27,7 +28,10 @@ import com.ricardofrango.squadify.model.BundleImage
 import com.ricardofrango.squadify.model.AgeGroupBundle
 import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.BundleMatch
+import com.ricardofrango.squadify.model.ExportableAgeGroup
 import com.ricardofrango.squadify.model.ImportAgeGroupResult
+import com.ricardofrango.squadify.model.ImportBlock
+import com.ricardofrango.squadify.model.ImportableAgeGroup
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchEvent
@@ -49,16 +53,14 @@ import kotlin.uuid.Uuid
  * Copies an age group from another server into [targetClubId] (TECHNICAL_DECISIONS §81). One transaction: a refusal
  * writes nothing. The importer must be allowed to edit the target club ([AccessPolicy.requireEditClub]).
  *
- * Every source record is found through import_records: one already there is updated to the source's version; one
- * not there is created here and remembered. So a first import creates everything, and importing again updates the
- * copy: what came from the source takes its current version, what was created only here stays, and what was deleted
- * at the source stays here. A match's line-up history is replaced with the source's (its changes have no ids).
+ * An age group is copied once: importing it again is refused. The copy's records are still found through
+ * import_records, so a source record is created here once and its links are kept for the rest of the import.
  *
- * Matching, for a first import: a player with the same name and birth date in the club is reused, an opponent with
- * the same name (ignoring case and accents) is reused, and a season with the source's dates is reused.
+ * Matching: a player with the same name and birth date in the club is reused, an opponent with the same name
+ * (ignoring case and accents) is reused, and a season with the source's dates is reused.
  *
- * Refused: a birth-year clash in the target season (a first import); a plan without room (the coach server); a team
- * size the target's sport doesn't play.
+ * Refused: a birth-year clash in the target season; a plan without room (the coach server); a team size the target's
+ * sport doesn't play.
  */
 class ImportAgeGroupUseCase(
     private val accessPolicy: AccessPolicy,
@@ -91,17 +93,11 @@ class ImportAgeGroupUseCase(
             }
 
             val group = bundle.ageGroup
-            val linkedAgeGroupId = importRepository.findAgeGroup(targetClubId, sourceServer, group.id)
-            val ageGroupId = if (linkedAgeGroupId == null) {
-                createAgeGroup(userId, targetClubId, sourceServer, bundle, ::sizeFor)
-            } else {
-                val existing = ageGroupRepository.getAgeGroupById(linkedAgeGroupId) ?: throw NotFoundException("The imported age group is gone")
-                val logo = group.logo?.let { putImage(AgeGroupLogos, linkedAgeGroupId, it, existing.logoUrl) } ?: existing.logoUrl
-                ageGroupRepository.updateAgeGroup(
-                    existing.copy(name = group.name, startYear = group.startYear, endYear = group.endYear, teamSize = sizeFor(group.teamSize), logoUrl = logo)
-                )
-                linkedAgeGroupId
+            // An age group is copied once: importing it again is refused (the list shows it as imported).
+            if (importRepository.findAgeGroup(targetClubId, sourceServer, group.id) != null) {
+                throw ConflictException("This age group is already imported into this club")
             }
+            val ageGroupId = createAgeGroup(userId, targetClubId, sourceServer, bundle, ::sizeFor)
             val seasonId = ageGroupRepository.getAgeGroupById(ageGroupId)!!.seasonId
 
             // Teams.
@@ -311,7 +307,11 @@ class ImportAgeGroupUseCase(
         val clash = ageGroupRepository.findByClubAndSeason(targetClubId, season.id).firstOrNull { other ->
             accessPolicy.shareBirthYears(group.name, other.name) && birthYearsOverlap(group.startYear, group.endYear, other.startYear, other.endYear)
         }
-        if (clash != null) throw ConflictException("The club already has \"${clash.name}\" for these birth years this season")
+        if (clash != null) {
+            throw ConflictException(
+                "The club already has \"${clash.name}\" for birth years ${clash.startYear}–${clash.endYear} this season, so this age group can't be copied in"
+            )
+        }
         val id = Uuid.random().toString()
         val logo = group.logo?.let { putImage(AgeGroupLogos, id, it, null) }
         ageGroupRepository.createAgeGroup(
@@ -425,5 +425,60 @@ class ImportAgeGroupUseCase(
 
         fun playerKey(firstName: String, lastName: String, birthDate: String): String =
             "${normalized(firstName)} ${normalized(lastName)}|$birthDate"
+    }
+}
+
+/**
+ * The age groups another server offers ([offered], read with the grant), each with why this club can't copy it now,
+ * when it can't (TECHNICAL_DECISIONS §81): already imported, another sport, no room in the plan, or a birth-year clash
+ * in the same season. Read only: nothing is copied.
+ */
+class ListImportableAgeGroupsUseCase(
+    private val accessPolicy: AccessPolicy,
+    private val transactionManager: TransactionManager,
+    private val importRepository: ImportRepository,
+    private val clubRepository: ClubRepository,
+    private val ageGroupRepository: AgeGroupRepository,
+    private val seasonRepository: SeasonRepository
+) {
+    suspend operator fun invoke(
+        userId: String,
+        targetClubId: String,
+        sourceServer: String,
+        offered: List<ExportableAgeGroup>
+    ): List<ImportableAgeGroup> = transactionManager.runInTransaction {
+        accessPolicy.requireEditClub(userId, targetClubId, "Only club admins or coordinators can import an age group")
+        val club = clubRepository.getClubById(targetClubId) ?: throw NotFoundException("Club not found")
+        val linked = importRepository.linkedAgeGroups(targetClubId, sourceServer)
+        offered.map { a ->
+            val season = seasonRepository.findByDetails(targetClubId, a.seasonType, a.seasonStartDate, a.seasonEndDate)
+            val clash = season?.let { s ->
+                ageGroupRepository.findByClubAndSeason(targetClubId, s.id).firstOrNull { other ->
+                    accessPolicy.shareBirthYears(a.name, other.name) && birthYearsOverlap(a.startYear, a.endYear, other.startYear, other.endYear)
+                }
+            }
+            val room = season == null || allowed { accessPolicy.requireRoomForAgeGroups(targetClubId, season.id, 1) }
+            val blocked = when {
+                a.id in linked -> ImportBlock.ALREADY_IMPORTED
+                a.sport != club.sport -> ImportBlock.OTHER_SPORT
+                !room -> ImportBlock.NO_ROOM_IN_PLAN
+                clash != null -> ImportBlock.BIRTH_YEARS_TAKEN
+                else -> null
+            }
+            val shown = if (blocked == ImportBlock.BIRTH_YEARS_TAKEN) clash else null
+            ImportableAgeGroup(
+                id = a.id,
+                clubName = a.clubName,
+                name = a.name,
+                startYear = a.startYear,
+                endYear = a.endYear,
+                seasonName = a.seasonName,
+                sport = a.sport,
+                blocked = blocked,
+                clashName = shown?.name,
+                clashStartYear = shown?.startYear,
+                clashEndYear = shown?.endYear
+            )
+        }
     }
 }

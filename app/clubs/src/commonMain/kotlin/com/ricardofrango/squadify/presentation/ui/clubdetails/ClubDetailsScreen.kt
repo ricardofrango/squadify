@@ -268,6 +268,8 @@ private fun ClubDetailsTabContent(
         importing?.let { handoff ->
             AgeGroupImportDialog(
                 clubId = clubId,
+                clubSport = sport,
+                ownPlan = null,
                 handoff = handoff,
                 onImported = {
                     importing = null

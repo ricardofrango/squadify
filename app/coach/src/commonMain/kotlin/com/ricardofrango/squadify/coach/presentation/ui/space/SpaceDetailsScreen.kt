@@ -184,8 +184,11 @@ fun SpaceDetailsScreen(
         )
     )
     importing?.let { handoff ->
+        val details = (state as? SpaceDetailsUiState.Loaded)?.details
         AgeGroupImportDialog(
             clubId = spaceId,
+            clubSport = details?.space?.sport ?: SportType.FOOTBALL,
+            ownPlan = details?.plan,
             handoff = handoff,
             onImported = {
                 importing = null

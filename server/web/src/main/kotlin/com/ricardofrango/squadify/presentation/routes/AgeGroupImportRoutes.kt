@@ -1,18 +1,16 @@
 package com.ricardofrango.squadify.presentation.routes
 
 import com.ricardofrango.squadify.domain.access.AccessPolicy
-import com.ricardofrango.squadify.domain.repository.ImportRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
-import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.domain.usecase.CreateExportGrantUseCase
 import com.ricardofrango.squadify.domain.usecase.ExportAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.ImportAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.ListExportableAgeGroupsUseCase
+import com.ricardofrango.squadify.domain.usecase.ListImportableAgeGroupsUseCase
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroupBundle
 import com.ricardofrango.squadify.model.ExportableAgeGroup
-import com.ricardofrango.squadify.model.ImportableAgeGroup
 import com.ricardofrango.squadify.model.ListSourceAgeGroupsRequest
 import com.ricardofrango.squadify.model.ImportAgeGroupRequest
 import com.ricardofrango.squadify.model.UserStatus
@@ -55,8 +53,7 @@ fun Route.ageGroupImportRoutes(sources: ImportSources) {
     val importAgeGroup by inject<ImportAgeGroupUseCase>()
     val users by inject<UserRepository>()
     val accessPolicy by inject<AccessPolicy>()
-    val transactionManager by inject<TransactionManager>()
-    val importRecords by inject<ImportRepository>()
+    val listImportable by inject<ListImportableAgeGroupsUseCase>()
     // The other server's replies are JSON: the client reads them into the bundle and the list.
     val client = HttpClient(CIO) { install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
 
@@ -78,12 +75,7 @@ fun Route.ageGroupImportRoutes(sources: ImportSources) {
             val response = client.get("$source/v1/export/age-groups") { header(EXPORT_GRANT_HEADER, request.grant) }
             if (!response.status.isSuccess()) throw ValidationException("The other server refused the list (${response.status.value})")
             val offered: List<ExportableAgeGroup> = response.body()
-            val linked = transactionManager.runInTransaction { importRecords.linkedAgeGroups(request.clubId, source) }
-            call.respond(
-                offered.map { a ->
-                    ImportableAgeGroup(a.id, a.clubName, a.name, a.startYear, a.endYear, a.seasonName, alreadyImported = a.id in linked)
-                }
-            )
+            call.respond(listImportable(currentUserId, request.clubId, source, offered))
         }
         post("/import/age-groups") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)

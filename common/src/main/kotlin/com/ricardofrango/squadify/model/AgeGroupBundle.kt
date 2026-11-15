@@ -207,7 +207,10 @@ data class ImportAgeGroupResult(
 @Serializable
 data class ExportGrantResponse(val token: String, val expiresAt: Instant)
 
-/** An age group that can be copied out of a server, for the importing app's list. */
+/**
+ * An age group that can be copied out of a server, for the importing app's list: its club's sport, and its season
+ * (type and dates), which the importing server matches to its own season.
+ */
 @Serializable
 data class ExportableAgeGroup(
     val id: String,
@@ -216,7 +219,11 @@ data class ExportableAgeGroup(
     val name: String,
     val startYear: Int,
     val endYear: Int,
-    val seasonName: String
+    val seasonName: String,
+    val sport: SportType,
+    val seasonType: SeasonType,
+    val seasonStartDate: LocalDate,
+    val seasonEndDate: LocalDate
 )
 
 /** The importing server's request: copy [sourceAgeGroupId] from [sourceUrl] (using [grant]) into [clubId]. */
@@ -232,7 +239,10 @@ data class ImportAgeGroupRequest(
 @Serializable
 data class ListSourceAgeGroupsRequest(val clubId: String, val sourceUrl: String, val grant: String)
 
-/** An age group the other server offers for import; [alreadyImported]: this club already has its copy. */
+/**
+ * An age group the other server offers for import. [blocked]: why this club can't copy it now (null: it can). The
+ * sport is the source's; [clashName] and the years are the age group already in the club that it clashes with.
+ */
 @Serializable
 data class ImportableAgeGroup(
     val id: String,
@@ -241,5 +251,25 @@ data class ImportableAgeGroup(
     val startYear: Int,
     val endYear: Int,
     val seasonName: String,
-    val alreadyImported: Boolean
+    val sport: SportType,
+    val blocked: ImportBlock? = null,
+    val clashName: String? = null,
+    val clashStartYear: Int? = null,
+    val clashEndYear: Int? = null
 )
+
+/** Why an age group can't be copied into a club right now (shown in the import list, TECHNICAL_DECISIONS §81). */
+@Serializable
+enum class ImportBlock {
+    /** This club already has its copy. */
+    ALREADY_IMPORTED,
+
+    /** Another sport: a futsal age group can't go into a football club. */
+    OTHER_SPORT,
+
+    /** The club already has an age group for these birth years in the same season. */
+    BIRTH_YEARS_TAKEN,
+
+    /** The coach space's plan has no room for another age group this season. */
+    NO_ROOM_IN_PLAN
+}

@@ -3649,7 +3649,7 @@ server still refuses its actions while someone else manages the game, and it sho
 
 ## 81. Copying an Age Group Between the Clubs and Coach Apps *(planned)*
 
-**Status:** planned with the developer on 2026-11-14, not built. What it does and its phases are in `REQUIREMENTS.md` §8 (Phase 9, "Copying an age group between the two apps"). This section records how, so each phase's PR builds the same design. It is the first coach feature that also changes the clubs server: both directions are needed, so both servers export and import.
+**Status:** built on `feature/age-group-import` (PR #231), with the developer's tests on device. What it does and its phases are in `REQUIREMENTS.md` §8 (Phase 9, "Copying an age group between the two apps"). This section records how. It is the first coach feature that also changes the clubs server: both directions are needed, so both servers export and import.
 
 **The problem.** The two apps have separate accounts on separate servers and databases (§72: "Accounts are not shared"). The importing app can't ask the other server anything: its user isn't known there.
 
@@ -3666,11 +3666,11 @@ server still refuses its actions while someone else manages the game, and it sho
 
 **Where the code goes.** The bundle model in `common`; the export and import use cases in `:server:core`, shared by both servers as the game use cases are; the routes in `:server:web`.
 
-**Remembering what was imported.** Two new tables in each database (a Flyway migration per server): `import_links` (the source server and source age group, the target age group) and `import_records` (per record, its source id and target id). They make a second import an **update**: a record with an `import_records` row takes the source's current version; a record without one was created in the copy and is left alone; a source record that's gone is left in the copy.
+**Remembering what was imported.** Two new tables in each database (a Flyway migration per server): `import_links` (the source server and source age group, the target age group) and `import_records` (per record, its source id and target id). An age group is copied **once**: importing it again is refused, and the list shows it as imported. The records are kept so a copy's links to its source stay known. Re-import as an update was dropped by the developer (2026-11-15). The import code still has the update branches for records; they can't be reached now and can be removed.
 
 **Matching.** A player with the same name and birth date in the target is reused, and an opponent with the same name (ignoring case and accents); otherwise each is created. The season is the target's with the source season's dates, found or created.
 
-**Refusals, before anything is written.** The clubs server: the club already has an age group with those birth years that season (the error names it). The coach server: the plan has no room (`PLAN_001`, as the age-group wizard). Training arrives whatever the plan and stays hidden below Pro, as after a downgrade.
+**The list and its refusals.** `ListImportableAgeGroupsUseCase` gives each offered age group its reason, if it can't be copied: `ALREADY_IMPORTED`, `OTHER_SPORT` (the source club's sport differs from the target's), `BIRTH_YEARS_TAKEN` (the target has an age group for those birth years in the same season: the reason names it and its years), or `NO_ROOM_IN_PLAN` (the coach server's plan has no room, shown once above the list with See plans). The app shows these rows with the button off. The import refuses a birth-year clash, a plan with no room and a second import, before anything is written. It doesn't check the sport: the bundle doesn't carry the source club's sport, so only the list enforces it. Training arrives whatever the plan and stays hidden below Pro, as after a downgrade.
 
 **Left out.** Staff (accounts differ between the apps). A match in progress (the next update brings it, finished). iOS (Android first).
 

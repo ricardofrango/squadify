@@ -97,7 +97,8 @@ class ListExportableAgeGroupsUseCase(
         clubRepository.getMemberships(userId).flatMap { (club, _) ->
             val mayExport = allowed { accessPolicy.requireEditClub(userId, club.id, EXPORT_MESSAGE) }
             if (!mayExport) return@flatMap emptyList()
-            ageGroupRepository.getAgeGroupsByClub(club.id).map { ageGroup ->
+            ageGroupRepository.getAgeGroupsByClub(club.id).mapNotNull { ageGroup ->
+                val season = seasonRepository.getSeasonById(ageGroup.seasonId) ?: return@mapNotNull null
                 ExportableAgeGroup(
                     id = ageGroup.id,
                     clubId = club.id,
@@ -105,7 +106,11 @@ class ListExportableAgeGroupsUseCase(
                     name = ageGroup.name,
                     startYear = ageGroup.startYear,
                     endYear = ageGroup.endYear,
-                    seasonName = seasonRepository.getSeasonById(ageGroup.seasonId)?.name.orEmpty()
+                    seasonName = season.name,
+                    sport = club.sport,
+                    seasonType = season.type,
+                    seasonStartDate = season.startDate,
+                    seasonEndDate = season.endDate
                 )
             }
         }

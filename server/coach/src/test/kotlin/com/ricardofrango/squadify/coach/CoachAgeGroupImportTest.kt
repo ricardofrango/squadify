@@ -3,7 +3,6 @@ package com.ricardofrango.squadify.coach
 import com.ricardofrango.squadify.coach.di.coachModule
 import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.domain.usecase.ImportAgeGroupUseCase
-import com.ricardofrango.squadify.model.ImportAgeGroupResult
 import com.ricardofrango.squadify.model.AgeGroupBundle
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
 import com.ricardofrango.squadify.model.CreateMatchRequest
@@ -11,7 +10,6 @@ import com.ricardofrango.squadify.model.CreateOpponentRequest
 import com.ricardofrango.squadify.model.CreatePlayer
 import com.ricardofrango.squadify.model.CreatePlayersRequest
 import com.ricardofrango.squadify.model.ExportGrantResponse
-import com.ricardofrango.squadify.model.ExportableAgeGroup
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.MatchVenue
@@ -32,6 +30,10 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 import io.ktor.client.call.body
+import com.ricardofrango.squadify.exception.ConflictException
+import com.ricardofrango.squadify.domain.usecase.ListImportableAgeGroupsUseCase
+import com.ricardofrango.squadify.model.ImportBlock
+import com.ricardofrango.squadify.model.ExportableAgeGroup
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
@@ -42,6 +44,7 @@ import io.ktor.server.testing.testApplication
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.time.Clock
 import org.junit.Test
@@ -125,10 +128,27 @@ class CoachAgeGroupImportTest {
             val ageGroups = api.get("/v1/age-groups?clubId=$benSpace") { bearerAuth(ben) }.body<List<com.ricardofrango.squadify.model.AgeGroup>>()
             assertEquals(setOf("Sub-10", "Sub-12"), ageGroups.map { it.name }.toSet())
 
-            // Imported again, the same copy is updated: nothing new is created, and there is still one copy.
-            val again = importUseCase(benId, benSpace, "https://ana.example", bundle)
-            assertEquals(ImportAgeGroupResult(result.ageGroupId, teams = 0, players = 0, opponents = 0, matches = 0), again)
+            // Imported again, it's refused: there is still one copy.
+            assertFailsWith<ConflictException> { importUseCase(benId, benSpace, "https://ana.example", bundle) }
             assertEquals(2, api.get("/v1/age-groups?clubId=$benSpace") { bearerAuth(ben) }.body<List<com.ricardofrango.squadify.model.AgeGroup>>().size)
+
+            // The import list says why each offered age group can't be copied: imported, another sport, or a birth-year clash
+            // with Ben's Sub-10 (2016) in the same season. Ben's club plays football; the season is Ana's (the same dates).
+            val season = bundle.season
+            fun offer(id: String, name: String, year: Int, sport: SportType) = ExportableAgeGroup(
+                id, "ana-club", "Ana's team", name, year, year, season.name, sport, season.type, season.startDate, season.endDate
+            )
+            val listed = ListImportableAgeGroupsUseCase(
+                koin.get(), koin.get(), koin.get(), koin.get(), koin.get(), koin.get()
+            )(benId, benSpace, "https://ana.example", listOf(
+                offer(setup.ageGroup.id, "Sub-12", 2015, SportType.FOOTBALL),
+                offer("futsal-1", "Sub-13", 2014, SportType.FUTSAL),
+                offer("clash-1", "Sub-10", 2016, SportType.FOOTBALL),
+                offer("free-1", "Sub-14", 2013, SportType.FOOTBALL)
+            ))
+            assertEquals(listOf(ImportBlock.ALREADY_IMPORTED, ImportBlock.OTHER_SPORT, ImportBlock.BIRTH_YEARS_TAKEN, null), listed.map { it.blocked })
+            assertEquals("Sub-10", listed[2].clashName)
+            assertEquals(2016, listed[2].clashStartYear)
         } finally {
             stopKoin()
         }
