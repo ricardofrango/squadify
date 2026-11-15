@@ -248,13 +248,15 @@ fun AgeGroupsNotInPlanDialog(plan: SpacePlan, onDismiss: () -> Unit) {
         body = ageGroupsNotInPlanMessage(plan),
         onDismiss = onDismiss,
         buttons = {
-            if (seePlans != null) {
-                DialogPrimaryButton(stringResource(Res.string.btn_see_plans), Modifier.fillMaxWidth(), onClick = {
-                    onDismiss()
-                    seePlans()
-                })
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (seePlans != null) {
+                    DialogPrimaryButton(stringResource(Res.string.btn_see_plans), Modifier.weight(1f), onClick = {
+                        onDismiss()
+                        seePlans()
+                    })
+                }
+                DialogSecondaryButton(stringResource(Res.string.btn_ok), Modifier.weight(1f), onClick = onDismiss)
             }
-            DialogSecondaryButton(stringResource(Res.string.btn_ok), Modifier.fillMaxWidth(), onClick = onDismiss)
         }
     )
 }
