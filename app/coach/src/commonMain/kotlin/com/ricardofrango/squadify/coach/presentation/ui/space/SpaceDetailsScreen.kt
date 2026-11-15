@@ -33,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import squadify.app.coach.generated.resources.wizard_summary_teams
 import squadify.app.coach.generated.resources.wizard_summary_age_groups
 import squadify.app.coach.generated.resources.space_details_ok
+import squadify.app.coach.generated.resources.space_details_import_age_groups
 import squadify.app.coach.generated.resources.space_details_new
 import squadify.app.coach.generated.resources.space_details_created_no_crest
 import squadify.app.coach.generated.resources.space_details_created
@@ -89,6 +90,10 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.agegroupimport.AgeGroupHandoff
+import com.ricardofrango.squadify.presentation.agegroupimport.AgeGroupImportDialog
+import com.ricardofrango.squadify.presentation.agegroupimport.CLUBS_APP_PACKAGES
+import com.ricardofrango.squadify.presentation.agegroupimport.rememberAgeGroupHandoff
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
@@ -151,6 +156,9 @@ fun SpaceDetailsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(spaceId) { viewModel.load(spaceId) }
+    // Copying an age group from the clubs app (TECHNICAL_DECISIONS §81): shown to the owner when that app is installed.
+    var importing by remember { mutableStateOf<AgeGroupHandoff?>(null) }
+    val handoff = rememberAgeGroupHandoff(CLUBS_APP_PACKAGES) { importing = it }
     LaunchedEffect(refresh) {
         if (refresh) {
             onRefreshed()
@@ -167,6 +175,7 @@ fun SpaceDetailsScreen(
         onEditSpace = onEditSpace,
         opponents = { OpponentsBrowser(spaceId, onOpponentClick = { onOpenOpponent(it.id) }, onCreateOpponent = onCreateOpponent, refresh = refresh) },
         onCreateOpponent = { onCreateOpponent("") },
+        onImport = if (handoff.installed) handoff::start else null,
         newAgeGroupIds = newAgeGroupIds,
         createdMessage = if (newAgeGroupIds.isEmpty()) null else stringResource(
             if (crestSaved) Res.string.space_details_created else Res.string.space_details_created_no_crest,
@@ -174,6 +183,17 @@ fun SpaceDetailsScreen(
             pluralStringResource(Res.plurals.wizard_summary_teams, newTeams, newTeams)
         )
     )
+    importing?.let { handoff ->
+        AgeGroupImportDialog(
+            clubId = spaceId,
+            handoff = handoff,
+            onImported = {
+                importing = null
+                viewModel.load(spaceId, force = true)
+            },
+            onDismiss = { importing = null }
+        )
+    }
 }
 
 @Composable
@@ -188,7 +208,8 @@ private fun SpaceDetailsContent(
     opponents: @Composable () -> Unit,
     onCreateOpponent: () -> Unit,
     newAgeGroupIds: List<String> = emptyList(),
-    createdMessage: String? = null
+    createdMessage: String? = null,
+    onImport: (() -> Unit)? = null
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val snackbar = remember { SnackbarHostState() }
@@ -225,7 +246,7 @@ private fun SpaceDetailsContent(
             when (state) {
                 SpaceDetailsUiState.Loading -> Unit
                 SpaceDetailsUiState.Failed -> ErrorScreen(title = stringResource(Res.string.msg_space_details_failed), body = null, onRetry = onRetry, modifier = Modifier.fillMaxSize())
-                is SpaceDetailsUiState.Loaded -> if (tab == 0) AgeGroupList(state, newAgeGroupIds, onOpenAgeGroup, onAddAgeGroups) else opponents()
+                is SpaceDetailsUiState.Loaded -> if (tab == 0) AgeGroupList(state, newAgeGroupIds, onOpenAgeGroup, onAddAgeGroups, onImport) else opponents()
             }
         }
     }
@@ -345,11 +366,13 @@ private fun AgeGroupList(
     state: SpaceDetailsUiState.Loaded,
     newAgeGroupIds: List<String>,
     onOpenAgeGroup: (String) -> Unit,
-    onAddAgeGroups: (Club) -> Unit
+    onAddAgeGroups: (Club) -> Unit,
+    onImport: (() -> Unit)? = null
 ) {
     val details = state.details
     if (state.ageGroups.isEmpty()) {
         EmptyAgeGroups(details, onAddAgeGroups)
+        if (details.isOwner && onImport != null) ImportAgeGroupsButton(onImport)
         return
     }
     LazyColumn(
@@ -365,6 +388,7 @@ private fun AgeGroupList(
         if (details.isOwner && details.ageGroupsLeft == 0) {
             item(key = "plan-full") { AgeGroupsNotInPlanNotice(details.plan) }
         }
+        if (details.isOwner && onImport != null) item(key = "import") { ImportAgeGroupsButton(onImport) }
         item(key = "count") {
             Text(
                 pluralStringResource(Res.plurals.space_details_count, state.ageGroups.size, state.ageGroups.size),
@@ -441,6 +465,13 @@ private fun bornYears(ageGroup: AgeGroup): String =
 @Composable
 private fun Note(text: String) {
     Text(text, style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.75f))
+}
+
+@Composable
+private fun ImportAgeGroupsButton(onImport: () -> Unit) {
+    TextButton(onClick = onImport, modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal)) {
+        Text(stringResource(Res.string.space_details_import_age_groups), color = PitchGreen, fontWeight = FontWeight.Bold)
+    }
 }
 
 @Composable
