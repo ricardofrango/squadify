@@ -1653,4 +1653,16 @@
     <string name="msg_delete_opponent_no_matches">It has no games.</string>
     <string name="msg_opponent_delete_failed">Couldn't delete the opponent. Try again.</string>
     <string name="msg_cannot_be_undone">This can't be undone.</string>
+    <string name="export_consent_title">Allow a copy of an age group?</string>
+    <string name="export_consent_body">The other Squadify app will copy the age group you choose from here, with its teams, players, matches and training. Nothing is changed here.</string>
+    <string name="export_consent_failed">Couldn't allow it. Sign in to Squadify in this app and try again.</string>
+    <string name="btn_export_allow">Allow</string>
+    <string name="import_dialog_title">Import an age group</string>
+    <string name="import_dialog_hint">Choose one to copy with its teams, players, matches and training.</string>
+    <string name="import_dialog_loading">Loading the age groups…</string>
+    <string name="import_dialog_empty">There's nothing to import from there.</string>
+    <string name="import_dialog_failed">Couldn't load the age groups. Check your connection and try again.</string>
+    <string name="import_dialog_imported">Imported</string>
+    <string name="import_dialog_import_failed">Couldn't import it. Check your connection and try again.</string>
+    <string name="btn_import_age_group">Import</string>
 </resources>

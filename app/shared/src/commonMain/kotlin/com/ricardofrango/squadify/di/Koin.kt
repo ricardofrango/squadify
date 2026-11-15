@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.di
 
+import com.ricardofrango.squadify.domain.repository.AgeGroupImportRepository
+import com.ricardofrango.squadify.data.remote.AgeGroupImportRepositoryImpl
 import io.ktor.http.HttpHeaders
 import io.ktor.client.request.header
 import androidx.compose.ui.text.intl.Locale
@@ -136,6 +138,7 @@ val dataModule = module {
     single { PushLinkInbox() }
     single<AuthRepository> { AuthRepositoryImpl(get(publicHttpClientQualifier), get()) }
     single<ClubRepository> { ClubRepositoryImpl(get(), get()) }
+    single<AgeGroupImportRepository> { AgeGroupImportRepositoryImpl(get(), get()) }
     single<TeamRepository> { TeamRepositoryImpl(get(), get()) }
     single<PlayerRepository> { PlayerRepositoryImpl(get(), get()) }
     single<AgeGroupPlayerRepository> { AgeGroupPlayerRepositoryImpl(get(), get()) }

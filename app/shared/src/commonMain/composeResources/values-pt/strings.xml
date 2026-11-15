@@ -1650,4 +1650,16 @@
     <string name="msg_delete_opponent_no_matches">Não tem jogos.</string>
     <string name="msg_opponent_delete_failed">Não foi possível apagar o adversário. Tenta outra vez.</string>
     <string name="msg_cannot_be_undone">Não pode ser desfeito.</string>
+    <string name="export_consent_title">Permitir uma cópia de um escalão?</string>
+    <string name="export_consent_body">A outra app Squadify vai copiar o escalão que escolheres daqui, com as suas equipas, jogadores, jogos e treinos. Nada é alterado aqui.</string>
+    <string name="export_consent_failed">Não foi possível permitir. Entra na Squadify nesta app e tenta outra vez.</string>
+    <string name="btn_export_allow">Permitir</string>
+    <string name="import_dialog_title">Importar um escalão</string>
+    <string name="import_dialog_hint">Escolhe um para copiar com as suas equipas, jogadores, jogos e treinos.</string>
+    <string name="import_dialog_loading">A carregar os escalões…</string>
+    <string name="import_dialog_empty">Não há nada para importar daí.</string>
+    <string name="import_dialog_failed">Não foi possível carregar os escalões. Verifica a ligação e tenta outra vez.</string>
+    <string name="import_dialog_imported">Importado</string>
+    <string name="import_dialog_import_failed">Não foi possível importar. Verifica a ligação e tenta outra vez.</string>
+    <string name="btn_import_age_group">Importar</string>
 </resources>

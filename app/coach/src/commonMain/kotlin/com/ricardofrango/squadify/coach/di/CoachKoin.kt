@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.di
 
+import com.ricardofrango.squadify.domain.repository.AgeGroupImportRepository
+import com.ricardofrango.squadify.data.remote.AgeGroupImportRepositoryImpl
 import com.ricardofrango.squadify.coach.domain.CoachAds
 import com.ricardofrango.squadify.coach.data.AccountDeletionRepositoryImpl
 import com.ricardofrango.squadify.coach.data.SpaceRepositoryImpl
@@ -43,6 +45,7 @@ import org.koin.dsl.module
 /** The coach app's own pieces: the spaces, the home, joining with a code, invites, and where sign-in leads. */
 val coachModule = module {
     single<SpaceRepository> { SpaceRepositoryImpl(get(), get()) }
+    single<AgeGroupImportRepository> { AgeGroupImportRepositoryImpl(get(), get()) }
     single<StaffInviteRepository> { StaffInviteRepositoryImpl(get(), get()) }
     single<AccountDeletionRepository> { AccountDeletionRepositoryImpl(get(), get()) }
     factory { GetAccountDeletionSummaryUseCase(get()) }
