@@ -4,6 +4,11 @@ import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.besideRail
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import squadify.app.shared.generated.resources.msg_refresh_failed
+import squadify.app.shared.generated.resources.club_details_import_age_groups
+import com.ricardofrango.squadify.presentation.agegroupimport.AgeGroupHandoff
+import com.ricardofrango.squadify.presentation.agegroupimport.AgeGroupImportDialog
+import com.ricardofrango.squadify.presentation.agegroupimport.COACH_APP_PACKAGES
+import com.ricardofrango.squadify.presentation.agegroupimport.rememberAgeGroupHandoff
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -256,7 +261,21 @@ private fun ClubDetailsTabContent(
     onNavigateToRateSession: (sessionId: String) -> Unit,
     clubName: String
 ) {
+    // Copying an age group from the coach app (TECHNICAL_DECISIONS §81): an admin or coordinator, when it's installed.
+    var importing by remember { mutableStateOf<AgeGroupHandoff?>(null) }
+    val importHandoff = rememberAgeGroupHandoff(COACH_APP_PACKAGES) { importing = it }
     Column(modifier = Modifier.fillMaxSize()) {
+        importing?.let { handoff ->
+            AgeGroupImportDialog(
+                clubId = clubId,
+                handoff = handoff,
+                onImported = {
+                    importing = null
+                    actions.loadClubDetails(clubId, forceReload = true)
+                },
+                onDismiss = { importing = null }
+            )
+        }
         when (selectedTab) {
             CLUB_TAB_HOME -> Box(Modifier.fillMaxSize()) {
                 // Pull-to-refresh: the tab stays under the small indicator; a failure is a snackbar.
@@ -311,6 +330,11 @@ private fun ClubDetailsTabContent(
 
             CLUB_TAB_AGE_GROUPS -> {
                 AgeGroupsFilterSection(state = state, actions = actions)
+                if (state.canEditClub && importHandoff.installed) {
+                    TextButton(onClick = importHandoff::start, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(Res.string.club_details_import_age_groups), color = PitchGreen, fontWeight = FontWeight.Bold)
+                    }
+                }
                 val ageGroups = state.ageGroupsForAgeGroupsTab()
                 if (ageGroups.isEmpty()) {
                     // Some other season has age groups (the club-wide "none at all" case is handled

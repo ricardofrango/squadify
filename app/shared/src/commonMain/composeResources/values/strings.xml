@@ -1665,4 +1665,5 @@
     <string name="import_dialog_imported">Imported</string>
     <string name="import_dialog_import_failed">Couldn't import it. Check your connection and try again.</string>
     <string name="btn_import_age_group">Import</string>
+    <string name="club_details_import_age_groups">Import an age group from the coach app</string>
 </resources>

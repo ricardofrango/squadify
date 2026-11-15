@@ -1662,4 +1662,5 @@
     <string name="import_dialog_imported">Importado</string>
     <string name="import_dialog_import_failed">Não foi possível importar. Verifica a ligação e tenta outra vez.</string>
     <string name="btn_import_age_group">Importar</string>
+    <string name="club_details_import_age_groups">Importar um escalão da app de treinadores</string>
 </resources>
