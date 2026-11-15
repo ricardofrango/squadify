@@ -109,7 +109,7 @@ fun AgeGroupImportDialog(
                                     color = CarbonGray
                                 )
                                 reasonFor(ageGroup, clubSport)?.let { reason ->
-                                    Text(reason, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.7f), modifier = Modifier.padding(top = 2.dp))
+                                    Text(reason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 2.dp))
                                 }
                             }
                             Spacer(Modifier.width(8.dp))
@@ -117,8 +117,9 @@ fun AgeGroupImportDialog(
                                 Text(stringResource(Res.string.import_dialog_imported), style = MaterialTheme.typography.bodySmall, color = CarbonGray)
                             } else {
                                 val busy = importing != null
+                                val canImport = !busy && ageGroup.blocked == null
                                 TextButton(
-                                    enabled = !busy && ageGroup.blocked == null,
+                                    enabled = canImport,
                                     onClick = {
                                         importing = ageGroup.id
                                         importFailed = false
@@ -136,7 +137,11 @@ fun AgeGroupImportDialog(
                                     if (importing == ageGroup.id) {
                                         CircularProgressIndicator(Modifier.size(20.dp), color = PitchGreen, strokeWidth = 2.dp)
                                     } else {
-                                        Text(stringResource(Res.string.btn_import_age_group), color = PitchGreen, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            stringResource(Res.string.btn_import_age_group),
+                                            color = if (canImport) PitchGreen else CarbonGray.copy(alpha = 0.5f),
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
                                 }
                             }
