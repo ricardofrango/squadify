@@ -369,7 +369,9 @@ class ImportAgeGroupUseCase(
                 relatedEventId = e.relatedEventId?.let { eventIds[it] }
             )
         }
-        m.events.zip(events).forEach { (source, event) ->
+        // An assist points at its goal (relatedEventId), which must be written first: events without a related event
+        // go in before the ones that have one.
+        m.events.zip(events).sortedBy { (source, _) -> source.relatedEventId != null }.forEach { (source, event) ->
             if (source.id in knownEvents) {
                 eventRepository.updateEvent(event)
             } else {
