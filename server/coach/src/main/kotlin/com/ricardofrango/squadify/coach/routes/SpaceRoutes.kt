@@ -2,6 +2,9 @@ package com.ricardofrango.squadify.coach.routes
 
 import com.ricardofrango.squadify.presentation.routes.appLanguage
 import com.ricardofrango.squadify.coach.domain.AddAgeGroupsUseCase
+import com.ricardofrango.squadify.coach.domain.CoachSeasons
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.coach.domain.DeleteSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.LeaveSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpaceDetailsUseCase
@@ -40,6 +43,9 @@ fun Route.spaceRoutes() {
     val requestPlanUseCase by inject<RequestPlanUseCase>()
     val deleteSpaceUseCase by inject<DeleteSpaceUseCase>()
     val leaveSpaceUseCase by inject<LeaveSpaceUseCase>()
+    val accessPolicy by inject<AccessPolicy>()
+    val transactionManager by inject<TransactionManager>()
+    val coachSeasons by inject<CoachSeasons>()
 
     authenticate("auth-jwt") {
         get("/spaces") {
@@ -58,6 +64,18 @@ fun Route.spaceRoutes() {
         post("/plans/request") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
             call.respond(requestPlanUseCase(currentUserId, call.receive<RequestPlanRequest>().plan, call.appLanguage()))
+        }
+        // Whether the owner's space has room for one more age group this season, by its plan: the same check the
+        // wizard and the import make, before either opens. 204 when it has room; 403 PLAN_001 when it doesn't.
+        get("/spaces/{spaceId}/age-groups/room") {
+            val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            val spaceId = call.parameters["spaceId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            transactionManager.runInTransaction {
+                accessPolicy.requireCreateAgeGroups(currentUserId, spaceId)
+                // No season yet means no age groups this season, so room for one.
+                coachSeasons.currentOrNull(spaceId)?.let { accessPolicy.requireRoomForAgeGroups(spaceId, it.id, 1) }
+            }
+            call.respond(HttpStatusCode.NoContent)
         }
         // The age-group wizard: age groups for one club, with their teams, in their own space (made the first time).
         post("/space/age-groups") {

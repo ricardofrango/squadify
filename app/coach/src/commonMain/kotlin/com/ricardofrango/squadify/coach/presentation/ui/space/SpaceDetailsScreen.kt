@@ -75,7 +75,12 @@ import com.ricardofrango.squadify.presentation.ui.components.AdBanner
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryFab
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
+import com.ricardofrango.squadify.presentation.ui.components.AgeGroupsNotInPlanDialog
 import com.ricardofrango.squadify.presentation.ui.components.AgeGroupsNotInPlanNotice
+import com.ricardofrango.squadify.data.remote.isNotInPlan
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyMark
@@ -159,6 +164,22 @@ fun SpaceDetailsScreen(
     // Copying an age group from the clubs app (TECHNICAL_DECISIONS §81): shown to the owner when that app is installed.
     var importing by remember { mutableStateOf<AgeGroupHandoff?>(null) }
     val handoff = rememberAgeGroupHandoff(CLUBS_APP_PACKAGES) { importing = it }
+    // Adding or importing an age group first asks the coach server for room (its plan decides, not the app). A refusal
+    // opens the popup; anything else goes on, and the server refuses again if the room has gone by the time it's made.
+    val scope = rememberCoroutineScope()
+    var planRefused by remember { mutableStateOf(false) }
+    fun askRoom(then: () -> Unit) {
+        scope.launch {
+            try {
+                viewModel.checkAgeGroupRoom(spaceId)
+                then()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (e.isNotInPlan) planRefused = true else then()
+            }
+        }
+    }
     LaunchedEffect(refresh) {
         if (refresh) {
             onRefreshed()
@@ -171,11 +192,11 @@ fun SpaceDetailsScreen(
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.load(spaceId, force = true) },
         onOpenAgeGroup = onOpenAgeGroup,
-        onAddAgeGroups = onAddAgeGroups,
+        onAddAgeGroups = { space -> askRoom { onAddAgeGroups(space) } },
         onEditSpace = onEditSpace,
         opponents = { OpponentsBrowser(spaceId, onOpponentClick = { onOpenOpponent(it.id) }, onCreateOpponent = onCreateOpponent, refresh = refresh) },
         onCreateOpponent = { onCreateOpponent("") },
-        onImport = if (handoff.installed) handoff::start else null,
+        onImport = if (handoff.installed) ({ askRoom(handoff::start) }) else null,
         newAgeGroupIds = newAgeGroupIds,
         createdMessage = if (newAgeGroupIds.isEmpty()) null else stringResource(
             if (crestSaved) Res.string.space_details_created else Res.string.space_details_created_no_crest,
@@ -196,6 +217,11 @@ fun SpaceDetailsScreen(
             },
             onDismiss = { importing = null }
         )
+    }
+    if (planRefused) {
+        (state as? SpaceDetailsUiState.Loaded)?.details?.plan?.let { plan ->
+            AgeGroupsNotInPlanDialog(plan, onDismiss = { planRefused = false })
+        }
     }
 }
 

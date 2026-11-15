@@ -267,6 +267,9 @@ enum class ImportBlock {
     /** Another sport: a futsal age group can't go into a football club. */
     OTHER_SPORT,
 
+    /** Another season (other dates) than this club's: only the club's own season's age groups are copied in. */
+    OTHER_SEASON,
+
     /** The club already has an age group for these birth years in the same season. */
     BIRTH_YEARS_TAKEN,
 

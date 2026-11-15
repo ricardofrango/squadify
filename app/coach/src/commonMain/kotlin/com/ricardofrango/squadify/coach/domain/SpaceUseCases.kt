@@ -40,6 +40,11 @@ class GetSpaceDetailsUseCase(private val spaceRepository: SpaceRepository) {
     suspend operator fun invoke(spaceId: String): SpaceDetails = spaceRepository.getSpaceDetails(spaceId)
 }
 
+/** Whether the space has room for one more age group, as the coach server decides it (its plan); throws its refusal. */
+class CheckAgeGroupRoomUseCase(private val spaceRepository: SpaceRepository) {
+    suspend operator fun invoke(spaceId: String) = spaceRepository.checkAgeGroupRoom(spaceId)
+}
+
 /** What the age-group wizard made, and whether every age group got its crest (the crests come after). */
 data class AgeGroupsAdded(val added: AddedAgeGroups, val crestSaved: Boolean)
 

@@ -39,6 +39,7 @@ class OwnSpacePlanTest {
         )
         override suspend fun getSpaces() = spaces.also { spacesLoaded++ }
         override suspend fun getSpaceDetails(spaceId: String): com.ricardofrango.squadify.model.SpaceDetails = error("not used")
+        override suspend fun checkAgeGroupRoom(spaceId: String) = error("not used")
         override suspend fun addAgeGroups(request: com.ricardofrango.squadify.model.AddAgeGroupsRequest): com.ricardofrango.squadify.model.AddedAgeGroups = error("not used")
         override suspend fun uploadAgeGroupCrest(ageGroupId: String, bytes: ByteArray): String = error("not used")
         override suspend fun imageBytes(path: String): ByteArray = error("not used")

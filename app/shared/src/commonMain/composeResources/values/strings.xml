@@ -1665,6 +1665,7 @@
     <string name="import_dialog_imported">Imported</string>
     <string name="import_dialog_import_failed">Couldn't import it. Check your connection and try again.</string>
     <string name="import_dialog_other_sport">A %1$s age group. This club plays %2$s.</string>
+    <string name="import_dialog_other_season">This age group is from %1$s. Only this club's season can be copied in.</string>
     <string name="import_dialog_clash">This club already has %1$s for birth years %2$s this season.</string>
     <string name="btn_import_age_group">Import</string>
     <string name="club_details_import_age_groups">Import an age group from the coach app</string>

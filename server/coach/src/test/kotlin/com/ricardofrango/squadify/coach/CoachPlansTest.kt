@@ -76,6 +76,8 @@ class CoachPlansTest {
         val spaceId = setup.space.id
         assertEquals(PlanLimits.FREE, api.get("/v1/spaces") { bearerAuth(owner) }.body<List<SpaceAgeGroups>>().single().plan)
 
+        // Before the wizard or the import opens, the server says whether there's room: not on Free, with the first one used.
+        assertTrue(api.get("/v1/spaces/$spaceId/age-groups/room") { bearerAuth(owner) }.isPlanLimit())
         assertTrue(api.ageGroup(owner, spaceId, "Sub-14", 2013).isPlanLimit())
         assertTrue(api.post("/v1/age-groups/${setup.ageGroup.id}/invites") { bearerAuth(owner) }.isPlanLimit())
 
@@ -98,6 +100,7 @@ class CoachPlansTest {
 
         // Basic: stats.
         api.setPlan(spaceId, PlanLimits.BASIC)
+        assertEquals(HttpStatusCode.NoContent, api.get("/v1/spaces/$spaceId/age-groups/room") { bearerAuth(owner) }.status)
         assertTrue(api.get("/v1/matches/${match.id}") { bearerAuth(owner) }.body<MatchDetails>().statsInPlan)
         assertEquals(HttpStatusCode.OK, api.get("/v1/teams/${setup.team.id}/season-record") { bearerAuth(owner) }.status)
     }

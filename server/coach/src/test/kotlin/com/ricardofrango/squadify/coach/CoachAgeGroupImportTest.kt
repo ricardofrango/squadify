@@ -149,6 +149,17 @@ class CoachAgeGroupImportTest {
             assertEquals(listOf(ImportBlock.ALREADY_IMPORTED, ImportBlock.OTHER_SPORT, ImportBlock.BIRTH_YEARS_TAKEN, null), listed.map { it.blocked })
             assertEquals("Sub-10", listed[2].clashName)
             assertEquals(2016, listed[2].clashStartYear)
+
+            // An age group from another season (other dates) is never copied in: listed as such, and the import is refused
+            // without making a season for it.
+            val otherSeason = ExportableAgeGroup(
+                "other-1", "ana-club", "Ana's team", "Sub-14", 2013, 2013, "2016/17", SportType.FOOTBALL, season.type,
+                kotlinx.datetime.LocalDate(2016, 9, 1), kotlinx.datetime.LocalDate(2017, 6, 30)
+            )
+            val otherListed = ListImportableAgeGroupsUseCase(
+                koin.get(), koin.get(), koin.get(), koin.get(), koin.get(), koin.get()
+            )(benId, benSpace, "https://ana.example", listOf(otherSeason))
+            assertEquals(listOf(ImportBlock.OTHER_SEASON), otherListed.map { it.blocked })
         } finally {
             stopKoin()
         }

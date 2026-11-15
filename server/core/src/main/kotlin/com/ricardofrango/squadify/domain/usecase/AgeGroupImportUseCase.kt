@@ -38,7 +38,6 @@ import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchReport
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Player
-import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TrainingExercise
 import com.ricardofrango.squadify.model.TrainingSession
@@ -297,11 +296,10 @@ class ImportAgeGroupUseCase(
         bundle: AgeGroupBundle,
         sizeFor: (Int?) -> Int?
     ): String {
+        // Only the club's own season: an age group from another season (other dates) is never copied in, and no season is made for it.
         val source = bundle.season
         val season = seasonRepository.findByDetails(targetClubId, source.type, source.startDate, source.endDate)
-            ?: seasonRepository.createSeason(
-                Season(Uuid.random().toString(), targetClubId, source.name, source.type, source.startDate, source.endDate, active = true)
-            )
+            ?: throw ConflictException("This age group is from ${source.name}, which isn't this club's season, so it can't be copied in")
         accessPolicy.requireRoomForAgeGroups(targetClubId, season.id, 1)
         val group = bundle.ageGroup
         val clash = ageGroupRepository.findByClubAndSeason(targetClubId, season.id).firstOrNull { other ->
@@ -457,10 +455,11 @@ class ListImportableAgeGroupsUseCase(
                     accessPolicy.shareBirthYears(a.name, other.name) && birthYearsOverlap(a.startYear, a.endYear, other.startYear, other.endYear)
                 }
             }
-            val room = season == null || allowed { accessPolicy.requireRoomForAgeGroups(targetClubId, season.id, 1) }
+            val room = season != null && allowed { accessPolicy.requireRoomForAgeGroups(targetClubId, season.id, 1) }
             val blocked = when {
                 a.id in linked -> ImportBlock.ALREADY_IMPORTED
                 a.sport != club.sport -> ImportBlock.OTHER_SPORT
+                season == null -> ImportBlock.OTHER_SEASON
                 !room -> ImportBlock.NO_ROOM_IN_PLAN
                 clash != null -> ImportBlock.BIRTH_YEARS_TAKEN
                 else -> null

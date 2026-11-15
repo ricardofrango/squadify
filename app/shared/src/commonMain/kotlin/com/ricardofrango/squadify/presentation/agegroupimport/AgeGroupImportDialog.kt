@@ -48,6 +48,7 @@ import squadify.app.shared.generated.resources.import_dialog_imported
 import squadify.app.shared.generated.resources.import_dialog_import_failed
 import squadify.app.shared.generated.resources.import_dialog_clash
 import squadify.app.shared.generated.resources.import_dialog_loading
+import squadify.app.shared.generated.resources.import_dialog_other_season
 import squadify.app.shared.generated.resources.import_dialog_other_sport
 import squadify.app.shared.generated.resources.import_dialog_title
 import squadify.app.shared.generated.resources.sport_football
@@ -158,6 +159,7 @@ fun AgeGroupImportDialog(
 @Composable
 private fun reasonFor(ageGroup: ImportableAgeGroup, clubSport: SportType): String? = when (ageGroup.blocked) {
     ImportBlock.OTHER_SPORT -> stringResource(Res.string.import_dialog_other_sport, sportName(ageGroup.sport), sportName(clubSport))
+    ImportBlock.OTHER_SEASON -> stringResource(Res.string.import_dialog_other_season, ageGroup.seasonName)
     ImportBlock.BIRTH_YEARS_TAKEN -> {
         val start = ageGroup.clashStartYear ?: 0
         val end = ageGroup.clashEndYear ?: start
