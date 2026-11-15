@@ -25,6 +25,8 @@ dependencies {
     implementation(libs.koin.ktor)
     // ResendSender calls Resend's API.
     implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
     // FirebaseAdminPushNotificationService sends the pushes, each server with its own Firebase project.
     implementation(libs.firebase.admin)
     // Image storage: Railway Storage Buckets speak the S3 API. The JDK's HTTP client only -- no Apache
