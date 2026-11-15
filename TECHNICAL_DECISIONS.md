@@ -3674,3 +3674,5 @@ server still refuses its actions while someone else manages the game, and it sho
 
 **Left out.** Staff (accounts differ between the apps). A match in progress (the next update brings it, finished). iOS (Android first).
 
+**Configuration (age group import).** Each server accepts imports only from the addresses in `IMPORT_SOURCES` (comma-separated origins, e.g. `https://squadify-staging.up.railway.app`), and imports from an address in `IMPORT_SOURCES_CROSS_ENVIRONMENT` only by a platform admin. The clubs server's platform admins are the users with `is_platform_admin`; the coach server's are `PLATFORM_ADMIN_EMAILS` and the same flag. The consent screen (`ExportAgeGroupsActivity`) answers only the Squadify apps' packages (`CLUBS_APP_PACKAGES`, `COACH_APP_PACKAGES`); every other app is refused at once.
+

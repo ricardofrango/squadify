@@ -43,6 +43,12 @@ class ExportAgeGroupsActivity : ComponentActivity(), KoinComponent {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Only the Squadify apps may ask for a grant: any other app that starts this screen is refused at once.
+        val caller = callingActivity?.packageName
+        if (caller == null || caller !in CLUBS_APP_PACKAGES + COACH_APP_PACKAGES) {
+            finishWith(Activity.RESULT_CANCELED, null, null)
+            return
+        }
         setContent {
             SquadifyTheme {
                 Box(Modifier.fillMaxSize().background(ScreenBackground))
