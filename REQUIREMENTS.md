@@ -409,8 +409,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - **Where:** an Import option next to adding age groups, in both apps, shown only when the other app is installed (any of its variants). It opens the other app to ask for permission, then lists the age groups that can be imported; one imported before shows Update.
         - **Between environments** (staging into production and back): platform admins only. Everyone else imports within their own environment.
         - [x] 1. The permission (a short-lived export grant), the bundle and the first import, on both servers (server side, feature/age-group-import; the coach round trip is tested, the clubs side compiles and is not yet covered by a test).
-        - [x] 2. The coach app's Import (from the clubs app): detecting the other app, the handoff and the list (built; to test on a device).
-        - [x] 3. The clubs app's Import (from the coach app) in the club's age groups tab (built; to test on a device).
+        - [x] 2. The coach app's Import (from the clubs app): detecting the other app, the handoff and the list (tested on a device).
+        - [x] 3. The clubs app's Import (from the coach app) in the club's age groups tab (tested on a device, both directions).
         - [x] 4. Update (server side): importing again updates the copy.
         - [x] 5. Training (server side, on Pro in the coach app).
         - [x] 6. Images (server side): photos, opponent logos and the crest are copied as files.
