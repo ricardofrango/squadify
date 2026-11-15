@@ -75,7 +75,6 @@ import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.ui.components.AdBanner
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryFab
-import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.AgeGroupsNotInPlanDialog
 import com.ricardofrango.squadify.presentation.ui.components.AgeGroupsNotInPlanNotice
 import com.ricardofrango.squadify.data.remote.isNotInPlan
@@ -286,7 +285,7 @@ private fun SpaceDetailsContent(
             when (state) {
                 SpaceDetailsUiState.Loading -> Unit
                 SpaceDetailsUiState.Failed -> ErrorScreen(title = stringResource(Res.string.msg_space_details_failed), body = null, onRetry = onRetry, modifier = Modifier.fillMaxSize())
-                is SpaceDetailsUiState.Loaded -> if (tab == 0) AgeGroupList(state, newAgeGroupIds, onOpenAgeGroup, onAddAgeGroups, onImport) else opponents()
+                is SpaceDetailsUiState.Loaded -> if (tab == 0) AgeGroupList(state, newAgeGroupIds, onOpenAgeGroup, onImport) else opponents()
             }
         }
     }
@@ -406,13 +405,15 @@ private fun AgeGroupList(
     state: SpaceDetailsUiState.Loaded,
     newAgeGroupIds: List<String>,
     onOpenAgeGroup: (String) -> Unit,
-    onAddAgeGroups: (Club) -> Unit,
     onImport: (() -> Unit)? = null
 ) {
     val details = state.details
     if (state.ageGroups.isEmpty()) {
-        EmptyAgeGroups(details, onAddAgeGroups)
-        if (details.isOwner && onImport != null) ImportAgeGroupsButton(onImport)
+        // The box, and the import under it: the floating button adds age groups.
+        Column(Modifier.fillMaxSize()) {
+            EmptyAgeGroups()
+            if (details.isOwner && onImport != null) ImportAgeGroupsButton(onImport)
+        }
         return
     }
     LazyColumn(
@@ -515,8 +516,8 @@ private fun ImportAgeGroupsButton(onImport: () -> Unit) {
 }
 
 @Composable
-private fun EmptyAgeGroups(details: SpaceDetails, onAddAgeGroups: (Club) -> Unit) {
-    Box(Modifier.fillMaxSize().padding(ScreenPadding.Horizontal), contentAlignment = Alignment.TopCenter) {
+private fun EmptyAgeGroups() {
+    Box(Modifier.fillMaxWidth().padding(ScreenPadding.Horizontal), contentAlignment = Alignment.TopCenter) {
         SectionCard(modifier = Modifier.widthIn(max = 480.dp).padding(top = 12.dp)) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.size(56.dp).clip(RoundedCornerShape(14.dp)).background(PitchGreen.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
@@ -524,15 +525,6 @@ private fun EmptyAgeGroups(details: SpaceDetails, onAddAgeGroups: (Club) -> Unit
                 }
                 Text(stringResource(Res.string.space_details_empty_title), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
                 Text(stringResource(Res.string.space_details_empty_body), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.75f))
-                if (details.isOwner) {
-                    Spacer(Modifier.height(4.dp))
-                    PrimaryLoadingButton(
-                        text = Res.string.space_details_add_age_groups,
-                        submittingText = Res.string.space_details_add_age_groups,
-                        isLoading = false,
-                        onClick = { onAddAgeGroups(details.space) }
-                    )
-                }
             }
         }
     }
