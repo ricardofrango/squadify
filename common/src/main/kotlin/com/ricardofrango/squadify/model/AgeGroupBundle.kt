@@ -227,3 +227,19 @@ data class ImportAgeGroupRequest(
     val sourceAgeGroupId: String,
     val grant: String
 )
+
+/** The importing app's request for the age groups a grant can copy from [sourceUrl] into [clubId]. */
+@Serializable
+data class ListSourceAgeGroupsRequest(val clubId: String, val sourceUrl: String, val grant: String)
+
+/** An age group the other server offers for import; [alreadyImported]: this club already has its copy. */
+@Serializable
+data class ImportableAgeGroup(
+    val id: String,
+    val clubName: String,
+    val name: String,
+    val startYear: Int,
+    val endYear: Int,
+    val seasonName: String,
+    val alreadyImported: Boolean
+)

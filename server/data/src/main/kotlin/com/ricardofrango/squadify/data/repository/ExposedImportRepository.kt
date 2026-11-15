@@ -54,6 +54,11 @@ class ExposedImportRepository : ImportRepository {
                 (ImportLinks.sourceAgeGroupId eq sourceAgeGroupId.toUuid())
         }.singleOrNull()?.get(ImportLinks.targetAgeGroupId)?.toString()
 
+    override suspend fun linkedAgeGroups(targetClubId: String, sourceServer: String): Set<String> =
+        ImportLinks.selectAll().where {
+            (ImportLinks.targetClubId eq targetClubId.toUuid()) and (ImportLinks.sourceServer eq sourceServer)
+        }.map { it[ImportLinks.sourceAgeGroupId].toString() }.toSet()
+
     override suspend fun saveAgeGroupLink(targetClubId: String, sourceServer: String, sourceAgeGroupId: String, targetAgeGroupId: String) {
         ImportLinks.insert {
             it[ImportLinks.targetClubId] = targetClubId.toUuid()

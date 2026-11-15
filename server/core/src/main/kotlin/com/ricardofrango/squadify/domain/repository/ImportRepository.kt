@@ -22,6 +22,9 @@ interface ImportRepository {
     /** The target age group an earlier import of [sourceAgeGroupId] from [sourceServer] made in [targetClubId], if any. */
     suspend fun findAgeGroup(targetClubId: String, sourceServer: String, sourceAgeGroupId: String): String?
 
+    /** The source age groups from [sourceServer] already imported into [targetClubId]. */
+    suspend fun linkedAgeGroups(targetClubId: String, sourceServer: String): Set<String>
+
     suspend fun saveAgeGroupLink(targetClubId: String, sourceServer: String, sourceAgeGroupId: String, targetAgeGroupId: String)
 
     /** The target id a source record became, by its [kind] (TEAM, PLAYER, OPPONENT, MATCH...), if it was imported. */
