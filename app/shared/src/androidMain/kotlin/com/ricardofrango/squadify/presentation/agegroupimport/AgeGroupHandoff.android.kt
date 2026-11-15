@@ -1,6 +1,8 @@
 package com.ricardofrango.squadify.presentation.agegroupimport
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -30,14 +32,20 @@ actual fun rememberAgeGroupHandoff(targetPackages: List<String>, onGranted: (Age
             override val installed: Boolean = installedPackage != null
             override fun start() {
                 val target = installedPackage ?: return
-                launcher.launch(Intent().setClassName(target, EXPORT_AGE_GROUPS_ACTIVITY))
+                // An older build of the other app may not declare the consent screen: nothing to start, not a crash.
+                try {
+                    launcher.launch(Intent().setClassName(target, EXPORT_AGE_GROUPS_ACTIVITY))
+                } catch (e: ActivityNotFoundException) {
+                    Unit
+                }
             }
         }
     }
 }
 
+// Installed, and its build declares the consent screen (an older build of the app may not).
 private fun Context.isInstalled(packageName: String): Boolean = try {
-    packageManager.getApplicationInfo(packageName, 0)
+    packageManager.getActivityInfo(ComponentName(packageName, EXPORT_AGE_GROUPS_ACTIVITY), 0)
     true
 } catch (e: PackageManager.NameNotFoundException) {
     false
