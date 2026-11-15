@@ -68,7 +68,7 @@ fun Route.ageGroupImportRoutes(sources: ImportSources) {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
             val request = call.receive<ListSourceAgeGroupsRequest>()
             val source = request.sourceUrl.trim().trimEnd('/')
-            if (source !in sources.allowed) throw ValidationException("This server doesn't import from that address")
+            if (source !in sources.allowed) throw ValidationException("This server doesn't import from $source: set IMPORT_SOURCES on this server to that address")
             if (source in sources.crossEnvironment) requirePlatformAdmin(currentUserId, users, sources.platformAdminEmails)
             accessPolicy.requireEditClub(currentUserId, request.clubId, "Only club admins or coordinators can import an age group")
             val response = client.get("$source/v1/export/age-groups") { header(EXPORT_GRANT_HEADER, request.grant) }
@@ -85,7 +85,7 @@ fun Route.ageGroupImportRoutes(sources: ImportSources) {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
             val request = call.receive<ImportAgeGroupRequest>()
             val source = request.sourceUrl.trim().trimEnd('/')
-            if (source !in sources.allowed) throw ValidationException("This server doesn't import from that address")
+            if (source !in sources.allowed) throw ValidationException("This server doesn't import from $source: set IMPORT_SOURCES on this server to that address")
             if (source in sources.crossEnvironment) requirePlatformAdmin(currentUserId, users, sources.platformAdminEmails)
             val response = client.get("$source/v1/export/age-groups/${request.sourceAgeGroupId}/bundle") {
                 header(EXPORT_GRANT_HEADER, request.grant)
