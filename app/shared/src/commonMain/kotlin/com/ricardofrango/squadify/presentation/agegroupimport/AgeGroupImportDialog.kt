@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -107,7 +109,11 @@ fun AgeGroupImportDialog(clubId: String, handoff: AgeGroupHandoff, onImported: (
                                         }
                                     }
                                 ) {
-                                    Text(stringResource(Res.string.btn_import_age_group), color = PitchGreen, fontWeight = FontWeight.Bold)
+                                    if (importing == ageGroup.id) {
+                                        CircularProgressIndicator(Modifier.size(20.dp), color = PitchGreen, strokeWidth = 2.dp)
+                                    } else {
+                                        Text(stringResource(Res.string.btn_import_age_group), color = PitchGreen, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }
@@ -119,7 +125,8 @@ fun AgeGroupImportDialog(clubId: String, handoff: AgeGroupHandoff, onImported: (
             }
         },
         buttons = {
-            DialogSecondaryButton(stringResource(Res.string.btn_cancel), Modifier.fillMaxWidth(), onClick = onDismiss)
+            // Not while a copy is running: it finishes, and then the dialog closes with the list refreshed.
+            DialogSecondaryButton(stringResource(Res.string.btn_cancel), Modifier.fillMaxWidth(), onClick = { if (importing == null) onDismiss() })
         }
     )
 }
