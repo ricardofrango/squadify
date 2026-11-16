@@ -1,6 +1,9 @@
 package com.ricardofrango.squadify.coach.di
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupImportRepository
+import com.ricardofrango.squadify.domain.repository.FeatureFlagsRepository
+import com.ricardofrango.squadify.data.remote.FeatureFlagsRepositoryImpl
+import com.ricardofrango.squadify.domain.config.FeatureFlagsStore
 import com.ricardofrango.squadify.data.remote.AgeGroupImportRepositoryImpl
 import com.ricardofrango.squadify.coach.domain.CoachAds
 import com.ricardofrango.squadify.coach.data.AccountDeletionRepositoryImpl
@@ -47,6 +50,8 @@ import org.koin.dsl.module
 val coachModule = module {
     single<SpaceRepository> { SpaceRepositoryImpl(get(), get()) }
     single<AgeGroupImportRepository> { AgeGroupImportRepositoryImpl(get(), get()) }
+    single<FeatureFlagsRepository> { FeatureFlagsRepositoryImpl(get(), get()) }
+    single { FeatureFlagsStore(get()) }
     single<StaffInviteRepository> { StaffInviteRepositoryImpl(get(), get()) }
     single<AccountDeletionRepository> { AccountDeletionRepositoryImpl(get(), get()) }
     factory { GetAccountDeletionSummaryUseCase(get()) }

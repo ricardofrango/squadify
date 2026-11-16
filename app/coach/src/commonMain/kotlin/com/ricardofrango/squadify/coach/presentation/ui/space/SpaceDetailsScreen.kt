@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.presentation.ui.space
 
+import com.ricardofrango.squadify.domain.config.FeatureFlagsStore
+import org.koin.compose.koinInject
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -165,6 +167,8 @@ fun SpaceDetailsScreen(
     // Copying an age group from the clubs app (TECHNICAL_DECISIONS §81): shown to the owner when that app is installed.
     var importing by remember { mutableStateOf<AgeGroupHandoff?>(null) }
     val handoff = rememberAgeGroupHandoff(CLUBS_APP_PACKAGES) { importing = it }
+    // The import is shown only when the server's feature flag is on, and the clubs app is installed.
+    val featureFlags by koinInject<FeatureFlagsStore>().flags.collectAsStateWithLifecycle()
     // Adding or importing an age group first asks the coach server for room (its plan decides, not the app). A refusal
     // opens the popup; anything else goes on, and the server refuses again if the room has gone by the time it's made.
     val scope = rememberCoroutineScope()
@@ -201,7 +205,7 @@ fun SpaceDetailsScreen(
         onEditSpace = onEditSpace,
         opponents = { OpponentsBrowser(spaceId, onOpponentClick = { onOpenOpponent(it.id) }, onCreateOpponent = onCreateOpponent, refresh = refresh) },
         onCreateOpponent = { onCreateOpponent("") },
-        onImport = if (handoff.installed) ({ askRoom(handoff::start) }) else null,
+        onImport = if (handoff.installed && featureFlags.ageGroupImport) ({ askRoom(handoff::start) }) else null,
         importedWithoutTraining = importedWithoutTraining,
         trainingSkippedMessage = stringResource(Res.string.space_details_import_training_skipped),
         importFailures = importFailures,

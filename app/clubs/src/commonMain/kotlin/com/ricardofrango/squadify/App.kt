@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify
 
+import com.ricardofrango.squadify.domain.config.FeatureFlagsStore
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -21,6 +23,9 @@ fun App() {
     // Images (club logos) are served to signed-in members only, so Coil fetches them with the same
     // authenticated client as the API (bearer token, refresh on 401).
     val httpClient = koinInject<HttpClient>()
+    // The server's feature flags, read once at startup: a feature the server has off isn't shown.
+    val featureFlagsStore = koinInject<FeatureFlagsStore>()
+    LaunchedEffect(Unit) { featureFlagsStore.refresh() }
     setSingletonImageLoaderFactory { context ->
         ImageLoader.Builder(context)
             .components { add(KtorNetworkFetcherFactory(httpClient = { httpClient })) }

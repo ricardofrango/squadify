@@ -3676,3 +3676,8 @@ server still refuses its actions while someone else manages the game, and it sho
 
 **Configuration (age group import).** Each server accepts imports only from the addresses in `IMPORT_SOURCES` (comma-separated origins, e.g. `https://squadify-staging.up.railway.app`), and imports from an address in `IMPORT_SOURCES_CROSS_ENVIRONMENT` only by a platform admin. The clubs server's platform admins are the users with `is_platform_admin`; the coach server's are `PLATFORM_ADMIN_EMAILS` and the same flag. The consent screen (`ExportAgeGroupsActivity`) answers only the Squadify apps' packages (`CLUBS_APP_PACKAGES`, `COACH_APP_PACKAGES`); every other app is refused at once.
 
+## 82. Feature Flags
+
+**What it is.** `GET /v1/feature-flags` on each server (the clubs and the coach server, unauthenticated, under `/v1`): the flags the apps read when they start, as one `FeatureFlags` object (`common`'s `model/FeatureFlags.kt`). A flag is on or off, from the server's own environment: `FEATURE_AGE_GROUP_IMPORT=true` turns on the age group import (§81). Missing or any other value means off. New features add a field to `FeatureFlags`, defaulting to off.
+
+**Both sides check it.** Each server refuses the signed-in import endpoints (`/import/source/age-groups`, `/import/age-groups`) with a 403 while the flag is off, so the import can't start from anywhere. The export endpoints are read by the other app and stay open. Each app reads the flags once at startup (`FeatureFlagsStore`, shared; everything off until it answers, and a failed read keeps what it had) and shows the import button only when the flag is on and the other app is installed.

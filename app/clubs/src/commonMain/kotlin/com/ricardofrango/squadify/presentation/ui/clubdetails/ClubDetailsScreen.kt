@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.domain.config.FeatureFlagsStore
+import org.koin.compose.koinInject
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.besideRail
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
@@ -266,6 +268,8 @@ private fun ClubDetailsTabContent(
     // Copying an age group from the coach app (TECHNICAL_DECISIONS §81): an admin or coordinator, when it's installed.
     var importing by remember { mutableStateOf<AgeGroupHandoff?>(null) }
     val importHandoff = rememberAgeGroupHandoff(COACH_APP_PACKAGES) { importing = it }
+    // The import is shown only when the server's feature flag is on, and the coach app is installed.
+    val featureFlags by koinInject<FeatureFlagsStore>().flags.collectAsStateWithLifecycle()
     // A failed copy closes its dialog (the grant is used up), so the failure is said in a snackbar here.
     val importSnackbar = remember { SnackbarHostState() }
     val importFailedText = stringResource(Res.string.import_dialog_import_failed)
@@ -346,7 +350,7 @@ private fun ClubDetailsTabContent(
 
                 CLUB_TAB_AGE_GROUPS -> {
                     AgeGroupsFilterSection(state = state, actions = actions)
-                    if (state.canEditClub && importHandoff.installed) {
+                    if (state.canEditClub && importHandoff.installed && featureFlags.ageGroupImport) {
                         TextButton(onClick = importHandoff::start, modifier = Modifier.fillMaxWidth()) {
                             Text(stringResource(Res.string.club_details_import_age_groups), color = PitchGreen, fontWeight = FontWeight.Bold)
                         }

@@ -29,6 +29,9 @@ object ServerConfig {
     /** Of those, the ones in another environment: imports from them are for platform admins only. */
     val crossEnvironmentImportSources: Set<String> = (System.getenv("IMPORT_SOURCES_CROSS_ENVIRONMENT") ?: "").split(',')
         .map { it.trim().trimEnd('/') }.filter { it.isNotEmpty() }.toSet()
+
+    /** The feature flags apps read at startup: on with FEATURE_AGE_GROUP_IMPORT=true (TECHNICAL_DECISIONS §82). */
+    val featureAgeGroupImport: Boolean = System.getenv("FEATURE_AGE_GROUP_IMPORT")?.trim()?.lowercase() == "true"
     val environment: AppEnvironment = when (System.getenv("APP_ENV")?.trim()?.lowercase()) {
         "production", "prod" -> AppEnvironment.PRODUCTION
         else -> AppEnvironment.DEV

@@ -46,7 +46,7 @@ data class ImportSources(val allowed: Set<String>, val crossEnvironment: Set<Str
  * which uses the grant up. Import, by a signed-in user into a club they may edit: the source's bundle is fetched with
  * the grant and written in one transaction.
  */
-fun Route.ageGroupImportRoutes(sources: ImportSources) {
+fun Route.ageGroupImportRoutes(sources: ImportSources, importEnabled: Boolean) {
     val createGrant by inject<CreateExportGrantUseCase>()
     val listExportable by inject<ListExportableAgeGroupsUseCase>()
     val exportBundle by inject<ExportAgeGroupUseCase>()
@@ -67,6 +67,7 @@ fun Route.ageGroupImportRoutes(sources: ImportSources) {
         // The age groups a grant offers into a club, for the importing app's list: which of them are imported already.
         post("/import/source/age-groups") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+            if (!importEnabled) throw ForbiddenException(IMPORT_OFF)
             val request = call.receive<ListSourceAgeGroupsRequest>()
             val source = request.sourceUrl.trim().trimEnd('/')
             if (source !in sources.allowed) throw ValidationException("This server doesn't import from $source: set IMPORT_SOURCES on this server to that address")
@@ -79,6 +80,7 @@ fun Route.ageGroupImportRoutes(sources: ImportSources) {
         }
         post("/import/age-groups") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+            if (!importEnabled) throw ForbiddenException(IMPORT_OFF)
             val request = call.receive<ImportAgeGroupRequest>()
             val source = request.sourceUrl.trim().trimEnd('/')
             if (source !in sources.allowed) throw ValidationException("This server doesn't import from $source: set IMPORT_SOURCES on this server to that address")
@@ -105,6 +107,9 @@ fun Route.ageGroupImportRoutes(sources: ImportSources) {
 }
 
 private const val EXPORT_GRANT_HEADER = "X-Export-Grant"
+
+// The age group import is off on this server (its feature flag, §82): the import is refused, and the apps hide it.
+private const val IMPORT_OFF = "The age group import is not available on this server"
 
 private suspend fun requirePlatformAdmin(userId: String, users: UserRepository, adminEmails: Set<String>) {
     val user = users.findById(userId)
