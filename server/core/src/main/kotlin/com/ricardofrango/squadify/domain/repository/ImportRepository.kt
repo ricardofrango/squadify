@@ -27,9 +27,6 @@ interface ImportRepository {
 
     suspend fun saveAgeGroupLink(targetClubId: String, sourceServer: String, sourceAgeGroupId: String, targetAgeGroupId: String)
 
-    /** The target id a source record became, by its [kind] (TEAM, PLAYER, OPPONENT, MATCH...), if it was imported. */
-    suspend fun findRecord(targetClubId: String, sourceServer: String, sourceAgeGroupId: String, kind: String, sourceId: String): String?
-
     suspend fun saveRecord(targetClubId: String, sourceServer: String, sourceAgeGroupId: String, kind: String, sourceId: String, targetId: String)
 
     /**

@@ -69,15 +69,6 @@ class ExposedImportRepository : ImportRepository {
         }
     }
 
-    override suspend fun findRecord(targetClubId: String, sourceServer: String, sourceAgeGroupId: String, kind: String, sourceId: String): String? =
-        ImportRecords.selectAll().where {
-            (ImportRecords.targetClubId eq targetClubId.toUuid()) and
-                (ImportRecords.sourceServer eq sourceServer) and
-                (ImportRecords.sourceAgeGroupId eq sourceAgeGroupId.toUuid()) and
-                (ImportRecords.kind eq kind) and
-                (ImportRecords.sourceId eq sourceId.toUuid())
-        }.singleOrNull()?.get(ImportRecords.targetId)?.toString()
-
     override suspend fun saveRecord(targetClubId: String, sourceServer: String, sourceAgeGroupId: String, kind: String, sourceId: String, targetId: String) {
         ImportRecords.insert {
             it[ImportRecords.targetClubId] = targetClubId.toUuid()
