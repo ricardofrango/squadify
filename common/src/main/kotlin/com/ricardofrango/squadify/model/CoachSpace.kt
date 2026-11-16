@@ -187,6 +187,9 @@ data class SpaceAgeGroups(
     // the plan allows (Create age group); null: no limit. 0 and null for staff.
     val ageGroupsThisSeason: Int = 0,
     val ageGroupsLeft: Int? = null,
+    // Whether the owner can add an age group now, decided by the coach server (false when the plan is full, and for
+    // staff). An older server doesn't send it: the count decides then.
+    val canAddAgeGroups: Boolean = ageGroupsLeft != 0,
     // Whether the app shows ads on this space's screens: its plan's, decided by the coach server (Free).
     // False from an older server.
     val showsAds: Boolean = false,
@@ -213,6 +216,8 @@ data class SpaceDetails(
     val ageGroups: List<SpaceAgeGroup>,
     // The owner's: how many more age groups the plan allows this season; null: no limit, or staff.
     val ageGroupsLeft: Int? = null,
+    // Whether the owner can add an age group now, decided by the coach server (see SpaceAgeGroups).
+    val canAddAgeGroups: Boolean = ageGroupsLeft != 0,
     val showsAds: Boolean = false
 )
 

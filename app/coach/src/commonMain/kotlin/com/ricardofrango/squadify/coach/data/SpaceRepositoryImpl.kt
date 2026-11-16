@@ -55,6 +55,10 @@ class SpaceRepositoryImpl(
     override suspend fun getSpaceDetails(spaceId: String): SpaceDetails =
         httpClient.get("${appConfig.baseUrl}/spaces/$spaceId").handleResponse()
 
+    override suspend fun checkAgeGroupRoom(spaceId: String) {
+        httpClient.get("${appConfig.baseUrl}/spaces/$spaceId/age-groups/room").handleResponse<Unit>()
+    }
+
     override suspend fun addAgeGroups(request: AddAgeGroupsRequest): AddedAgeGroups =
         httpClient.post("${appConfig.baseUrl}/space/age-groups") {
             contentType(ContentType.Application.Json)

@@ -227,6 +227,7 @@ class GetSpacesUseCase(
                 val left = if (isOwner) PlanLimits.ageGroups(plan)?.let { (it - thisSeason).coerceAtLeast(0) } else null
                 SpaceAgeGroups(
                     space, isOwner, ageGroups, plan, locked.map { it.id }, thisSeason, left,
+                    canAddAgeGroups = isOwner && (left == null || left > 0),
                     showsAds = PlanLimits.showsAds(plan),
                     ownerName = ownerName(clubRepository, space.id),
                     opponents = opponentRepository.getOpponentsByClub(space.id).size
@@ -296,6 +297,7 @@ class GetSpaceDetailsUseCase(
                 )
             },
             ageGroupsLeft = left,
+            canAddAgeGroups = isOwner && (left == null || left > 0),
             showsAds = PlanLimits.showsAds(plan)
         )
     }

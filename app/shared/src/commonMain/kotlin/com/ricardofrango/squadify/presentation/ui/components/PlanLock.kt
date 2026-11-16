@@ -36,6 +36,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.age_groups_not_in_plan_title
+import squadify.app.shared.generated.resources.btn_ok
 import squadify.app.shared.generated.resources.btn_see_plans
 import squadify.app.shared.generated.resources.ic_lock
 import squadify.app.shared.generated.resources.plan_age_groups_sentence
@@ -210,22 +211,57 @@ fun StaffNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier, ownSpac
 @Composable
 fun ageGroupsLeftOnPlan(spaceId: String): Int? = LocalOwnSpace.current?.takeIf { it.spaceId == spaceId }?.ageGroupsLeft
 
-/** No more age groups this season on [plan], the coach's own space's: how many it has, then the plans with more. */
+/** Whether the own space can add an age group now, as the coach server decides it; true when [spaceId] isn't that space. */
 @Composable
-fun AgeGroupsNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier) {
+fun canAddAgeGroupsOnPlan(spaceId: String): Boolean = LocalOwnSpace.current?.takeIf { it.spaceId == spaceId }?.canAddAgeGroups ?: true
+
+/** The age-group limit's wording for [plan]: how many it has, then the plans with more. */
+@Composable
+private fun ageGroupsNotInPlanMessage(plan: SpacePlan): String {
     val ageGroupSentence: @Composable (PlanDetails, Int) -> String = { details, count ->
         if (count == 1) stringResource(Res.string.plan_one_age_group_sentence, details.name)
         else stringResource(Res.string.plan_age_groups_sentence, details.name, count)
     }
     val own = LocalPlans.current.firstOrNull { it.plan == plan }
+    return sentences(
+        own?.ageGroupLimit?.let { ageGroupSentence(own, it) }.orEmpty(),
+        roomOnOtherPlans(plan, { it.ageGroupLimit }, ageGroupSentence)
+    )
+}
+
+/** No more age groups this season on [plan], the coach's own space's: how many it has, then the plans with more. */
+@Composable
+fun AgeGroupsNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier) {
     PlanLimitBox(
         stringResource(Res.string.age_groups_not_in_plan_title, plan.displayName()),
-        sentences(
-            own?.ageGroupLimit?.let { ageGroupSentence(own, it) }.orEmpty(),
-            roomOnOtherPlans(plan, { it.ageGroupLimit }, ageGroupSentence)
-        ),
+        ageGroupsNotInPlanMessage(plan),
         ownSpace = true,
         modifier = modifier
+    )
+}
+
+/**
+ * The popup the server's age-group refusal opens, before the wizard or the import: the same wording as
+ * [AgeGroupsNotInPlanNotice], with See plans (the owner's, [LocalSeePlans]) and OK.
+ */
+@Composable
+fun AgeGroupsNotInPlanDialog(plan: SpacePlan, onDismiss: () -> Unit) {
+    val seePlans = LocalSeePlans.current
+    SquadifyDialog(
+        title = stringResource(Res.string.age_groups_not_in_plan_title, plan.displayName()),
+        body = ageGroupsNotInPlanMessage(plan),
+        onDismiss = onDismiss,
+        buttons = {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (seePlans != null) {
+                    DialogPrimaryButton(stringResource(Res.string.btn_see_plans), Modifier.weight(1f), onClick = {
+                        onDismiss()
+                        seePlans()
+                    })
+                }
+                DialogSecondaryButton(stringResource(Res.string.btn_ok), Modifier.weight(1f), onClick = onDismiss)
+            }
+        }
     )
 }
 
@@ -253,7 +289,7 @@ val previewPlans: List<PlanDetails> = run {
 @Composable
 private fun PlanLimitBoxPreview() {
     SquadifyTheme {
-        CompositionLocalProvider(LocalSeePlans provides {}, LocalPlans provides previewPlans, LocalOwnSpace provides OwnSpace("s", SpacePlan("FREE"), 1, 0), LocalShownSpace provides "s") {
+        CompositionLocalProvider(LocalSeePlans provides {}, LocalPlans provides previewPlans, LocalOwnSpace provides OwnSpace("s", SpacePlan("FREE"), 1, 0, canAddAgeGroups = false), LocalShownSpace provides "s") {
             Column(Modifier.background(ScreenBackground).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatsNotInPlanMessage()
                 StaffNotInPlanNotice(SpacePlan("FREE"))

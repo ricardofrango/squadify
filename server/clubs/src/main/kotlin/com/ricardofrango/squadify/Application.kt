@@ -15,6 +15,10 @@ import com.ricardofrango.squadify.presentation.routes.publicImageRoutes
 import com.ricardofrango.squadify.presentation.routes.gameRoutes
 import com.ricardofrango.squadify.presentation.routes.opponentRoutes
 import com.ricardofrango.squadify.presentation.routes.trainingRoutes
+import com.ricardofrango.squadify.presentation.routes.ageGroupImportRoutes
+import com.ricardofrango.squadify.presentation.routes.featureFlagRoutes
+import com.ricardofrango.squadify.model.FeatureFlags
+import com.ricardofrango.squadify.presentation.routes.ImportSources
 import com.ricardofrango.squadify.presentation.routes.fcmTokenRoutes
 import com.ricardofrango.squadify.domain.usecase.SeedPlatformAdminUseCase
 import com.ricardofrango.squadify.security.JwtConfig
@@ -110,6 +114,8 @@ fun Application.module() {
             gameRoutes(JwtConfig)
             opponentRoutes()
             trainingRoutes()
+            ageGroupImportRoutes(ImportSources(ServerConfig.importSources, ServerConfig.crossEnvironmentImportSources, emptySet()), importEnabled = ServerConfig.featureAgeGroupImport)
+            featureFlagRoutes(FeatureFlags(ageGroupImport = ServerConfig.featureAgeGroupImport))
             fcmTokenRoutes()
             publicImageRoutes()
         }

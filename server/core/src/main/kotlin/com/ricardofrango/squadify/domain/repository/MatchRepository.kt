@@ -55,6 +55,14 @@ interface MatchRepository {
 
     // The pitch's arrangements during the game, kept for the finished match's timeline (MatchLineupChange).
     suspend fun addLineupChange(matchId: String, change: MatchLineupChange)
+    /** Writes a call-up with its status, Starting XI flag and pitch slot as they are (an import keeps them). */
+    suspend fun createCallUp(callUp: MatchCallUp)
+
+    /** Updates an existing call-up's status, Starting XI flag and pitch slot (an import's update). */
+    suspend fun updateCallUp(callUp: MatchCallUp)
+
+    /** Removes a match's whole line-up history (an import's update replaces it with the source's). */
+    suspend fun deleteLineupChanges(matchId: String)
     suspend fun getLineupChanges(matchId: String): List<MatchLineupChange>
 
     suspend fun getCallUpsForMatch(matchId: String): List<MatchCallUpWithPlayer>

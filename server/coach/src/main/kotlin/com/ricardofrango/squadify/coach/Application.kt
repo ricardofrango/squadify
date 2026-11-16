@@ -16,6 +16,10 @@ import com.ricardofrango.squadify.presentation.routes.accountRoutes
 import com.ricardofrango.squadify.presentation.routes.fcmTokenRoutes
 import com.ricardofrango.squadify.presentation.routes.gameRoutes
 import com.ricardofrango.squadify.presentation.routes.trainingRoutes
+import com.ricardofrango.squadify.presentation.routes.ageGroupImportRoutes
+import com.ricardofrango.squadify.presentation.routes.featureFlagRoutes
+import com.ricardofrango.squadify.model.FeatureFlags
+import com.ricardofrango.squadify.presentation.routes.ImportSources
 import com.ricardofrango.squadify.presentation.routes.imageRoutes
 import com.ricardofrango.squadify.presentation.routes.publicImageRoutes
 import io.ktor.server.application.Application
@@ -69,6 +73,8 @@ fun Application.module() {
             publicImageRoutes()
             gameRoutes(CoachTokens)
             trainingRoutes()
+            ageGroupImportRoutes(ImportSources(CoachConfig.importSources, CoachConfig.crossEnvironmentImportSources, CoachConfig.platformAdminEmails), importEnabled = CoachConfig.featureAgeGroupImport)
+            featureFlagRoutes(FeatureFlags(ageGroupImport = CoachConfig.featureAgeGroupImport))
         }
     }
 }

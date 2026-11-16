@@ -1,5 +1,14 @@
 package com.ricardofrango.squadify.di
 
+import com.ricardofrango.squadify.domain.usecase.CreateExportGrantUseCase
+import com.ricardofrango.squadify.domain.usecase.ExportAgeGroupUseCase
+import com.ricardofrango.squadify.domain.usecase.ImportAgeGroupUseCase
+import com.ricardofrango.squadify.domain.usecase.ListExportableAgeGroupsUseCase
+import com.ricardofrango.squadify.domain.usecase.ListImportableAgeGroupsUseCase
+import com.ricardofrango.squadify.data.repository.ExposedExportGrantRepository
+import com.ricardofrango.squadify.data.repository.ExposedImportRepository
+import com.ricardofrango.squadify.domain.repository.ExportGrantRepository
+import com.ricardofrango.squadify.domain.repository.ImportRepository
 import com.ricardofrango.squadify.security.JwtConfig
 import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
@@ -48,6 +57,13 @@ val appModule = module {
     single<TrainingExerciseRepository> { ExposedTrainingExerciseRepository() }
     single<TrainingRatingRepository> { ExposedTrainingRatingRepository() }
     single<FcmTokenRepository> { ExposedFcmTokenRepository() }
+    single<ExportGrantRepository> { ExposedExportGrantRepository() }
+    single<ImportRepository> { ExposedImportRepository() }
+    factory { CreateExportGrantUseCase(get(), get()) }
+    factory { ListExportableAgeGroupsUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { ListImportableAgeGroupsUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { ExportAgeGroupUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), sourceServer = ServerConfig.publicBaseUrl.orEmpty()) }
+    factory { ImportAgeGroupUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<ClubPermissionRepository> { ExposedClubPermissionRepository() }
 
     // Services

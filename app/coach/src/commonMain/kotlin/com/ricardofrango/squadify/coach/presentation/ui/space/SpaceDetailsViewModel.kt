@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.coach.presentation.ui.space
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ricardofrango.squadify.coach.domain.CheckAgeGroupRoomUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpaceDetailsUseCase
 import com.ricardofrango.squadify.model.SpaceAgeGroup
 import com.ricardofrango.squadify.model.SpaceDetails
@@ -34,8 +35,12 @@ fun sortedAgeGroups(ageGroups: List<SpaceAgeGroup>): List<SpaceAgeGroup> =
 
 /** One space's details (the coach app): its age groups, as `GET /v1/spaces/{id}` has them. */
 class SpaceDetailsViewModel(
-    private val getSpaceDetailsUseCase: GetSpaceDetailsUseCase
+    private val getSpaceDetailsUseCase: GetSpaceDetailsUseCase,
+    private val checkAgeGroupRoomUseCase: CheckAgeGroupRoomUseCase
 ) : ViewModel() {
+    /** Asks the coach server for room for one more age group before the wizard or the import opens; throws its refusal. */
+    suspend fun checkAgeGroupRoom(spaceId: String) = checkAgeGroupRoomUseCase(spaceId)
+
     private val _state = MutableStateFlow<SpaceDetailsUiState>(SpaceDetailsUiState.Loading)
     val state: StateFlow<SpaceDetailsUiState> = _state.asStateFlow()
 

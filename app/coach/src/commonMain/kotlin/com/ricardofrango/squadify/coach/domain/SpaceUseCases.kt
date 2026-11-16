@@ -23,7 +23,7 @@ class GetSpacesUseCase(
     suspend operator fun invoke(): List<SpaceAgeGroups> =
         spaceRepository.getSpaces().also { spaces ->
             ownSpacePlan.space.value = spaces.firstOrNull { it.isOwner }
-                ?.let { OwnSpace(it.space.id, it.plan, it.ageGroupsThisSeason, it.ageGroupsLeft) }
+                ?.let { OwnSpace(it.space.id, it.plan, it.ageGroupsThisSeason, it.ageGroupsLeft, it.canAddAgeGroups) }
             coachAds.remember(spaces)
             // Best effort: the last plans loaded stay when they can't be fetched now.
             try {
@@ -38,6 +38,11 @@ class GetSpacesUseCase(
 /** One space the coach is in, for its details screen (its age groups' teams and next games). */
 class GetSpaceDetailsUseCase(private val spaceRepository: SpaceRepository) {
     suspend operator fun invoke(spaceId: String): SpaceDetails = spaceRepository.getSpaceDetails(spaceId)
+}
+
+/** Whether the space has room for one more age group, as the coach server decides it (its plan); throws its refusal. */
+class CheckAgeGroupRoomUseCase(private val spaceRepository: SpaceRepository) {
+    suspend operator fun invoke(spaceId: String) = spaceRepository.checkAgeGroupRoom(spaceId)
 }
 
 /** What the age-group wizard made, and whether every age group got its crest (the crests come after). */

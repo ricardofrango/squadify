@@ -1,9 +1,17 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.domain.config.FeatureFlagsStore
+import org.koin.compose.koinInject
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.besideRail
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
+import squadify.app.shared.generated.resources.import_dialog_import_failed
 import squadify.app.shared.generated.resources.msg_refresh_failed
+import squadify.app.shared.generated.resources.club_details_import_age_groups
+import com.ricardofrango.squadify.presentation.agegroupimport.AgeGroupHandoff
+import com.ricardofrango.squadify.presentation.agegroupimport.AgeGroupImportDialog
+import com.ricardofrango.squadify.presentation.agegroupimport.COACH_APP_PACKAGES
+import com.ricardofrango.squadify.presentation.agegroupimport.rememberAgeGroupHandoff
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -80,6 +88,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -256,89 +265,126 @@ private fun ClubDetailsTabContent(
     onNavigateToRateSession: (sessionId: String) -> Unit,
     clubName: String
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        when (selectedTab) {
-            CLUB_TAB_HOME -> Box(Modifier.fillMaxSize()) {
-                // Pull-to-refresh: the tab stays under the small indicator; a failure is a snackbar.
-                val snackbarHostState = remember { SnackbarHostState() }
-                val refreshFailedText = stringResource(Res.string.msg_refresh_failed)
-                LaunchedEffect(state.homeRefreshFailed) {
-                    if (state.homeRefreshFailed) {
-                        actions.onHomeRefreshFailedShown()
-                        snackbarHostState.showSnackbar(refreshFailedText)
+    // Copying an age group from the coach app (TECHNICAL_DECISIONS §81): an admin or coordinator, when it's installed.
+    var importing by remember { mutableStateOf<AgeGroupHandoff?>(null) }
+    val importHandoff = rememberAgeGroupHandoff(COACH_APP_PACKAGES) { importing = it }
+    // The import is shown only when the server's feature flag is on, and the coach app is installed.
+    val featureFlags by koinInject<FeatureFlagsStore>().flags.collectAsStateWithLifecycle()
+    // A failed copy closes its dialog (the grant is used up), so the failure is said in a snackbar here.
+    val importSnackbar = remember { SnackbarHostState() }
+    val importFailedText = stringResource(Res.string.import_dialog_import_failed)
+    var importFailures by remember { mutableIntStateOf(0) }
+    LaunchedEffect(importFailures) {
+        if (importFailures > 0) importSnackbar.showSnackbar(importFailedText)
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            importing?.let { handoff ->
+                AgeGroupImportDialog(
+                    clubId = clubId,
+                    clubSport = sport,
+                    ownPlan = null,
+                    handoff = handoff,
+                    onImported = {
+                        importing = null
+                        actions.loadClubDetails(clubId, forceReload = true)
+                    },
+                    onFailed = {
+                        importing = null
+                        importFailures++
+                    },
+                    onDismiss = { importing = null }
+                )
+            }
+            when (selectedTab) {
+                CLUB_TAB_HOME -> Box(Modifier.fillMaxSize()) {
+                    // Pull-to-refresh: the tab stays under the small indicator; a failure is a snackbar.
+                    val snackbarHostState = remember { SnackbarHostState() }
+                    val refreshFailedText = stringResource(Res.string.msg_refresh_failed)
+                    LaunchedEffect(state.homeRefreshFailed) {
+                        if (state.homeRefreshFailed) {
+                            actions.onHomeRefreshFailedShown()
+                            snackbarHostState.showSnackbar(refreshFailedText)
+                        }
+                    }
+                    PullToRefreshBox(isRefreshing = state.isRefreshingHome, onRefresh = { actions.refreshHome(clubId) }, modifier = Modifier.fillMaxSize()) {
+                        HomeTab(
+                            home = state.home,
+                            onRetry = { actions.loadClubDetails(clubId, forceReload = true) },
+                            onNavigateToAgeGroup = onNavigateToAgeGroup,
+                            onNavigateToMatch = onNavigateToMatch,
+                            clubLogoUrl = state.details?.club?.logoUrl,
+                            onEditPlan = onNavigateToEditPlan,
+                            onRateSession = onNavigateToRateSession
+                        )
+                    }
+                    SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
+                }
+
+                CLUB_TAB_TEAMS -> {
+                    TeamFilterSection(state = state, actions = actions)
+                    // The club-wide "no age groups" state above only fires when *no* season has any; once
+                    // some do, narrowing the season filter to one that still has none would otherwise just
+                    // show an empty team list with no hint that an age group is what's missing.
+                    when {
+                        state.selectedSeasonId != null &&
+                            state.availableAgeGroupsForTeams().isEmpty() ->
+                            NoAgeGroupsState(
+                                canEditClub = state.canEditClub,
+                                onCreateAgeGroupClick = {
+                                    onNavigateToCreateAgeGroups(clubName, sport, state.selectedSeasonId)
+                                }
+                            )
+
+                        // Age groups exist for this scope but no team matches the current filters --
+                        // offer a coordinator a way to add one (CreateTeamsUseCase requires COORDINATOR+).
+                        state.filteredTeams.isEmpty() ->
+                            NoTeamsState(
+                                canEditClub = state.canEditClub,
+                                onCreateTeamClick = { onNavigateToCreateTeams(clubName, sport, null) }
+                            )
+
+                        else -> TeamList(state.filteredTeams, onNavigateToTeam)
                     }
                 }
-                PullToRefreshBox(isRefreshing = state.isRefreshingHome, onRefresh = { actions.refreshHome(clubId) }, modifier = Modifier.fillMaxSize()) {
-                    HomeTab(
-                        home = state.home,
-                        onRetry = { actions.loadClubDetails(clubId, forceReload = true) },
-                        onNavigateToAgeGroup = onNavigateToAgeGroup,
-                        onNavigateToMatch = onNavigateToMatch,
-                        clubLogoUrl = state.details?.club?.logoUrl,
-                        onEditPlan = onNavigateToEditPlan,
-                        onRateSession = onNavigateToRateSession
-                    )
-                }
-                SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
-            }
 
-            CLUB_TAB_TEAMS -> {
-                TeamFilterSection(state = state, actions = actions)
-                // The club-wide "no age groups" state above only fires when *no* season has any; once
-                // some do, narrowing the season filter to one that still has none would otherwise just
-                // show an empty team list with no hint that an age group is what's missing.
-                when {
-                    state.selectedSeasonId != null &&
-                        state.availableAgeGroupsForTeams().isEmpty() ->
+                CLUB_TAB_AGE_GROUPS -> {
+                    AgeGroupsFilterSection(state = state, actions = actions)
+                    if (state.canEditClub && importHandoff.installed && featureFlags.ageGroupImport) {
+                        TextButton(onClick = importHandoff::start, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(Res.string.club_details_import_age_groups), color = PitchGreen, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    val ageGroups = state.ageGroupsForAgeGroupsTab()
+                    if (ageGroups.isEmpty()) {
+                        // Some other season has age groups (the club-wide "none at all" case is handled
+                        // above), but the selected one doesn't -- offer creating one in that season.
                         NoAgeGroupsState(
                             canEditClub = state.canEditClub,
                             onCreateAgeGroupClick = {
-                                onNavigateToCreateAgeGroups(clubName, sport, state.selectedSeasonId)
+                                onNavigateToCreateAgeGroups(clubName, sport, state.selectedAgeGroupsSeasonId)
                             }
                         )
-
-                    // Age groups exist for this scope but no team matches the current filters --
-                    // offer a coordinator a way to add one (CreateTeamsUseCase requires COORDINATOR+).
-                    state.filteredTeams.isEmpty() ->
-                        NoTeamsState(
-                            canEditClub = state.canEditClub,
-                            onCreateTeamClick = { onNavigateToCreateTeams(clubName, sport, null) }
+                    } else {
+                        AgeGroupList(
+                            ageGroups = ageGroups,
+                            teamCountFor = { ag -> state.details?.teams?.count { it.ageGroupId == ag } ?: 0 },
+                            playerCountFor = { ag -> state.details?.ageGroupPlayerCounts?.get(ag) ?: 0 },
+                            onAgeGroupClick = onNavigateToAgeGroup
                         )
-
-                    else -> TeamList(state.filteredTeams, onNavigateToTeam)
+                    }
                 }
-            }
 
-            CLUB_TAB_AGE_GROUPS -> {
-                AgeGroupsFilterSection(state = state, actions = actions)
-                val ageGroups = state.ageGroupsForAgeGroupsTab()
-                if (ageGroups.isEmpty()) {
-                    // Some other season has age groups (the club-wide "none at all" case is handled
-                    // above), but the selected one doesn't -- offer creating one in that season.
-                    NoAgeGroupsState(
-                        canEditClub = state.canEditClub,
-                        onCreateAgeGroupClick = {
-                            onNavigateToCreateAgeGroups(clubName, sport, state.selectedAgeGroupsSeasonId)
-                        }
-                    )
-                } else {
-                    AgeGroupList(
-                        ageGroups = ageGroups,
-                        teamCountFor = { ag -> state.details?.teams?.count { it.ageGroupId == ag } ?: 0 },
-                        playerCountFor = { ag -> state.details?.ageGroupPlayerCounts?.get(ag) ?: 0 },
-                        onAgeGroupClick = onNavigateToAgeGroup
-                    )
-                }
+                // Matches — the club-wide fixture list (see MatchesTab.kt).
+                else -> MatchesTab(
+                    state = state,
+                    actions = actions,
+                    onGoToAgeGroups = { actions.onTabSelected(CLUB_TAB_AGE_GROUPS) },
+                    onNavigateToMatch = onNavigateToMatch
+                )
             }
-
-            // Matches — the club-wide fixture list (see MatchesTab.kt).
-            else -> MatchesTab(
-                state = state,
-                actions = actions,
-                onGoToAgeGroups = { actions.onTabSelected(CLUB_TAB_AGE_GROUPS) },
-                onNavigateToMatch = onNavigateToMatch
-            )
         }
+        SnackbarHost(importSnackbar, Modifier.align(Alignment.BottomCenter))
     }
 }
 

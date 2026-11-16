@@ -5,6 +5,13 @@
     <!-- A short vibration when a player is picked up to drag on the pitch (PickUpHaptic.android.kt). -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- The other Squadify app, to copy an age group from it (TECHNICAL_DECISIONS §81). -->
+    <queries>
+        <package android:name="com.ricardofrango.squadify" />
+        <package android:name="com.ricardofrango.squadify.stg" />
+        <package android:name="com.ricardofrango.squadify.dev" />
+    </queries>
+
     <application
         android:name=".CoachApplication"
         android:networkSecurityConfig="@xml/network_security_config"
@@ -29,6 +36,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Allows the other app's copy of an age group: asks for consent, then returns a grant (only started explicitly). -->
+        <activity
+            android:name="com.ricardofrango.squadify.presentation.agegroupimport.ExportAgeGroupsActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
     </application>
 
 </manifest>

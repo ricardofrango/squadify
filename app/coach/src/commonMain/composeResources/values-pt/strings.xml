@@ -240,4 +240,7 @@
     <string name="space_details_created">%1$s e %2$s criados</string>
     <string name="space_details_created_no_crest">%1$s e %2$s criados, mas o emblema não ficou em todos</string>
     <string name="space_details_ok">OK</string>
+    <string name="space_details_import_training_skipped">Importado. O treino não está no plano deste espaço, por isso o treino não foi importado.</string>
+    <string name="space_details_import_failed">Não foi possível importar o escalão. Começa a importação outra vez.</string>
+    <string name="space_details_import_age_groups">Importar um escalão da app de clubes</string>
 </resources>

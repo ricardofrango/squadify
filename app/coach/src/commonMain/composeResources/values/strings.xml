@@ -240,4 +240,7 @@
     <string name="space_details_created">%1$s and %2$s created</string>
     <string name="space_details_created_no_crest">%1$s and %2$s created, but the crest wasn't saved on all of them</string>
     <string name="space_details_ok">OK</string>
+    <string name="space_details_import_training_skipped">Imported. Training isn't on this space's plan, so the training wasn't imported.</string>
+    <string name="space_details_import_failed">Couldn't import the age group. Start the import again to try once more.</string>
+    <string name="space_details_import_age_groups">Import an age group from the clubs app</string>
 </resources>

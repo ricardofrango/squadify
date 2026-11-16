@@ -18,6 +18,12 @@ interface SpaceRepository {
     /** One space the coach is in, for its details screen: its age groups with their teams and next games. */
     suspend fun getSpaceDetails(spaceId: String): SpaceDetails
 
+    /**
+     * Asks the coach server whether the space has room for one more age group this season, before the wizard or
+     * the import opens. Returns when it has; throws the server's refusal (the plan's) when it doesn't.
+     */
+    suspend fun checkAgeGroupRoom(spaceId: String)
+
     /** The age-group wizard: one club's age groups with their teams, in their own space (made the first time). */
     suspend fun addAgeGroups(request: AddAgeGroupsRequest): AddedAgeGroups
 

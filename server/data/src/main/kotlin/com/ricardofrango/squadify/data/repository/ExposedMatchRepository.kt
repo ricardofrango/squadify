@@ -240,6 +240,31 @@ class ExposedMatchRepository : MatchRepository {
         return MatchesTable.update({ MatchesTable.id eq matchUuid }) { it[MatchesTable.formation] = formation } > 0
     }
 
+    override suspend fun updateCallUp(callUp: MatchCallUp) {
+        CallUpsTable.update({ CallUpsTable.id eq callUp.id.toUuid() }) {
+            it[status] = callUp.status
+            it[notes] = callUp.notes
+            it[isStarting] = callUp.isStarting
+            it[pitchSlot] = callUp.pitchSlot
+        }
+    }
+
+    override suspend fun deleteLineupChanges(matchId: String) {
+        LineupChangesTable.deleteWhere { LineupChangesTable.matchId eq matchId.toUuid() }
+    }
+
+    override suspend fun createCallUp(callUp: MatchCallUp) {
+        CallUpsTable.insert {
+            it[id] = callUp.id.toUuid()
+            it[matchId] = callUp.matchId.toUuid()
+            it[playerId] = callUp.playerId.toUuid()
+            it[status] = callUp.status
+            it[notes] = callUp.notes
+            it[isStarting] = callUp.isStarting
+            it[pitchSlot] = callUp.pitchSlot
+        }
+    }
+
     override suspend fun addLineupChange(matchId: String, change: MatchLineupChange) {
         LineupChangesTable.insert {
             it[id] = Uuid.random()

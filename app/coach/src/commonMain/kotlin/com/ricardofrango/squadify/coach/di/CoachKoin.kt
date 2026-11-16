@@ -1,5 +1,10 @@
 package com.ricardofrango.squadify.coach.di
 
+import com.ricardofrango.squadify.domain.repository.AgeGroupImportRepository
+import com.ricardofrango.squadify.domain.repository.FeatureFlagsRepository
+import com.ricardofrango.squadify.data.remote.FeatureFlagsRepositoryImpl
+import com.ricardofrango.squadify.domain.config.FeatureFlagsStore
+import com.ricardofrango.squadify.data.remote.AgeGroupImportRepositoryImpl
 import com.ricardofrango.squadify.coach.domain.CoachAds
 import com.ricardofrango.squadify.coach.data.AccountDeletionRepositoryImpl
 import com.ricardofrango.squadify.coach.data.SpaceRepositoryImpl
@@ -11,6 +16,7 @@ import com.ricardofrango.squadify.coach.data.StaffInviteRepositoryImpl
 import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.AddAgeGroupsUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpaceDetailsUseCase
+import com.ricardofrango.squadify.coach.domain.CheckAgeGroupRoomUseCase
 import com.ricardofrango.squadify.coach.domain.DeleteSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.LeaveSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
@@ -43,6 +49,9 @@ import org.koin.dsl.module
 /** The coach app's own pieces: the spaces, the home, joining with a code, invites, and where sign-in leads. */
 val coachModule = module {
     single<SpaceRepository> { SpaceRepositoryImpl(get(), get()) }
+    single<AgeGroupImportRepository> { AgeGroupImportRepositoryImpl(get(), get()) }
+    single<FeatureFlagsRepository> { FeatureFlagsRepositoryImpl(get(), get()) }
+    single { FeatureFlagsStore(get()) }
     single<StaffInviteRepository> { StaffInviteRepositoryImpl(get(), get()) }
     single<AccountDeletionRepository> { AccountDeletionRepositoryImpl(get(), get()) }
     factory { GetAccountDeletionSummaryUseCase(get()) }
@@ -53,6 +62,7 @@ val coachModule = module {
     factory { DeleteSpaceUseCase(get()) }
     factory { LeaveSpaceUseCase(get()) }
     factory { GetSpaceDetailsUseCase(get()) }
+    factory { CheckAgeGroupRoomUseCase(get()) }
     factory { AddAgeGroupsUseCase(get()) }
     factory { LoadPlansUseCase(get(), get()) }
     factory { RequestPlanUseCase(get(), get(), get()) }

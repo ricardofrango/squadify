@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.presentation.ui.space
 
+import com.ricardofrango.squadify.domain.config.FeatureFlagsStore
+import org.koin.compose.koinInject
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,6 +35,9 @@ import androidx.compose.material3.Scaffold
 import squadify.app.coach.generated.resources.wizard_summary_teams
 import squadify.app.coach.generated.resources.wizard_summary_age_groups
 import squadify.app.coach.generated.resources.space_details_ok
+import squadify.app.coach.generated.resources.space_details_import_failed
+import squadify.app.coach.generated.resources.space_details_import_training_skipped
+import squadify.app.coach.generated.resources.space_details_import_age_groups
 import squadify.app.coach.generated.resources.space_details_new
 import squadify.app.coach.generated.resources.space_details_created_no_crest
 import squadify.app.coach.generated.resources.space_details_created
@@ -73,8 +78,12 @@ import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.ui.components.AdBanner
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryFab
-import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
+import com.ricardofrango.squadify.presentation.ui.components.AgeGroupsNotInPlanDialog
 import com.ricardofrango.squadify.presentation.ui.components.AgeGroupsNotInPlanNotice
+import com.ricardofrango.squadify.data.remote.isNotInPlan
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyMark
@@ -89,6 +98,10 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.agegroupimport.AgeGroupHandoff
+import com.ricardofrango.squadify.presentation.agegroupimport.AgeGroupImportDialog
+import com.ricardofrango.squadify.presentation.agegroupimport.CLUBS_APP_PACKAGES
+import com.ricardofrango.squadify.presentation.agegroupimport.rememberAgeGroupHandoff
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
@@ -151,6 +164,31 @@ fun SpaceDetailsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(spaceId) { viewModel.load(spaceId) }
+    // Copying an age group from the clubs app (TECHNICAL_DECISIONS §81): shown to the owner when that app is installed.
+    var importing by remember { mutableStateOf<AgeGroupHandoff?>(null) }
+    val handoff = rememberAgeGroupHandoff(CLUBS_APP_PACKAGES) { importing = it }
+    // The import is shown only when the server's feature flag is on, and the clubs app is installed.
+    val featureFlags by koinInject<FeatureFlagsStore>().flags.collectAsStateWithLifecycle()
+    // Adding or importing an age group first asks the coach server for room (its plan decides, not the app). A refusal
+    // opens the popup; anything else goes on, and the server refuses again if the room has gone by the time it's made.
+    val scope = rememberCoroutineScope()
+    var planRefused by remember { mutableStateOf(false) }
+    // The imports that left out their training (the space's plan has none): counted, so each shows once.
+    var importedWithoutTraining by remember { mutableIntStateOf(0) }
+    // The imports that failed: the dialog closes on a failure (its grant is used up), so the failure is said in a snackbar.
+    var importFailures by remember { mutableIntStateOf(0) }
+    fun askRoom(then: () -> Unit) {
+        scope.launch {
+            try {
+                viewModel.checkAgeGroupRoom(spaceId)
+                then()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (e.isNotInPlan) planRefused = true else then()
+            }
+        }
+    }
     LaunchedEffect(refresh) {
         if (refresh) {
             onRefreshed()
@@ -163,10 +201,15 @@ fun SpaceDetailsScreen(
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.load(spaceId, force = true) },
         onOpenAgeGroup = onOpenAgeGroup,
-        onAddAgeGroups = onAddAgeGroups,
+        onAddAgeGroups = { space -> askRoom { onAddAgeGroups(space) } },
         onEditSpace = onEditSpace,
         opponents = { OpponentsBrowser(spaceId, onOpponentClick = { onOpenOpponent(it.id) }, onCreateOpponent = onCreateOpponent, refresh = refresh) },
         onCreateOpponent = { onCreateOpponent("") },
+        onImport = if (handoff.installed && featureFlags.ageGroupImport) ({ askRoom(handoff::start) }) else null,
+        importedWithoutTraining = importedWithoutTraining,
+        trainingSkippedMessage = stringResource(Res.string.space_details_import_training_skipped),
+        importFailures = importFailures,
+        importFailedMessage = stringResource(Res.string.space_details_import_failed),
         newAgeGroupIds = newAgeGroupIds,
         createdMessage = if (newAgeGroupIds.isEmpty()) null else stringResource(
             if (crestSaved) Res.string.space_details_created else Res.string.space_details_created_no_crest,
@@ -174,6 +217,30 @@ fun SpaceDetailsScreen(
             pluralStringResource(Res.plurals.wizard_summary_teams, newTeams, newTeams)
         )
     )
+    importing?.let { handoff ->
+        val details = (state as? SpaceDetailsUiState.Loaded)?.details
+        AgeGroupImportDialog(
+            clubId = spaceId,
+            clubSport = details?.space?.sport ?: SportType.FOOTBALL,
+            ownPlan = details?.plan,
+            handoff = handoff,
+            onImported = { result ->
+                importing = null
+                if (result.trainingSkipped) importedWithoutTraining++
+                viewModel.load(spaceId, force = true)
+            },
+            onFailed = {
+                importing = null
+                importFailures++
+            },
+            onDismiss = { importing = null }
+        )
+    }
+    if (planRefused) {
+        (state as? SpaceDetailsUiState.Loaded)?.details?.plan?.let { plan ->
+            AgeGroupsNotInPlanDialog(plan, onDismiss = { planRefused = false })
+        }
+    }
 }
 
 @Composable
@@ -188,7 +255,12 @@ private fun SpaceDetailsContent(
     opponents: @Composable () -> Unit,
     onCreateOpponent: () -> Unit,
     newAgeGroupIds: List<String> = emptyList(),
-    createdMessage: String? = null
+    createdMessage: String? = null,
+    onImport: (() -> Unit)? = null,
+    importedWithoutTraining: Int = 0,
+    trainingSkippedMessage: String = "",
+    importFailures: Int = 0,
+    importFailedMessage: String = ""
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val snackbar = remember { SnackbarHostState() }
@@ -200,6 +272,12 @@ private fun SpaceDetailsContent(
             announced = true
             snackbar.showSnackbar(createdMessage, actionLabel = ok, duration = SnackbarDuration.Long)
         }
+    }
+    LaunchedEffect(importedWithoutTraining) {
+        if (importedWithoutTraining > 0) snackbar.showSnackbar(trainingSkippedMessage, duration = SnackbarDuration.Long)
+    }
+    LaunchedEffect(importFailures) {
+        if (importFailures > 0) snackbar.showSnackbar(importFailedMessage, duration = SnackbarDuration.Long)
     }
     val loaded = state as? SpaceDetailsUiState.Loaded
     val isOwner = loaded?.details?.isOwner == true
@@ -225,7 +303,7 @@ private fun SpaceDetailsContent(
             when (state) {
                 SpaceDetailsUiState.Loading -> Unit
                 SpaceDetailsUiState.Failed -> ErrorScreen(title = stringResource(Res.string.msg_space_details_failed), body = null, onRetry = onRetry, modifier = Modifier.fillMaxSize())
-                is SpaceDetailsUiState.Loaded -> if (tab == 0) AgeGroupList(state, newAgeGroupIds, onOpenAgeGroup, onAddAgeGroups) else opponents()
+                is SpaceDetailsUiState.Loaded -> if (tab == 0) AgeGroupList(state, newAgeGroupIds, onOpenAgeGroup, onImport) else opponents()
             }
         }
     }
@@ -345,11 +423,15 @@ private fun AgeGroupList(
     state: SpaceDetailsUiState.Loaded,
     newAgeGroupIds: List<String>,
     onOpenAgeGroup: (String) -> Unit,
-    onAddAgeGroups: (Club) -> Unit
+    onImport: (() -> Unit)? = null
 ) {
     val details = state.details
     if (state.ageGroups.isEmpty()) {
-        EmptyAgeGroups(details, onAddAgeGroups)
+        // The box, and the import under it: the floating button adds age groups.
+        Column(Modifier.fillMaxSize()) {
+            EmptyAgeGroups()
+            if (details.isOwner && onImport != null) ImportAgeGroupsButton(onImport)
+        }
         return
     }
     LazyColumn(
@@ -362,9 +444,10 @@ private fun AgeGroupList(
             item(key = "staff-note") { Note(stringResource(Res.string.space_details_staff_note)) }
         }
         // The owner's plan has no room for more age groups this season.
-        if (details.isOwner && details.ageGroupsLeft == 0) {
+        if (details.isOwner && !details.canAddAgeGroups) {
             item(key = "plan-full") { AgeGroupsNotInPlanNotice(details.plan) }
         }
+        if (details.isOwner && onImport != null) item(key = "import") { ImportAgeGroupsButton(onImport) }
         item(key = "count") {
             Text(
                 pluralStringResource(Res.plurals.space_details_count, state.ageGroups.size, state.ageGroups.size),
@@ -444,8 +527,15 @@ private fun Note(text: String) {
 }
 
 @Composable
-private fun EmptyAgeGroups(details: SpaceDetails, onAddAgeGroups: (Club) -> Unit) {
-    Box(Modifier.fillMaxSize().padding(ScreenPadding.Horizontal), contentAlignment = Alignment.TopCenter) {
+private fun ImportAgeGroupsButton(onImport: () -> Unit) {
+    TextButton(onClick = onImport, modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal)) {
+        Text(stringResource(Res.string.space_details_import_age_groups), color = PitchGreen, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun EmptyAgeGroups() {
+    Box(Modifier.fillMaxWidth().padding(ScreenPadding.Horizontal), contentAlignment = Alignment.TopCenter) {
         SectionCard(modifier = Modifier.widthIn(max = 480.dp).padding(top = 12.dp)) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.size(56.dp).clip(RoundedCornerShape(14.dp)).background(PitchGreen.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
@@ -453,15 +543,6 @@ private fun EmptyAgeGroups(details: SpaceDetails, onAddAgeGroups: (Club) -> Unit
                 }
                 Text(stringResource(Res.string.space_details_empty_title), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
                 Text(stringResource(Res.string.space_details_empty_body), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.75f))
-                if (details.isOwner) {
-                    Spacer(Modifier.height(4.dp))
-                    PrimaryLoadingButton(
-                        text = Res.string.space_details_add_age_groups,
-                        submittingText = Res.string.space_details_add_age_groups,
-                        isLoading = false,
-                        onClick = { onAddAgeGroups(details.space) }
-                    )
-                }
             }
         }
     }
