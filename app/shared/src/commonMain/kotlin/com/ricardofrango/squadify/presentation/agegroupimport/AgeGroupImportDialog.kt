@@ -46,7 +46,6 @@ import squadify.app.shared.generated.resources.import_dialog_empty
 import squadify.app.shared.generated.resources.import_dialog_failed
 import squadify.app.shared.generated.resources.import_dialog_hint
 import squadify.app.shared.generated.resources.import_dialog_imported
-import squadify.app.shared.generated.resources.import_dialog_import_failed
 import squadify.app.shared.generated.resources.import_dialog_clash
 import squadify.app.shared.generated.resources.import_dialog_loading
 import squadify.app.shared.generated.resources.import_dialog_other_season
@@ -60,7 +59,8 @@ import squadify.app.shared.generated.resources.sport_futsal
  * "Imported" when this club already has its copy. An age group that can't be copied now stays in the list with its
  * button off and the reason under it: another sport ([clubSport] is this club's), or a birth-year clash. When the
  * space's plan has no room for another age group, [ownPlan] (the owner's, else null) says so at the top, with See plans.
- * One copy per permission: the grant is used up by it, so after an import the dialog closes ([onImported]).
+ * One copy per permission: the grant is used up by it, so after an import the dialog closes ([onImported]). A failed
+ * import closes it too ([onFailed]): the grant is used up then as well, so the next try asks the other app for a new one.
  */
 @Composable
 fun AgeGroupImportDialog(
@@ -69,6 +69,7 @@ fun AgeGroupImportDialog(
     ownPlan: SpacePlan?,
     handoff: AgeGroupHandoff,
     onImported: (ImportAgeGroupResult) -> Unit,
+    onFailed: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val repository: AgeGroupImportRepository = koinInject()
@@ -76,7 +77,6 @@ fun AgeGroupImportDialog(
     var offered by remember { mutableStateOf<List<ImportableAgeGroup>?>(null) }
     var loadFailed by remember { mutableStateOf(false) }
     var importing by remember { mutableStateOf<String?>(null) }
-    var importFailed by remember { mutableStateOf(false) }
 
     LaunchedEffect(clubId, handoff) {
         try {
@@ -123,13 +123,12 @@ fun AgeGroupImportDialog(
                                     enabled = canImport,
                                     onClick = {
                                         importing = ageGroup.id
-                                        importFailed = false
                                         scope.launch {
                                             try {
                                                 onImported(repository.importAgeGroup(clubId, handoff.sourceUrl, ageGroup.id, handoff.grant))
                                             } catch (e: Exception) {
                                                 importing = null
-                                                importFailed = true
+                                                onFailed()
                                             }
                                         }
                                     }
@@ -146,9 +145,6 @@ fun AgeGroupImportDialog(
                                 }
                             }
                         }
-                    }
-                    if (importFailed) {
-                        Text(stringResource(Res.string.import_dialog_import_failed), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                     }
                 }
             }

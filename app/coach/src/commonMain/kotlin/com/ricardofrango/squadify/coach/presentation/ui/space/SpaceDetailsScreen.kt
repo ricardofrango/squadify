@@ -33,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import squadify.app.coach.generated.resources.wizard_summary_teams
 import squadify.app.coach.generated.resources.wizard_summary_age_groups
 import squadify.app.coach.generated.resources.space_details_ok
+import squadify.app.coach.generated.resources.space_details_import_failed
 import squadify.app.coach.generated.resources.space_details_import_training_skipped
 import squadify.app.coach.generated.resources.space_details_import_age_groups
 import squadify.app.coach.generated.resources.space_details_new
@@ -170,6 +171,8 @@ fun SpaceDetailsScreen(
     var planRefused by remember { mutableStateOf(false) }
     // The imports that left out their training (the space's plan has none): counted, so each shows once.
     var importedWithoutTraining by remember { mutableIntStateOf(0) }
+    // The imports that failed: the dialog closes on a failure (its grant is used up), so the failure is said in a snackbar.
+    var importFailures by remember { mutableIntStateOf(0) }
     fun askRoom(then: () -> Unit) {
         scope.launch {
             try {
@@ -201,6 +204,8 @@ fun SpaceDetailsScreen(
         onImport = if (handoff.installed) ({ askRoom(handoff::start) }) else null,
         importedWithoutTraining = importedWithoutTraining,
         trainingSkippedMessage = stringResource(Res.string.space_details_import_training_skipped),
+        importFailures = importFailures,
+        importFailedMessage = stringResource(Res.string.space_details_import_failed),
         newAgeGroupIds = newAgeGroupIds,
         createdMessage = if (newAgeGroupIds.isEmpty()) null else stringResource(
             if (crestSaved) Res.string.space_details_created else Res.string.space_details_created_no_crest,
@@ -219,6 +224,10 @@ fun SpaceDetailsScreen(
                 importing = null
                 if (result.trainingSkipped) importedWithoutTraining++
                 viewModel.load(spaceId, force = true)
+            },
+            onFailed = {
+                importing = null
+                importFailures++
             },
             onDismiss = { importing = null }
         )
@@ -245,7 +254,9 @@ private fun SpaceDetailsContent(
     createdMessage: String? = null,
     onImport: (() -> Unit)? = null,
     importedWithoutTraining: Int = 0,
-    trainingSkippedMessage: String = ""
+    trainingSkippedMessage: String = "",
+    importFailures: Int = 0,
+    importFailedMessage: String = ""
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val snackbar = remember { SnackbarHostState() }
@@ -260,6 +271,9 @@ private fun SpaceDetailsContent(
     }
     LaunchedEffect(importedWithoutTraining) {
         if (importedWithoutTraining > 0) snackbar.showSnackbar(trainingSkippedMessage, duration = SnackbarDuration.Long)
+    }
+    LaunchedEffect(importFailures) {
+        if (importFailures > 0) snackbar.showSnackbar(importFailedMessage, duration = SnackbarDuration.Long)
     }
     val loaded = state as? SpaceDetailsUiState.Loaded
     val isOwner = loaded?.details?.isOwner == true

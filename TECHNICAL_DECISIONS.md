@@ -3656,7 +3656,7 @@ server still refuses its actions while someone else manages the game, and it sho
 **Access: a handoff through the other installed app.**
 1. The importing app shows Import only when the other app is installed. Android: `<queries>` declares the other app's three ids (production, `.stg`, `.dev`); with more than one installed, the user picks.
 2. Import opens the other app, signed in there, which asks the user to allow it and asks its own server for an **export grant**: short-lived, single-use, read-only, tied to that user. It returns the grant and its server's address to the importing app.
-3. The importing app sends both to **its own** server, which calls the source server with the grant. The phone moves no data.
+3. The importing app sends both to **its own** server, which calls the source server with the grant. The phone moves no data. A grant is used up by the bundle even when the import then fails, so a failed import closes the dialog and the next try asks the other app for a new grant.
 
 **Server to server.** The target server pulls the list of exportable age groups, then one age group's **bundle** (the age group, teams, players, the opponents its matches use, its matches that aren't in progress with all their data, later its training and images), maps the ids and writes it in **one transaction**: a failure imports nothing.
 
