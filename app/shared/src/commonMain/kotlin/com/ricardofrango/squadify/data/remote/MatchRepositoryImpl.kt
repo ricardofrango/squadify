@@ -71,6 +71,9 @@ class MatchRepositoryImpl(
     override suspend fun getMatchDetails(matchId: String): MatchDetails =
         httpClient.get("${appConfig.baseUrl}/matches/$matchId").handleResponse()
 
+    override suspend fun getMatchDetailsKept(matchId: String): MatchDetails =
+        httpClient.cachedGet("${appConfig.baseUrl}/matches/$matchId", CacheKind.MATCH)
+
     override suspend fun updateMatch(matchId: String, request: UpdateMatchRequest) {
         httpClient.patch("${appConfig.baseUrl}/matches/$matchId") {
             contentType(ContentType.Application.Json); setBody(request)

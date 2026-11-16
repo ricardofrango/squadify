@@ -36,6 +36,12 @@ interface MatchRepository {
         limit: Int = Paging.PAGE_SIZE
     ): MatchesPage
     suspend fun getMatchDetails(matchId: String): MatchDetails
+
+    /**
+     * The match as the details screen shows it, kept for the game period (TECHNICAL_DECISIONS §83). Only that screen
+     * reads it: the live console, the record and the report read [getMatchDetails], which is never kept.
+     */
+    suspend fun getMatchDetailsKept(matchId: String): MatchDetails = getMatchDetails(matchId)
     suspend fun updateMatch(matchId: String, request: UpdateMatchRequest)
     suspend fun deleteMatch(matchId: String)
     suspend fun updateMatchStatus(matchId: String, status: MatchStatus)
