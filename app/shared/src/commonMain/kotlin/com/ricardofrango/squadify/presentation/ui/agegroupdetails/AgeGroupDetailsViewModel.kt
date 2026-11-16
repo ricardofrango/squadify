@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import com.ricardofrango.squadify.data.cache.ForceRefresh
 import com.ricardofrango.squadify.data.remote.isNotInPlan
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.async
@@ -121,10 +124,10 @@ class AgeGroupDetailsViewModel(
         if (_state.value !is AgeGroupDetailsUiState.Idle || _isRefreshing.value) return
         // These two keep their content while they reload.
         if (features.training) {
-            loadPlans(ageGroupId)
-            loadSessions(ageGroupId)
+            loadPlans(ageGroupId, ForceRefresh)
+            loadSessions(ageGroupId, ForceRefresh)
         }
-        viewModelScope.launch {
+        viewModelScope.launch(ForceRefresh) {
             _isRefreshing.value = true
             try {
                 coroutineScope {
@@ -186,8 +189,8 @@ class AgeGroupDetailsViewModel(
      * The Training tab's plans; a 403 means the viewer doesn't see plans (or, on the coach server, the
      * space's plan has no training), so the cards are left out.
      */
-    fun loadPlans(ageGroupId: String) {
-        viewModelScope.launch {
+    fun loadPlans(ageGroupId: String, context: CoroutineContext = EmptyCoroutineContext) {
+        viewModelScope.launch(context) {
             if (_plans.value !is AgeGroupPlansUiState.Loaded) _plans.update { AgeGroupPlansUiState.Loading }
             _plans.update {
                 try {
@@ -201,8 +204,8 @@ class AgeGroupDetailsViewModel(
         }
     }
 
-    fun loadSessions(ageGroupId: String) {
-        viewModelScope.launch {
+    fun loadSessions(ageGroupId: String, context: CoroutineContext = EmptyCoroutineContext) {
+        viewModelScope.launch(context) {
             if (_sessions.value !is AgeGroupSessionsUiState.Loaded) _sessions.update { AgeGroupSessionsUiState.Loading }
             _sessions.update {
                 try {

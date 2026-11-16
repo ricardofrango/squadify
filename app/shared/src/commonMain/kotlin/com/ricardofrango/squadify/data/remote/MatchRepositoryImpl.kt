@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.data.remote
 
+import com.ricardofrango.squadify.data.cache.cachedGet
+import com.ricardofrango.squadify.data.cache.CacheKind
 import com.ricardofrango.squadify.domain.service.SocketEvent
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -56,7 +58,7 @@ class MatchRepositoryImpl(
         offset: Int,
         limit: Int
     ): MatchesPage =
-        httpClient.get("${appConfig.baseUrl}/matches") {
+        httpClient.cachedGet("${appConfig.baseUrl}/matches", CacheKind.MATCH) {
             parameter("clubId", clubId)
             parameter("status", status.name)
             seasonId?.let { parameter("seasonId", it) }
@@ -64,7 +66,7 @@ class MatchRepositoryImpl(
             teamId?.let { parameter("teamId", it) }
             parameter("limit", limit)
             parameter("offset", offset)
-        }.handleResponse()
+        }
 
     override suspend fun getMatchDetails(matchId: String): MatchDetails =
         httpClient.get("${appConfig.baseUrl}/matches/$matchId").handleResponse()

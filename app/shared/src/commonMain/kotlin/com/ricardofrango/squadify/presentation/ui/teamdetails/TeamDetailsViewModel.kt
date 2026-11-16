@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.data.cache.ForceRefresh
 import com.ricardofrango.squadify.data.remote.isNotInPlan
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -89,7 +90,7 @@ class TeamDetailsViewModel(
      */
     fun refresh(teamId: String) {
         if (_state.value !is TeamDetailsUiState.Idle || _isRefreshing.value) return
-        viewModelScope.launch {
+        viewModelScope.launch(ForceRefresh) {
             _isRefreshing.value = true
             try {
                 coroutineScope {

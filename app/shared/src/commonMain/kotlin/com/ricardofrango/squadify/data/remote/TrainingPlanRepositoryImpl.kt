@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.data.remote
 
+import com.ricardofrango.squadify.data.cache.cachedGet
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
 import com.ricardofrango.squadify.model.SaveTrainingPlanRequest
@@ -15,7 +16,7 @@ class TrainingPlanRepositoryImpl(
 ) : TrainingPlanRepository {
 
     override suspend fun getTrainingPlans(ageGroupId: String): TrainingPlans =
-        httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/training-plans").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/age-groups/$ageGroupId/training-plans")
 
     override suspend fun saveTrainingPlan(ageGroupId: String, request: SaveTrainingPlanRequest): TrainingPlan =
         httpClient.put("${appConfig.baseUrl}/age-groups/$ageGroupId/training-plans") {

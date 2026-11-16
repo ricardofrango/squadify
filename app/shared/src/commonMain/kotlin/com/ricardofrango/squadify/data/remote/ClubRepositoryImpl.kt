@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.data.remote
 
+import com.ricardofrango.squadify.data.cache.cachedGet
+import com.ricardofrango.squadify.data.cache.CacheKind
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.model.AddClubMembersRequest
@@ -25,16 +27,16 @@ class ClubRepositoryImpl(
 ) : ClubRepository {
 
     override suspend fun getClubs(): List<Club> =
-        httpClient.get("${appConfig.baseUrl}/clubs").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/clubs")
 
     override suspend fun getClubById(clubId: String): ClubDetailsResponse =
-        httpClient.get("${appConfig.baseUrl}/clubs/$clubId").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/clubs/$clubId")
 
     override suspend fun getClubHome(clubId: String): ClubHome =
-        httpClient.get("${appConfig.baseUrl}/clubs/$clubId/home").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/clubs/$clubId/home", CacheKind.MATCH)
 
     override suspend fun getClubMembers(clubId: String): List<ClubMemberSummary> =
-        httpClient.get("${appConfig.baseUrl}/clubs/$clubId/members").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/clubs/$clubId/members")
 
     override suspend fun addClubMembers(clubId: String, request: AddClubMembersRequest) {
         httpClient.post("${appConfig.baseUrl}/clubs/$clubId/members") {
@@ -51,13 +53,13 @@ class ClubRepositoryImpl(
         offset: Int,
         limit: Int
     ): ClubMembersOverview =
-        httpClient.get("${appConfig.baseUrl}/clubs/$clubId/members/overview") {
+        httpClient.cachedGet("${appConfig.baseUrl}/clubs/$clubId/members/overview") {
             role?.let { parameter("role", it.name) }
             query.trim().takeIf { it.isNotEmpty() }?.let { parameter("q", it) }
             userId?.let { parameter("userId", it) }
             parameter("limit", limit)
             parameter("offset", offset)
-        }.handleResponse()
+        }
 
     override suspend fun updateClubMemberRole(clubId: String, userId: String, role: ClubRole) {
         httpClient.patch("${appConfig.baseUrl}/clubs/$clubId/members/$userId") {
@@ -95,7 +97,7 @@ class ClubRepositoryImpl(
     }
 
     override suspend fun getClubPermissions(clubId: String): ClubPermissionsResponse =
-        httpClient.get("${appConfig.baseUrl}/clubs/$clubId/permissions").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/clubs/$clubId/permissions")
 
     override suspend fun updateClubPermissions(clubId: String, request: UpdateClubPermissionsRequest) {
         httpClient.patch("${appConfig.baseUrl}/clubs/$clubId/permissions") {

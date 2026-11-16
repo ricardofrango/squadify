@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.data.remote
 
+import com.ricardofrango.squadify.data.cache.cachedGet
+import com.ricardofrango.squadify.data.cache.CacheKind
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.model.CreateTeamsRequest
@@ -17,18 +19,18 @@ class TeamRepositoryImpl(
 ) : TeamRepository {
 
     override suspend fun getTeams(clubId: String): List<Team> =
-        httpClient.get("${appConfig.baseUrl}/teams") {
+        httpClient.cachedGet("${appConfig.baseUrl}/teams") {
             parameter("clubId", clubId)
-        }.handleResponse()
+        }
 
     override suspend fun getTeamDetails(teamId: String): TeamDetails =
-        httpClient.get("${appConfig.baseUrl}/teams/$teamId/details").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/teams/$teamId/details", CacheKind.MATCH)
 
     override suspend fun getTeamSeasonRecord(teamId: String): TeamSeasonRecord =
-        httpClient.get("${appConfig.baseUrl}/teams/$teamId/season-record").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/teams/$teamId/season-record", CacheKind.MATCH)
 
     override suspend fun getTeamFullStats(teamId: String): com.ricardofrango.squadify.model.FullStatsData =
-        httpClient.get("${appConfig.baseUrl}/teams/$teamId/full-stats").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/teams/$teamId/full-stats", CacheKind.MATCH)
 
     override suspend fun createTeams(request: CreateTeamsRequest): List<Team> =
         httpClient.post("${appConfig.baseUrl}/teams/batch") {

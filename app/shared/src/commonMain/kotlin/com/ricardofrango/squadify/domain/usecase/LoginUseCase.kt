@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.domain.repository.SessionRepository
 import com.ricardofrango.squadify.model.LoginRequest
 import com.ricardofrango.squadify.model.LoginResponse
 import io.ktor.client.HttpClient
+import com.ricardofrango.squadify.data.cache.clearResponseCache
 import io.ktor.client.plugins.auth.clearAuthTokens
 
 class LoginUseCase(
@@ -28,6 +29,8 @@ class LoginUseCase(
         // the same still-running app process (e.g. right after a logout) would keep sending whichever
         // tokens were cached from *before* this login, not the ones just saved above.
         httpClient.clearAuthTokens()
+        // Whatever was kept belongs to whoever was signed in before (§83).
+        httpClient.clearResponseCache()
 
         return response
     }

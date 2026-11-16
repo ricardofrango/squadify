@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.data.cache.ForceRefresh
 import com.ricardofrango.squadify.data.remote.isNotInPlan
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.async
@@ -89,7 +90,7 @@ class PlayerDetailsViewModel(
      */
     fun refresh(playerId: String) {
         if (_state.value !is PlayerDetailsUiState.Idle || _isRefreshing.value) return
-        viewModelScope.launch {
+        viewModelScope.launch(ForceRefresh) {
             _isRefreshing.value = true
             try {
                 coroutineScope {

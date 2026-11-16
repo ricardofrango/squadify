@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.data.remote
 
+import com.ricardofrango.squadify.data.cache.cachedGet
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.model.CreateOpponentRequest
@@ -19,13 +20,13 @@ class OpponentRepositoryImpl(
 ) : OpponentRepository {
 
     override suspend fun getOpponents(clubId: String, ageGroupId: String?): List<Opponent> =
-        httpClient.get("${appConfig.baseUrl}/opponents") {
+        httpClient.cachedGet("${appConfig.baseUrl}/opponents") {
             parameter("clubId", clubId)
             ageGroupId?.let { parameter("ageGroupId", it) }
-        }.handleResponse()
+        }
 
     override suspend fun getOpponentList(clubId: String, ageGroupId: String?, query: String, offset: Int, limit: Int?): OpponentList =
-        httpClient.get("${appConfig.baseUrl}/opponents/list") {
+        httpClient.cachedGet("${appConfig.baseUrl}/opponents/list") {
             parameter("clubId", clubId)
             ageGroupId?.let { parameter("ageGroupId", it) }
             query.trim().takeIf { it.isNotEmpty() }?.let { parameter("q", it) }
@@ -33,10 +34,10 @@ class OpponentRepositoryImpl(
                 parameter("limit", it)
                 parameter("offset", offset)
             }
-        }.handleResponse()
+        }
 
     override suspend fun getOpponentDetails(opponentId: String): OpponentDetails =
-        httpClient.get("${appConfig.baseUrl}/opponents/$opponentId").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/opponents/$opponentId")
 
     override suspend fun createOpponent(clubId: String, request: CreateOpponentRequest): Opponent =
         httpClient.post("${appConfig.baseUrl}/opponents") {

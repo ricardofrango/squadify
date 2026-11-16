@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.SessionRepository
 import com.ricardofrango.squadify.domain.service.PushTokenProvider
 import io.ktor.client.HttpClient
+import com.ricardofrango.squadify.data.cache.clearResponseCache
 import io.ktor.client.plugins.auth.clearAuthTokens
 
 /**
@@ -27,5 +28,6 @@ class LogoutUseCase(
         removeFcmTokenUseCase()
         sessionRepository.clearSession()
         httpClient.clearAuthTokens()
+        httpClient.clearResponseCache()
     }
 }

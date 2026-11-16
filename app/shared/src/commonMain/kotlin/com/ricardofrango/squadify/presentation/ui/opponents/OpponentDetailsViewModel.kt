@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.data.cache.ForceRefresh
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -43,7 +44,7 @@ class OpponentDetailsViewModel(
     fun refresh(opponentId: String) {
         val previous = _state.value as? OpponentDetailsUiState.Idle ?: return
         if (_isRefreshing.value) return
-        viewModelScope.launch {
+        viewModelScope.launch(ForceRefresh) {
             _isRefreshing.value = true
             try {
                 val details = getOpponentDetailsUseCase(opponentId)

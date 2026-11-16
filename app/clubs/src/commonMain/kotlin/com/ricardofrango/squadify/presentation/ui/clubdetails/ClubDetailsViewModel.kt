@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.data.cache.ForceRefresh
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.domain.service.LiveFeedEvent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
@@ -180,7 +181,7 @@ class ClubDetailsViewModel(
     override fun refreshHome(clubId: String) {
         val current = _state.value as? ClubDetailsUiState.Idle ?: return
         if (current.isRefreshingHome) return
-        viewModelScope.launch {
+        viewModelScope.launch(ForceRefresh) {
             _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingHome = true, homeRefreshFailed = false) ?: it }
             try {
                 val home = getClubHomeUseCase(clubId)

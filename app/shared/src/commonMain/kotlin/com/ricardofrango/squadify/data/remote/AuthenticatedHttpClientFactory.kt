@@ -2,8 +2,12 @@ package com.ricardofrango.squadify.data.remote
 
 import com.ricardofrango.squadify.domain.repository.SessionRepository
 import com.ricardofrango.squadify.domain.service.SessionEventBus
+import com.ricardofrango.squadify.model.FeatureFlags
 import com.ricardofrango.squadify.model.RefreshTokenRequest
 import com.ricardofrango.squadify.model.TokenResponse
+import com.ricardofrango.squadify.data.cache.ClearResponseCacheOnWrites
+import com.ricardofrango.squadify.data.cache.ResponseCache
+import com.ricardofrango.squadify.data.cache.ResponseCacheKey
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.auth.Auth
@@ -33,8 +37,12 @@ fun createAuthenticatedHttpClient(
     publicClient: HttpClient,
     baseUrl: String,
     sessionRepository: SessionRepository,
-    sessionEventBus: SessionEventBus
+    sessionEventBus: SessionEventBus,
+    // By default nothing is kept (the periods are 0): the app passes the cache the server's flags configure.
+    responseCache: ResponseCache = ResponseCache(sessionRepository, flags = { FeatureFlags() })
 ): HttpClient = publicClient.config {
+    // The reads the repositories keep (cachedGet) and the writes that clear them (TECHNICAL_DECISIONS §83).
+    install(ClearResponseCacheOnWrites) { cache = responseCache }
     install(Auth) {
         bearer {
             loadTokens {
@@ -81,8 +89,12 @@ fun createAuthenticatedHttpClient(
                 // token and 401 again, instead of sending no token at all until a fresh login runs.
                 sessionRepository.clearSession()
                 response.call.client.clearAuthTokens()
+                responseCache.clear()
                 sessionEventBus.emitForceLogout()
             }
         }
     }
+}.also {
+    // The client carries its cache, so the repositories' cachedGet reads find it.
+    it.attributes.put(ResponseCacheKey, responseCache)
 }
