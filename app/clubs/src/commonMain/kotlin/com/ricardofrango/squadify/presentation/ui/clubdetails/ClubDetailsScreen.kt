@@ -326,25 +326,27 @@ private fun ClubDetailsTabContent(
                     // The club-wide "no age groups" state above only fires when *no* season has any; once
                     // some do, narrowing the season filter to one that still has none would otherwise just
                     // show an empty team list with no hint that an age group is what's missing.
-                    when {
-                        state.selectedSeasonId != null &&
-                            state.availableAgeGroupsForTeams().isEmpty() ->
-                            NoAgeGroupsState(
-                                canEditClub = state.canEditClub,
-                                onCreateAgeGroupClick = {
-                                    onNavigateToCreateAgeGroups(clubName, sport, state.selectedSeasonId)
-                                }
-                            )
+                    PullToRefreshBox(isRefreshing = state.isRefreshingDetails, onRefresh = { actions.refreshDetails(clubId) }, modifier = Modifier.weight(1f)) {
+                        when {
+                            state.selectedSeasonId != null &&
+                                state.availableAgeGroupsForTeams().isEmpty() ->
+                                NoAgeGroupsState(
+                                    canEditClub = state.canEditClub,
+                                    onCreateAgeGroupClick = {
+                                        onNavigateToCreateAgeGroups(clubName, sport, state.selectedSeasonId)
+                                    }
+                                )
 
-                        // Age groups exist for this scope but no team matches the current filters --
-                        // offer a coordinator a way to add one (CreateTeamsUseCase requires COORDINATOR+).
-                        state.filteredTeams.isEmpty() ->
-                            NoTeamsState(
-                                canEditClub = state.canEditClub,
-                                onCreateTeamClick = { onNavigateToCreateTeams(clubName, sport, null) }
-                            )
+                            // Age groups exist for this scope but no team matches the current filters --
+                            // offer a coordinator a way to add one (CreateTeamsUseCase requires COORDINATOR+).
+                            state.filteredTeams.isEmpty() ->
+                                NoTeamsState(
+                                    canEditClub = state.canEditClub,
+                                    onCreateTeamClick = { onNavigateToCreateTeams(clubName, sport, null) }
+                                )
 
-                        else -> TeamList(state.filteredTeams, onNavigateToTeam)
+                            else -> TeamList(state.filteredTeams, onNavigateToTeam)
+                        }
                     }
                 }
 
@@ -356,22 +358,24 @@ private fun ClubDetailsTabContent(
                         }
                     }
                     val ageGroups = state.ageGroupsForAgeGroupsTab()
-                    if (ageGroups.isEmpty()) {
-                        // Some other season has age groups (the club-wide "none at all" case is handled
-                        // above), but the selected one doesn't -- offer creating one in that season.
-                        NoAgeGroupsState(
-                            canEditClub = state.canEditClub,
-                            onCreateAgeGroupClick = {
-                                onNavigateToCreateAgeGroups(clubName, sport, state.selectedAgeGroupsSeasonId)
-                            }
-                        )
-                    } else {
-                        AgeGroupList(
-                            ageGroups = ageGroups,
-                            teamCountFor = { ag -> state.details?.teams?.count { it.ageGroupId == ag } ?: 0 },
-                            playerCountFor = { ag -> state.details?.ageGroupPlayerCounts?.get(ag) ?: 0 },
-                            onAgeGroupClick = onNavigateToAgeGroup
-                        )
+                    PullToRefreshBox(isRefreshing = state.isRefreshingDetails, onRefresh = { actions.refreshDetails(clubId) }, modifier = Modifier.weight(1f)) {
+                        if (ageGroups.isEmpty()) {
+                            // Some other season has age groups (the club-wide "none at all" case is handled
+                            // above), but the selected one doesn't -- offer creating one in that season.
+                            NoAgeGroupsState(
+                                canEditClub = state.canEditClub,
+                                onCreateAgeGroupClick = {
+                                    onNavigateToCreateAgeGroups(clubName, sport, state.selectedAgeGroupsSeasonId)
+                                }
+                            )
+                        } else {
+                            AgeGroupList(
+                                ageGroups = ageGroups,
+                                teamCountFor = { ag -> state.details?.teams?.count { it.ageGroupId == ag } ?: 0 },
+                                playerCountFor = { ag -> state.details?.ageGroupPlayerCounts?.get(ag) ?: 0 },
+                                onAgeGroupClick = onNavigateToAgeGroup
+                            )
+                        }
                     }
                 }
 
@@ -1060,6 +1064,7 @@ private object PreviewClubDetailsActions : ClubDetailsActions {
     override fun disconnectFromClubMatchesUpdates() {}
     override fun refreshMatches(clubId: String) {}
     override fun refreshHome(clubId: String) {}
+    override fun refreshDetails(clubId: String) {}
     override fun onHomeRefreshFailedShown() {}
     override fun loadMoreMatches() {}
 }

@@ -38,6 +38,7 @@ interface ClubDetailsActions {
     fun loadClubDetails(clubId: String, forceReload: Boolean = false)
     // Pull-to-refresh on Home, and the failure message once it's been shown.
     fun refreshHome(clubId: String)
+    fun refreshDetails(clubId: String)
     fun onHomeRefreshFailedShown()
     fun loadMoreAccount()
     fun logout(onLoggedOut: () -> Unit)
@@ -178,6 +179,39 @@ class ClubDetailsViewModel(
      * Pull-to-refresh on Home: its figures, Next up and Needs you again, with the tab left as it is
      * (no full-screen spinner). A failure keeps what's shown and says so once.
      */
+    /**
+     * Pull-to-refresh on Teams and Age groups: the club's details again, from the server, keeping the tab and the
+     * filters. A failure leaves the lists as they were.
+     */
+    override fun refreshDetails(clubId: String) {
+        val current = _state.value as? ClubDetailsUiState.Idle ?: return
+        if (current.isRefreshingDetails) return
+        viewModelScope.launch(ForceRefresh) {
+            _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingDetails = true) ?: it }
+            try {
+                val details = getClubDetailsUseCase(clubId)
+                clubThemeStore.remember(details.club)
+                _state.update { s ->
+                    val idle = s as? ClubDetailsUiState.Idle ?: return@update s
+                    applyFilters(
+                        idle.copy(
+                            details = details,
+                            isRefreshingDetails = false,
+                            canEditClub = details.canEditClub,
+                            showNoSeasonsState = details.seasons.isEmpty(),
+                            showNoAgeGroupsState = details.seasons.isNotEmpty() && details.ageGroups.isEmpty(),
+                        )
+                    )
+                }
+            } catch (e: CancellationException) {
+                _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingDetails = false) ?: it }
+                throw e
+            } catch (e: Exception) {
+                _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingDetails = false) ?: it }
+            }
+        }
+    }
+
     override fun refreshHome(clubId: String) {
         val current = _state.value as? ClubDetailsUiState.Idle ?: return
         if (current.isRefreshingHome) return
