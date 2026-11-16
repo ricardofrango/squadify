@@ -42,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -116,6 +117,7 @@ fun OpponentsScreen(
     SquadifyClubTheme {
         val state = viewModel.state.collectSettledState()
         val query by viewModel.query.collectAsStateWithLifecycle()
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
         LaunchedEffect(clubId, ageGroupId) { viewModel.load(clubId, ageGroupId) }
         LaunchedEffect(refresh) { if (refresh) viewModel.load(clubId, ageGroupId, force = true) }
 
@@ -129,7 +131,9 @@ fun OpponentsScreen(
             onNavigateBack = onNavigateBack,
             onRetry = { viewModel.load(clubId, ageGroupId, force = true) },
             onOpponentClick = onOpponentClick,
-            onCreateOpponent = onCreateOpponent
+            onCreateOpponent = onCreateOpponent,
+            isRefreshing = isRefreshing,
+            onRefresh = viewModel::refreshContent
         )
     }
 }
@@ -145,7 +149,9 @@ private fun OpponentsContent(
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     onOpponentClick: (Opponent) -> Unit,
-    onCreateOpponent: ((name: String) -> Unit)?
+    onCreateOpponent: ((name: String) -> Unit)?,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     val list = (state as? OpponentsUiState.Idle)?.list
     val create = onCreateOpponent?.takeIf { list?.canCreate == true }
@@ -171,7 +177,7 @@ private fun OpponentsContent(
             Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(ScreenBackground),
             contentAlignment = Alignment.TopCenter
         ) {
-            OpponentsBody(state, query, selectMode, selectedOpponentId, onQueryChange, onLoadMore, onRetry, onOpponentClick, create)
+            OpponentsBody(state, query, selectMode, selectedOpponentId, onQueryChange, onLoadMore, onRetry, onOpponentClick, create, isRefreshing, onRefresh)
         }
     }
 }
@@ -192,6 +198,7 @@ fun OpponentsBrowser(
 ) {
     val state = viewModel.state.collectSettledState()
     val query by viewModel.query.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     LaunchedEffect(clubId) { viewModel.load(clubId, null) }
     LaunchedEffect(refresh) { if (refresh) viewModel.load(clubId, null, force = true) }
     val create = onCreateOpponent?.takeIf { (state as? OpponentsUiState.Idle)?.list?.canCreate == true }
@@ -202,7 +209,9 @@ fun OpponentsBrowser(
             onLoadMore = viewModel::loadMore,
             onRetry = { viewModel.load(clubId, null, force = true) },
             onOpponentClick = onOpponentClick,
-            onCreateOpponent = create
+            onCreateOpponent = create,
+            isRefreshing = isRefreshing,
+            onRefresh = viewModel::refreshContent
         )
     }
 }
@@ -217,7 +226,9 @@ private fun OpponentsBody(
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     onOpponentClick: (Opponent) -> Unit,
-    onCreateOpponent: ((name: String) -> Unit)?
+    onCreateOpponent: ((name: String) -> Unit)?,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     // Rows stay readable on a landscape phone or a tablet instead of stretching edge to edge.
     Column(Modifier.widthIn(max = 720.dp).fillMaxSize()) {
@@ -225,14 +236,16 @@ private fun OpponentsBody(
         when (state) {
             OpponentsUiState.Loading -> SkeletonRows()
             OpponentsUiState.Error -> ErrorScreen(title = stringResource(Res.string.msg_opponents_load_failed), onRetry = onRetry)
-            is OpponentsUiState.Idle -> OpponentList(
-                state = state,
-                onLoadMore = onLoadMore,
-                selectMode = selectMode,
-                selectedOpponentId = selectedOpponentId,
-                onOpponentClick = onOpponentClick,
-                onCreateOpponent = onCreateOpponent
-            )
+            is OpponentsUiState.Idle -> PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+                OpponentList(
+                    state = state,
+                    onLoadMore = onLoadMore,
+                    selectMode = selectMode,
+                    selectedOpponentId = selectedOpponentId,
+                    onOpponentClick = onOpponentClick,
+                    onCreateOpponent = onCreateOpponent
+                )
+            }
         }
     }
 }

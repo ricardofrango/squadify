@@ -85,6 +85,8 @@ fun PlayerDetailsScreen(
     onNavigateBack: () -> Unit,
     onEditPlayer: (String) -> Unit,
     onOpenMatch: (String) -> Unit,
+    // A training session of the player's (the Training tab's rows): its details.
+    onOpenSession: (String) -> Unit = {},
     initialSeasonId: String? = null,
     initialFilter: StatsFilter? = null,
     refreshOnReturn: Boolean = false,
@@ -114,6 +116,7 @@ fun PlayerDetailsScreen(
                 uiState = uiState,
                 statsState = statsState,
                 training = training,
+                onOpenSession = onOpenSession,
                 onNavigateBack = onNavigateBack,
                 onRetry = { viewModel.loadPlayerDetails(playerId) },
                 onRetryStats = { viewModel.loadSeasonStats(playerId) },
@@ -135,6 +138,7 @@ private fun PlayerDetailsContent(
     uiState: PlayerDetailsUiState,
     statsState: SeasonStatsUiState,
     training: List<PlayerTrainingSeason> = emptyList(),
+    onOpenSession: (String) -> Unit = {},
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     onRetryStats: () -> Unit,
@@ -212,6 +216,7 @@ private fun PlayerDetailsContent(
                     profile = uiState.profile,
                     statsState = statsState,
                     training = training,
+                    onOpenSession = onOpenSession,
                     tab = selectedTab,
                     modifier = Modifier.fillMaxSize(),
                     onRetryStats = onRetryStats,
@@ -297,6 +302,7 @@ private fun PlayerBody(
     profile: PlayerProfile,
     statsState: SeasonStatsUiState,
     training: List<PlayerTrainingSeason> = emptyList(),
+    onOpenSession: (String) -> Unit = {},
     tab: PlayerTab = PlayerTab.GENERAL,
     modifier: Modifier = Modifier,
     onRetryStats: () -> Unit,
@@ -327,7 +333,7 @@ private fun PlayerBody(
                     onOpenMatch = onOpenMatch
                 )
             }
-            PlayerTab.TRAINING -> trainingSeason?.let { item { PlayerTrainingTab(it) } }
+            PlayerTab.TRAINING -> trainingSeason?.let { item { PlayerTrainingTab(it, onOpenSession) } }
         }
     }
 

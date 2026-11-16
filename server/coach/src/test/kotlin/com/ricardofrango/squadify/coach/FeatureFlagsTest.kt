@@ -18,7 +18,8 @@ class FeatureFlagsTest {
         application { module() }
         val response = jsonClient().get("/v1/feature-flags")
         assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals(FeatureFlags(ageGroupImport = false), response.body<FeatureFlags>())
+        // No cache period configured: the apps don't cache.
+        assertEquals(FeatureFlags(ageGroupImport = false, cacheSeconds = 0, matchCacheSeconds = 0), response.body<FeatureFlags>())
     }
 
     // Off: the import is refused on this server, whatever the app shows.

@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.data
 
+import com.ricardofrango.squadify.data.cache.cachedGet
+import com.ricardofrango.squadify.data.cache.CacheKind
 import com.ricardofrango.squadify.coach.domain.SpaceRepository
 import com.ricardofrango.squadify.coach.domain.StaffInviteRepository
 import com.ricardofrango.squadify.data.remote.handleResponse
@@ -36,7 +38,7 @@ class SpaceRepositoryImpl(
 ) : SpaceRepository {
 
     override suspend fun getSpaces(): List<SpaceAgeGroups> =
-        httpClient.get("${appConfig.baseUrl}/spaces").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/spaces")
 
     override suspend fun deleteSpace(spaceId: String, currentPassword: String) {
         httpClient.post("${appConfig.baseUrl}/spaces/$spaceId/delete") {
@@ -53,7 +55,7 @@ class SpaceRepositoryImpl(
     }
 
     override suspend fun getSpaceDetails(spaceId: String): SpaceDetails =
-        httpClient.get("${appConfig.baseUrl}/spaces/$spaceId").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/spaces/$spaceId", CacheKind.MATCH)
 
     override suspend fun checkAgeGroupRoom(spaceId: String) {
         httpClient.get("${appConfig.baseUrl}/spaces/$spaceId/age-groups/room").handleResponse<Unit>()
@@ -78,7 +80,7 @@ class SpaceRepositoryImpl(
 
     // The features come written by the server, in the app's language (its Accept-Language).
     override suspend fun getPlans(): PlansResponse =
-        httpClient.get("${appConfig.baseUrl}/plans").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/plans")
 
     override suspend fun verifyGooglePurchase(productId: String, purchaseToken: String): PlansResponse =
         httpClient.post("${appConfig.baseUrl}/plans/purchases/google") {

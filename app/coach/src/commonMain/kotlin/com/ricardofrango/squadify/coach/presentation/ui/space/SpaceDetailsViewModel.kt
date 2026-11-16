@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.coach.domain.CheckAgeGroupRoomUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpaceDetailsUseCase
+import com.ricardofrango.squadify.data.cache.ForceRefresh
+import com.ricardofrango.squadify.presentation.refresh.RefreshFlag
 import com.ricardofrango.squadify.model.SpaceAgeGroup
 import com.ricardofrango.squadify.model.SpaceDetails
 import kotlinx.coroutines.CancellationException
@@ -11,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.EmptyCoroutineContext
 
 sealed class SpaceDetailsUiState {
     data object Loading : SpaceDetailsUiState()
@@ -46,19 +49,32 @@ class SpaceDetailsViewModel(
 
     private var spaceId: String? = null
 
-    /** Loads [spaceId]'s details, once; [force] again (after a change, or to retry). */
+    private val refreshFlag = RefreshFlag()
+
+    /** Up while a pull-to-refresh reloads the details; the content stays on screen meanwhile. */
+    val isRefreshing: StateFlow<Boolean> = refreshFlag.running
+
+    /** Loads [spaceId]'s details, once; [force] again (after a change, or to retry). A forced load reads the server. */
     fun load(spaceId: String, force: Boolean = false) {
         if (!force && this.spaceId == spaceId && _state.value is SpaceDetailsUiState.Loaded) return
         this.spaceId = spaceId
-        viewModelScope.launch {
-            if (_state.value !is SpaceDetailsUiState.Loaded) _state.value = SpaceDetailsUiState.Loading
-            _state.value = try {
-                SpaceDetailsUiState.Loaded(getSpaceDetailsUseCase(spaceId))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (_state.value is SpaceDetailsUiState.Loaded) _state.value else SpaceDetailsUiState.Failed
-            }
+        viewModelScope.launch(if (force) ForceRefresh else EmptyCoroutineContext) { fetch(spaceId) }
+    }
+
+    /** A pull-to-refresh: the server, not the cache; the content stays on screen and the indicator shows. */
+    fun refreshContent() {
+        val id = spaceId ?: return
+        viewModelScope.launch(ForceRefresh) { refreshFlag.during { fetch(id) } }
+    }
+
+    private suspend fun fetch(spaceId: String) {
+        if (_state.value !is SpaceDetailsUiState.Loaded) _state.value = SpaceDetailsUiState.Loading
+        _state.value = try {
+            SpaceDetailsUiState.Loaded(getSpaceDetailsUseCase(spaceId))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (_state.value is SpaceDetailsUiState.Loaded) _state.value else SpaceDetailsUiState.Failed
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import kotlin.coroutines.EmptyCoroutineContext
+import com.ricardofrango.squadify.data.cache.ForceRefresh
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.domain.service.LiveFeedEvent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
@@ -37,6 +39,7 @@ interface ClubDetailsActions {
     fun loadClubDetails(clubId: String, forceReload: Boolean = false)
     // Pull-to-refresh on Home, and the failure message once it's been shown.
     fun refreshHome(clubId: String)
+    fun refreshDetails(clubId: String)
     fun onHomeRefreshFailedShown()
     fun loadMoreAccount()
     fun logout(onLoggedOut: () -> Unit)
@@ -51,6 +54,7 @@ interface ClubDetailsActions {
     fun connectToClubMatchesUpdates(clubId: String)
     fun disconnectFromClubMatchesUpdates()
     fun refreshMatches(clubId: String)
+    fun pullMatches(clubId: String)
     fun loadMoreMatches()
 }
 
@@ -177,10 +181,43 @@ class ClubDetailsViewModel(
      * Pull-to-refresh on Home: its figures, Next up and Needs you again, with the tab left as it is
      * (no full-screen spinner). A failure keeps what's shown and says so once.
      */
+    /**
+     * Pull-to-refresh on Teams and Age groups: the club's details again, from the server, keeping the tab and the
+     * filters. A failure leaves the lists as they were.
+     */
+    override fun refreshDetails(clubId: String) {
+        val current = _state.value as? ClubDetailsUiState.Idle ?: return
+        if (current.isRefreshingDetails) return
+        viewModelScope.launch(ForceRefresh) {
+            _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingDetails = true) ?: it }
+            try {
+                val details = getClubDetailsUseCase(clubId)
+                clubThemeStore.remember(details.club)
+                _state.update { s ->
+                    val idle = s as? ClubDetailsUiState.Idle ?: return@update s
+                    applyFilters(
+                        idle.copy(
+                            details = details,
+                            isRefreshingDetails = false,
+                            canEditClub = details.canEditClub,
+                            showNoSeasonsState = details.seasons.isEmpty(),
+                            showNoAgeGroupsState = details.seasons.isNotEmpty() && details.ageGroups.isEmpty(),
+                        )
+                    )
+                }
+            } catch (e: CancellationException) {
+                _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingDetails = false) ?: it }
+                throw e
+            } catch (e: Exception) {
+                _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingDetails = false) ?: it }
+            }
+        }
+    }
+
     override fun refreshHome(clubId: String) {
         val current = _state.value as? ClubDetailsUiState.Idle ?: return
         if (current.isRefreshingHome) return
-        viewModelScope.launch {
+        viewModelScope.launch(ForceRefresh) {
             _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingHome = true, homeRefreshFailed = false) ?: it }
             try {
                 val home = getClubHomeUseCase(clubId)
@@ -204,11 +241,11 @@ class ClubDetailsViewModel(
      * Loads the Matches tab's first pages for its filters, enough for [atLeast] rows, replacing what was
      * there. Each page carries the scores of its started matches, so no request per match.
      */
-    private fun reloadMatches(atLeast: Int = Paging.PAGE_SIZE) {
+    private fun reloadMatches(atLeast: Int = Paging.PAGE_SIZE, pull: Boolean = false) {
         val start = _state.value as? ClubDetailsUiState.Idle ?: return
         val clubId = start.details?.club?.id ?: return
         matchesJob?.cancel()
-        matchesJob = viewModelScope.launch {
+        matchesJob = viewModelScope.launch(if (pull) ForceRefresh else EmptyCoroutineContext) {
             val cursor = MatchesCursor(start.matchesStatus)
             val matches = mutableListOf<Match>()
             val scores = mutableMapOf<String, MatchScore>()
@@ -297,6 +334,17 @@ class ClubDetailsViewModel(
      * while away and may have missed updates in the meantime (see MatchesTab's DisposableEffect). As
      * many rows as were loaded come back, so the list doesn't shrink under the user.
      */
+    /** Pull-to-refresh on Matches: the lists again from the server, for the filters on screen. */
+    override fun pullMatches(clubId: String) {
+        val start = _state.value as? ClubDetailsUiState.Idle ?: return
+        if (start.isRefreshingMatches) return
+        _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingMatches = true) ?: it }
+        reloadMatches(atLeast = maxOf(Paging.PAGE_SIZE, start.matches.size), pull = true)
+        matchesJob?.invokeOnCompletion {
+            _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingMatches = false) ?: it }
+        }
+    }
+
     override fun refreshMatches(clubId: String) {
         val loaded = (_state.value as? ClubDetailsUiState.Idle)?.matches?.size ?: 0
         reloadMatches(atLeast = maxOf(Paging.PAGE_SIZE, loaded))

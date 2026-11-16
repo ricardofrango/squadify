@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.data.remote
 
+import com.ricardofrango.squadify.data.cache.cachedGet
+import com.ricardofrango.squadify.data.cache.CacheKind
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.model.AddStaffToAgeGroupRequest
@@ -19,9 +21,9 @@ class AgeGroupRepositoryImpl(
 ) : AgeGroupRepository {
 
     override suspend fun getAgeGroups(clubId: String): List<AgeGroup> =
-        httpClient.get("${appConfig.baseUrl}/age-groups") {
+        httpClient.cachedGet("${appConfig.baseUrl}/age-groups") {
             parameter("clubId", clubId)
-        }.handleResponse()
+        }
 
     override suspend fun createAgeGroups(request: CreateAgeGroupsRequest): List<AgeGroup> =
         httpClient.post("${appConfig.baseUrl}/age-groups") {
@@ -30,16 +32,16 @@ class AgeGroupRepositoryImpl(
         }.handleResponse()
 
     override suspend fun getAgeGroupSeasonRecord(ageGroupId: String): AgeGroupSeasonRecord =
-        httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/season-record").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/age-groups/$ageGroupId/season-record", CacheKind.MATCH)
 
     override suspend fun getAgeGroupFullStats(ageGroupId: String): com.ricardofrango.squadify.model.FullStatsData =
-        httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/full-stats").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/age-groups/$ageGroupId/full-stats", CacheKind.MATCH)
 
     override suspend fun getAgeGroupDetails(ageGroupId: String): AgeGroupDetails =
-        httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/details").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/age-groups/$ageGroupId/details", CacheKind.MATCH)
 
     override suspend fun getAgeGroupStaff(ageGroupId: String): List<AgeGroupStaffMember> =
-        httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/staff").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/age-groups/$ageGroupId/staff")
 
     override suspend fun addStaffToAgeGroup(ageGroupId: String, request: AddStaffToAgeGroupRequest) {
         httpClient.post("${appConfig.baseUrl}/age-groups/$ageGroupId/staff") {

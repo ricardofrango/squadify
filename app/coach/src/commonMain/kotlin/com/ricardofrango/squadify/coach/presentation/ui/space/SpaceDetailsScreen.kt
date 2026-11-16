@@ -32,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import squadify.app.coach.generated.resources.wizard_summary_teams
 import squadify.app.coach.generated.resources.wizard_summary_age_groups
 import squadify.app.coach.generated.resources.space_details_ok
@@ -163,6 +164,7 @@ fun SpaceDetailsScreen(
     viewModel: SpaceDetailsViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     LaunchedEffect(spaceId) { viewModel.load(spaceId) }
     // Copying an age group from the clubs app (TECHNICAL_DECISIONS §81): shown to the owner when that app is installed.
     var importing by remember { mutableStateOf<AgeGroupHandoff?>(null) }
@@ -200,6 +202,8 @@ fun SpaceDetailsScreen(
         spaceId = spaceId,
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.load(spaceId, force = true) },
+        isRefreshing = isRefreshing,
+        onRefresh = viewModel::refreshContent,
         onOpenAgeGroup = onOpenAgeGroup,
         onAddAgeGroups = { space -> askRoom { onAddAgeGroups(space) } },
         onEditSpace = onEditSpace,
@@ -260,7 +264,9 @@ private fun SpaceDetailsContent(
     importedWithoutTraining: Int = 0,
     trainingSkippedMessage: String = "",
     importFailures: Int = 0,
-    importFailedMessage: String = ""
+    importFailedMessage: String = "",
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val snackbar = remember { SnackbarHostState() }
@@ -303,7 +309,14 @@ private fun SpaceDetailsContent(
             when (state) {
                 SpaceDetailsUiState.Loading -> Unit
                 SpaceDetailsUiState.Failed -> ErrorScreen(title = stringResource(Res.string.msg_space_details_failed), body = null, onRetry = onRetry, modifier = Modifier.fillMaxSize())
-                is SpaceDetailsUiState.Loaded -> if (tab == 0) AgeGroupList(state, newAgeGroupIds, onOpenAgeGroup, onImport) else opponents()
+                is SpaceDetailsUiState.Loaded -> if (tab == 0) {
+                    // Pull down to read the space again (the server, not the cache: TECHNICAL_DECISIONS §83).
+                    PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+                        AgeGroupList(state, newAgeGroupIds, onOpenAgeGroup, onImport)
+                    }
+                } else {
+                    opponents()
+                }
             }
         }
     }

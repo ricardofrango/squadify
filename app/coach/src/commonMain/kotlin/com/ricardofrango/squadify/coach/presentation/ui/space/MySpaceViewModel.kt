@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.presentation.ui.space
 
+import com.ricardofrango.squadify.data.cache.ForceRefresh
+import com.ricardofrango.squadify.presentation.refresh.RefreshFlag
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.coach.domain.DeleteSpaceUseCase
@@ -96,16 +98,33 @@ class MySpaceViewModel(
         load()
     }
 
+    private val refreshFlag = RefreshFlag()
+
+    /** Up while a pull-to-refresh reads the space again; the content stays on screen meanwhile. */
+    val isRefreshing: StateFlow<Boolean> = refreshFlag.running
+
     fun load() {
-        viewModelScope.launch {
-            _state.value = MySpaceUiState.Loading
-            _state.value = try {
-                val spaces = getSpacesUseCase()
-                val found = requestedSpaceId?.let { id -> spaces.firstOrNull { it.space.id == id } } ?: spaces.firstOrNull { it.isOwner }
-                found?.let { MySpaceUiState.Loaded(it.space, it.plan, it.ageGroupsThisSeason, it.ageGroups.size, it.isOwner) } ?: MySpaceUiState.Failed
-            } catch (e: Exception) {
-                MySpaceUiState.Failed
-            }
+        viewModelScope.launch { reload(showLoading = true) }
+    }
+
+    /** Reloads without a loading state: after a change made under another screen. */
+    fun reloadKeepingContent() {
+        viewModelScope.launch { reload(showLoading = false) }
+    }
+
+    /** A pull-to-refresh: the server, not the cache, and the content stays on screen. */
+    fun refreshContent() {
+        viewModelScope.launch(ForceRefresh) { refreshFlag.during { reload(showLoading = false) } }
+    }
+
+    private suspend fun reload(showLoading: Boolean) {
+        if (showLoading) _state.value = MySpaceUiState.Loading
+        _state.value = try {
+            val spaces = getSpacesUseCase()
+            val found = requestedSpaceId?.let { id -> spaces.firstOrNull { it.space.id == id } } ?: spaces.firstOrNull { it.isOwner }
+            found?.let { MySpaceUiState.Loaded(it.space, it.plan, it.ageGroupsThisSeason, it.ageGroups.size, it.isOwner) } ?: MySpaceUiState.Failed
+        } catch (e: Exception) {
+            MySpaceUiState.Failed
         }
     }
 

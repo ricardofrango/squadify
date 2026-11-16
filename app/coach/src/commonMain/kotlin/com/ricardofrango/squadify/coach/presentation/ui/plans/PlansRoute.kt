@@ -19,7 +19,11 @@ import com.ricardofrango.squadify.model.BillingPeriod
 import com.ricardofrango.squadify.model.PlanChange
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.StoreProduct
+import com.ricardofrango.squadify.data.cache.ForceRefresh
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.koinInject
@@ -42,6 +46,16 @@ fun PlansRoute(onPlanChanged: () -> Unit, onNavigateBack: () -> Unit) {
     // Loaded here too when they aren't yet (opened before Home, or the last load failed).
     var attempt by remember { mutableIntStateOf(0) }
     var failed by remember { mutableStateOf(false) }
+    // A pull-to-refresh reads the plans from the server (not the cache); the plans stay on screen meanwhile.
+    var refreshing by remember { mutableStateOf(false) }
+    val refreshScope = rememberCoroutineScope()
+    val onRefresh: () -> Unit = {
+        refreshScope.launch {
+            refreshing = true
+            succeeds { withContext(ForceRefresh) { loadPlans() } }
+            refreshing = false
+        }
+    }
     LaunchedEffect(attempt) {
         if (response == null) {
             failed = false
@@ -70,7 +84,10 @@ fun PlansRoute(onPlanChanged: () -> Unit, onNavigateBack: () -> Unit) {
         val replacement = storeReplacement(current.plans, current.currentPlan, current.currentPeriod, plan, period)
         return when (val outcome = billing.purchase(product, accountId, owned, replacement)) {
             is PurchaseOutcome.Bought -> {
-                if (savePurchase(outcome.purchase.productId, outcome.purchase.purchaseToken)) onPlanChanged()
+                if (savePurchase(outcome.purchase.productId, outcome.purchase.purchaseToken)) {
+                    onPlanChanged()
+                    onNavigateBack()
+                }
                 true
             }
             PurchaseOutcome.Cancelled -> true
@@ -83,6 +100,8 @@ fun PlansRoute(onPlanChanged: () -> Unit, onNavigateBack: () -> Unit) {
         requestedPlan = response?.requestedPlan,
         plans = response?.plans.orEmpty(),
         onRetry = if (failed) ({ attempt++ }) else null,
+        onRefresh = onRefresh,
+        isRefreshing = refreshing,
         // Only the owner of a space changes its plan.
         onRequestPlan = if (owner) { plan, period ->
             succeeds {
@@ -90,6 +109,7 @@ fun PlansRoute(onPlanChanged: () -> Unit, onNavigateBack: () -> Unit) {
                     check(buy(plan, period))
                 } else if (requestPlan(plan)) {
                     onPlanChanged()
+                    onNavigateBack()
                 }
             }
         } else null,

@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.data.remote
 
+import com.ricardofrango.squadify.data.cache.cachedGet
+import com.ricardofrango.squadify.data.cache.CacheKind
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.model.CreatePlayersRequest
@@ -27,20 +29,20 @@ class PlayerRepositoryImpl(
         offset: Int,
         limit: Int
     ): PlayersPage =
-        httpClient.get("${appConfig.baseUrl}/players") {
+        httpClient.cachedGet("${appConfig.baseUrl}/players") {
             parameter("clubId", clubId)
             seasonId?.let { parameter("seasonId", it) }
             ageGroupId?.let { parameter("ageGroupId", it) }
             query.trim().takeIf { it.isNotEmpty() }?.let { parameter("q", it) }
             parameter("limit", limit)
             parameter("offset", offset)
-        }.handleResponse()
+        }
 
     override suspend fun getPlayerById(playerId: String): PlayerProfile =
-        httpClient.get("${appConfig.baseUrl}/players/$playerId").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/players/$playerId")
 
     override suspend fun getPlayerSeasonStats(playerId: String): PlayerSeasonStats =
-        httpClient.get("${appConfig.baseUrl}/players/$playerId/season-stats").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/players/$playerId/season-stats", CacheKind.MATCH)
 
     override suspend fun createPlayers(request: CreatePlayersRequest): List<Player> =
         httpClient.post("${appConfig.baseUrl}/players") {

@@ -1,10 +1,11 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.data.cache.ForceRefresh
 import kotlinx.coroutines.CancellationException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.DeleteMatchUseCase
-import com.ricardofrango.squadify.domain.usecase.GetMatchDetailsUseCase
+import com.ricardofrango.squadify.domain.usecase.ViewMatchDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.ManageCallUpsUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateMatchUseCase
 import com.ricardofrango.squadify.model.MatchStatus
@@ -25,7 +26,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class MatchDetailsViewModel(
-    private val getMatchDetailsUseCase: GetMatchDetailsUseCase,
+    private val getMatchDetailsUseCase: ViewMatchDetailsUseCase,
     private val updateMatchUseCase: UpdateMatchUseCase,
     private val deleteMatchUseCase: DeleteMatchUseCase,
     private val manageCallUpsUseCase: ManageCallUpsUseCase
@@ -51,7 +52,7 @@ class MatchDetailsViewModel(
      */
     fun refresh() {
         if (_state.value !is MatchDetailsUiState.Idle || _isRefreshing.value) return
-        viewModelScope.launch {
+        viewModelScope.launch(ForceRefresh) {
             _isRefreshing.value = true
             try {
                 val details = getMatchDetailsUseCase(matchId)

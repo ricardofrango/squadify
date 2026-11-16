@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetOpponentListUseCase
 import com.ricardofrango.squadify.model.OpponentList
 import com.ricardofrango.squadify.model.Paging
+import com.ricardofrango.squadify.data.cache.ForceRefresh
+import com.ricardofrango.squadify.presentation.refresh.RefreshFlag
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.coroutines.EmptyCoroutineContext
 
 sealed class OpponentsUiState {
     data object Loading : OpponentsUiState()
@@ -45,6 +48,17 @@ class OpponentsViewModel(
 
     // The page load under way, cancelled when the search changes.
     private var job: Job? = null
+
+    private val refreshFlag = RefreshFlag()
+
+    /** Up while a pull-to-refresh reads the list again; the rows stay on screen meanwhile. */
+    val isRefreshing: StateFlow<Boolean> = refreshFlag.running
+
+    /** A pull-to-refresh: the server, not the cache, for the first pages of the current search. */
+    fun refreshContent() {
+        val clubId = clubId ?: return
+        reload(atLeast = maxOf(Paging.PAGE_SIZE, (_state.value as? OpponentsUiState.Idle)?.list?.opponents?.size ?: 0), pull = true)
+    }
 
     /** [force] reloads after returning from a screen that changed opponents. */
     fun load(clubId: String, ageGroupId: String?, force: Boolean = false) {
@@ -86,25 +100,29 @@ class OpponentsViewModel(
      * Loads the first pages for the current search, enough for [atLeast] rows, replacing the list.
      * [debounce] waits for the typing to pause first, so a search isn't sent on every key.
      */
-    private fun reload(atLeast: Int = Paging.PAGE_SIZE, debounce: Boolean = false) {
+    private fun reload(atLeast: Int = Paging.PAGE_SIZE, debounce: Boolean = false, pull: Boolean = false) {
         val clubId = clubId ?: return
         job?.cancel()
-        job = viewModelScope.launch {
-            if (debounce) delay(SEARCH_DEBOUNCE_MS)
-            val query = _query.value.trim()
-            try {
-                var list = getOpponentListUseCase.page(clubId, ageGroupId, query, 0)
-                while (list.hasMore && list.opponents.size < atLeast) {
-                    val page = getOpponentListUseCase.page(clubId, ageGroupId, query, list.opponents.size)
-                    list = page.copy(opponents = list.opponents + page.opponents)
-                }
-                _state.value = OpponentsUiState.Idle(list, searched = query)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // A failed search keeps the list on screen; only a first load shows the error.
-                if (_state.value !is OpponentsUiState.Idle) _state.value = OpponentsUiState.Error
+        job = viewModelScope.launch(if (pull) ForceRefresh else EmptyCoroutineContext) {
+            if (pull) refreshFlag.during { firstPages(clubId, atLeast, debounce) } else firstPages(clubId, atLeast, debounce)
+        }
+    }
+
+    private suspend fun firstPages(clubId: String, atLeast: Int, debounce: Boolean) {
+        if (debounce) delay(SEARCH_DEBOUNCE_MS)
+        val query = _query.value.trim()
+        try {
+            var list = getOpponentListUseCase.page(clubId, ageGroupId, query, 0)
+            while (list.hasMore && list.opponents.size < atLeast) {
+                val page = getOpponentListUseCase.page(clubId, ageGroupId, query, list.opponents.size)
+                list = page.copy(opponents = list.opponents + page.opponents)
             }
+            _state.value = OpponentsUiState.Idle(list, searched = query)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // A failed search keeps the list on screen; only a first load shows the error.
+            if (_state.value !is OpponentsUiState.Idle) _state.value = OpponentsUiState.Error
         }
     }
 

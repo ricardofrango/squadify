@@ -3681,3 +3681,21 @@ server still refuses its actions while someone else manages the game, and it sho
 **What it is.** `GET /v1/feature-flags` on each server (the clubs and the coach server, unauthenticated, under `/v1`): the flags the apps read when they start, as one `FeatureFlags` object (`common`'s `model/FeatureFlags.kt`). A flag is on or off, from the server's own environment: `FEATURE_AGE_GROUP_IMPORT=true` turns on the age group import (§81). Missing or any other value means off. New features add a field to `FeatureFlags`, defaulting to off.
 
 **Both sides check it.** Each server refuses the signed-in import endpoints (`/import/source/age-groups`, `/import/age-groups`) with a 403 while the flag is off, so the import can't start from anywhere. The export endpoints are read by the other app and stay open. Each app reads the flags once at startup (`FeatureFlagsStore`, shared; everything off until it answers, and a failed read keeps what it had) and shows the import button only when the flag is on and the other app is installed.
+
+## 83. Client Cache of Reads
+
+**Why.** Each read is a request the server pays for. The apps keep a read for a period, so opening a screen again within it makes no request.
+
+**Where.** Ktor's own `HttpCache` isn't used: it takes its period from response headers (our servers send none), can't take it from the feature flags, and keys by address only. Instead `ResponseCache` (shared, `data/cache`) lives on the authenticated client (`ResponseCacheKey` attribute). The repositories read through `cachedGet`, which decodes the stored text with the client's JSON settings.
+
+**Periods.** `FeatureFlags.cacheSeconds` (general reads) and `matchCacheSeconds` (a game's status and results), from `CLIENT_CACHE_SECONDS` and `CLIENT_MATCH_CACHE_SECONDS` on each server. 0 (the default, or any invalid value) turns caching off. The feature flags request itself is never kept.
+
+**Keys.** The user (the `sub` claim of the access token), the full address with its parameters, and the app's language. A signed-out read is never kept.
+
+**Never kept:** the feature flags, the room check, the live match console (`/matches/{id}`, its events, score and report), the match record and report forms, invites, and account deletion. The match details screen reads `/matches/{id}` through `ViewMatchDetailsUseCase`, kept for the game period; its pull-to-refresh reads the server. Training ratings are kept for the game period, since several coaches rate the same session: a coach can see another's change up to that period late, and a save sends only the changed ratings.
+
+**Pull-to-refresh.** A refresh starts its coroutine with `ForceRefresh` (`launch(ForceRefresh)`): the reads under it go to the server and keep the new answer. Coroutines launched from it inherit the marker, so helper loads take it through a context parameter. Each refreshing screen's view model exposes `isRefreshing` (a `RefreshFlag`) for the indicator, and keeps the content on screen while the refresh runs. The screens: coach Home, space details (its age groups and opponents), My Space, the opponents list, club players, club member details, full stats, plans, account (unsaved edits are kept), exercise library, and the week, month and season plans. Empty states don't pull, since nothing there scrolls.
+
+**Clearing.** A successful write (anything but a GET) clears the cache, so the change shows at once. The token refresh doesn't clear. Logout, login and a forced logout clear it too.
+
+**Not kept across restarts** (memory only, for now).

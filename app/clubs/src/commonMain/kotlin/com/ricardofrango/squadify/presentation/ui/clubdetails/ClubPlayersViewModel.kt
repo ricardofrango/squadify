@@ -11,6 +11,8 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Paging
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.presentation.errorMessage
+import com.ricardofrango.squadify.data.cache.ForceRefresh
+import com.ricardofrango.squadify.presentation.refresh.RefreshFlag
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.coroutines.EmptyCoroutineContext
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_disable_player_failed
 import squadify.app.shared.generated.resources.msg_failed_to_load_club_details
@@ -83,23 +86,39 @@ class ClubPlayersViewModel(
     private var playersJob: Job? = null
 
     /** Loads once per club; [force] reloads (e.g. back from adding players), keeping the filters. */
+    private val refreshFlag = RefreshFlag()
+
+    /** Up while a pull-to-refresh reads the club and its players again; the rows stay on screen meanwhile. */
+    val isRefreshing: StateFlow<Boolean> = refreshFlag.running
+
     fun load(clubId: String, force: Boolean = false) {
         if (!force && loadedClubId == clubId) return
         loadedClubId = clubId
-        val previous = _state.value as? ClubPlayersUiState.Idle
         viewModelScope.launch {
-            if (previous == null) _state.value = ClubPlayersUiState.Loading
-            try {
-                val details = getClubDetailsUseCase(clubId)
-                _state.value = previous?.copy(details = details)
-                    ?: ClubPlayersUiState.Idle(details, seasonId = details.seasons.maxByOrNull { it.endDate }?.id)
-                // As many rows as were on screen come back, so the list doesn't shrink under the user.
-                reloadPlayers(atLeast = maxOf(Paging.PAGE_SIZE, previous?.players?.size ?: 0))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.value = ClubPlayersUiState.Error(errorMessage(e, Res.string.msg_failed_to_load_club_details))
-            }
+            if (_state.value !is ClubPlayersUiState.Idle) _state.value = ClubPlayersUiState.Loading
+            fetch(clubId)
+        }
+    }
+
+    /** A pull-to-refresh: the server, not the cache; the rows stay on screen while it runs. */
+    fun refreshContent() {
+        val clubId = loadedClubId ?: return
+        viewModelScope.launch(ForceRefresh) { refreshFlag.during { fetch(clubId, pull = true) } }
+    }
+
+    private suspend fun fetch(clubId: String, pull: Boolean = false) {
+        val previous = _state.value as? ClubPlayersUiState.Idle
+        try {
+            val details = getClubDetailsUseCase(clubId)
+            _state.value = previous?.copy(details = details)
+                ?: ClubPlayersUiState.Idle(details, seasonId = details.seasons.maxByOrNull { it.endDate }?.id)
+            // As many rows as were on screen come back, so the list doesn't shrink under the user.
+            reloadPlayers(atLeast = maxOf(Paging.PAGE_SIZE, previous?.players?.size ?: 0), pull = pull)
+            playersJob?.join()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _state.value = ClubPlayersUiState.Error(errorMessage(e, Res.string.msg_failed_to_load_club_details))
         }
     }
 
@@ -107,9 +126,9 @@ class ClubPlayersViewModel(
      * Loads the first pages for the current filters, enough for [atLeast] rows, replacing the list.
      * [debounce] waits for the typing to pause first, so a search isn't sent on every key.
      */
-    private fun reloadPlayers(atLeast: Int = Paging.PAGE_SIZE, debounce: Boolean = false) {
+    private fun reloadPlayers(atLeast: Int = Paging.PAGE_SIZE, debounce: Boolean = false, pull: Boolean = false) {
         playersJob?.cancel()
-        playersJob = viewModelScope.launch {
+        playersJob = viewModelScope.launch(if (pull) ForceRefresh else EmptyCoroutineContext) {
             if (debounce) delay(SEARCH_DEBOUNCE_MS)
             val filters = _state.value as? ClubPlayersUiState.Idle ?: return@launch
             val players = mutableListOf<Player>()

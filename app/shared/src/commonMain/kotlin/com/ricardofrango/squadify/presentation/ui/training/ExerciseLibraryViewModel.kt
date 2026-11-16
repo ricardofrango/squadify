@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.refresh.RefreshFlag
+
+import com.ricardofrango.squadify.data.cache.ForceRefresh
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionUseCase
@@ -75,18 +79,31 @@ class ExerciseLibraryViewModel(
 
     private var sessionId: String? = null
 
+    private val refreshFlag = RefreshFlag()
+
+    /** Up while a pull-to-refresh reads the library again; the rows stay on screen meanwhile. */
+    val isRefreshing: StateFlow<Boolean> = refreshFlag.running
+
     fun start(sessionId: String, force: Boolean = false) {
         if (!force && this.sessionId != null) return
         this.sessionId = sessionId
         _state.update { it.copy(loading = true, loadFailed = false) }
-        viewModelScope.launch {
-            try {
-                val session = getTrainingSessionUseCase(sessionId)
-                val library = trainingExercisesUseCase.library(session.ageGroup.id)
-                _state.update { it.copy(loading = false, session = session, library = library) }
-            } catch (e: Exception) {
-                _state.update { it.copy(loading = false, loadFailed = true) }
-            }
+        viewModelScope.launch { fetch(sessionId) }
+    }
+
+    /** A pull-to-refresh: the server, not the cache, for the session and the library. */
+    fun refreshContent() {
+        val id = sessionId ?: return
+        viewModelScope.launch(ForceRefresh) { refreshFlag.during { fetch(id) } }
+    }
+
+    private suspend fun fetch(sessionId: String) {
+        try {
+            val session = getTrainingSessionUseCase(sessionId)
+            val library = trainingExercisesUseCase.library(session.ageGroup.id)
+            _state.update { it.copy(loading = false, session = session, library = library) }
+        } catch (e: Exception) {
+            _state.update { it.copy(loading = false, loadFailed = true) }
         }
     }
 

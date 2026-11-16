@@ -36,6 +36,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -176,6 +178,7 @@ fun ClubMemberDetailsScreen(
 ) {
     SquadifyClubTheme {
         val state = viewModel.state.collectSettledState()
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
         val snackbarHostState = remember { SnackbarHostState() }
 
         LaunchedEffect(clubId, userId, inviteId) { viewModel.load(clubId, userId, inviteId) }
@@ -211,7 +214,9 @@ fun ClubMemberDetailsScreen(
             onRemove = { viewModel.removeMember(clubId) },
             onRemoveFromAgeGroup = { viewModel.removeFromAgeGroup(clubId, it) },
             onOpenAgeGroup = onOpenAgeGroup,
-            onOpenPlayer = onOpenPlayer
+            onOpenPlayer = onOpenPlayer,
+            isRefreshing = isRefreshing,
+            onRefresh = viewModel::refreshContent
         )
     }
 }
@@ -228,6 +233,8 @@ private fun ClubMemberDetailsContent(
     onCancelInvite: () -> Unit,
     onOpenAgeGroup: (String) -> Unit,
     onOpenPlayer: (String) -> Unit,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onRemove: () -> Unit = {},
     onRemoveFromAgeGroup: (MemberAgeGroupRole) -> Unit = {}
 ) {
@@ -292,18 +299,23 @@ private fun ClubMemberDetailsContent(
                             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = inClub)
                         }
                     } else {
-                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            contact()
-                            inClub()
+                        // Pull down to read the member again (the server, not the cache).
+                        PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+                            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                contact()
+                                inClub()
+                            }
                         }
                     }
                 }
 
-                is ClubMemberDetailsUiState.Invite -> Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    InviteCard(state, onResend, onCancelInvite)
+                is ClubMemberDetailsUiState.Invite -> PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        InviteCard(state, onResend, onCancelInvite)
+                    }
                 }
             }
         }

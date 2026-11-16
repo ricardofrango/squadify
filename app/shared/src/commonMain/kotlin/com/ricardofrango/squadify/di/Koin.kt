@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.domain.repository.AgeGroupImportRepository
 import com.ricardofrango.squadify.domain.repository.FeatureFlagsRepository
 import com.ricardofrango.squadify.data.remote.FeatureFlagsRepositoryImpl
 import com.ricardofrango.squadify.domain.config.FeatureFlagsStore
+import com.ricardofrango.squadify.data.cache.ResponseCache
 import com.ricardofrango.squadify.data.remote.AgeGroupImportRepositoryImpl
 import io.ktor.http.HttpHeaders
 import io.ktor.client.request.header
@@ -131,9 +132,12 @@ val dataModule = module {
             publicClient = get(publicHttpClientQualifier),
             baseUrl = get<AppConfig>().baseUrl,
             sessionRepository = get(),
-            sessionEventBus = get()
+            sessionEventBus = get(),
+            responseCache = get()
         )
     }
+    // The reads kept for the signed-in user, for the periods the server's feature flags give (§83).
+    single { ResponseCache(get(), flags = { get<FeatureFlagsStore>().flags.value }) }
 
     single<Settings> { Settings() }
     single { SessionEventBus() }
@@ -232,6 +236,7 @@ val domainModule = module {
     factory { GetMatchesUseCase(get()) }
     factory { GetClubPlayersUseCase(get()) }
     factory { GetMatchDetailsUseCase(get()) }
+    factory { ViewMatchDetailsUseCase(get()) }
     factory { UpdateMatchUseCase(get()) }
     factory { DeleteMatchUseCase(get()) }
     factory { GetMatchReportUseCase(get()) }

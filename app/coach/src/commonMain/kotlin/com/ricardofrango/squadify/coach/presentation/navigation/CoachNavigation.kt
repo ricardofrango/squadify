@@ -228,8 +228,12 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
     // The owner's own space: a new logo reloads Home's rows.
     screen<Screen.MySpace> { entry ->
         val screen: Screen.MySpace = entry.toRoute()
+        // Set when a plan changed while this was under Plans: it reloads its plan card.
+        val changed by entry.savedStateHandle.getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false).collectAsStateWithLifecycle()
         MySpaceScreen(
             spaceId = screen.spaceId,
+            refresh = changed,
+            onRefreshed = { entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false },
             onNavigateBack = { navigator.popBackStack() },
             onSeePlans = { navigator.navigate(Screen.Plans) },
             // The space is gone or left: back to Home, which lists what's left.
@@ -260,8 +264,13 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
 
     screen<Screen.Plans> {
         PlansRoute(
-            // Home lists the age groups the plan locks or frees.
-            onPlanChanged = { navigator.backStack.firstOrNull { it.screen == Screen.CoachHome }?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true) },
+            // Home lists the age groups the plan locks or frees; the space and My Space screens under Plans show the plan's
+            // limits too, so they reload when they come back.
+            onPlanChanged = {
+                navigator.backStack
+                    .filter { entry -> entry.screen == Screen.CoachHome || entry.screen is Screen.SpaceDetails || entry.screen is Screen.MySpace }
+                    .forEach { entry -> entry.savedStateHandle.set(KEY_CLUB_STRUCTURE_CHANGED, true) }
+            },
             onNavigateBack = { navigator.popBackStack() }
         )
     }

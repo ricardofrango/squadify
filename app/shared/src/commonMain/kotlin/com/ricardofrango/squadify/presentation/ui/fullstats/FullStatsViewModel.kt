@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import com.ricardofrango.squadify.data.cache.ForceRefresh
+import com.ricardofrango.squadify.presentation.refresh.RefreshFlag
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -92,31 +94,47 @@ class FullStatsViewModel(
      * Exactly one of [teamId] / [ageGroupId]. Either way the whole age group is loaded, so the team
      * filter is the same; from a team, that team starts selected (and can be changed).
      */
+    private val refreshFlag = RefreshFlag()
+
+    /** Up while a pull-to-refresh reads the stats again; the table stays on screen meanwhile. */
+    val isRefreshing: StateFlow<Boolean> = refreshFlag.running
+
+    private var target: Pair<String?, String?>? = null
+
     fun load(teamId: String?, ageGroupId: String?, force: Boolean = false) {
         if (!force && _state.value is FullStatsUiState.Loaded) return
-        viewModelScope.launch {
-            val previous = _state.value as? FullStatsUiState.Loaded
-            if (previous == null) _state.update { FullStatsUiState.Loading }
-            _state.update {
-                try {
-                    val data = if (teamId != null) getFullStatsUseCase.team(teamId) else getFullStatsUseCase.ageGroup(ageGroupId!!)
-                    previous?.copy(data = data) ?: FullStatsUiState.Loaded(
-                        data = data,
-                        period = StatsPeriod.SEASON,
-                        customFrom = null,
-                        customTo = null,
-                        type = StatsFilter.ALL,
-                        teamId = teamId,
-                        position = null,
-                        // Staff open on the final ranking, the screen's point; everyone else on goals.
-                        sort = if (data.canSeeRatings) FullStatsColumn.FINAL_RATING else FullStatsColumn.GOALS,
-                        descending = true,
-                        hidden = parseHiddenColumns(uiPreferencesRepository.get(HIDDEN_COLUMNS_KEY)),
-                        today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-                    )
-                } catch (e: Exception) {
-                    if (e.isNotInPlan) FullStatsUiState.NotInPlan else previous ?: FullStatsUiState.Error
-                }
+        target = teamId to ageGroupId
+        viewModelScope.launch { fetch(teamId, ageGroupId) }
+    }
+
+    /** A pull-to-refresh: the server, not the cache; the table stays on screen while it runs. */
+    fun refreshContent() {
+        val (teamId, ageGroupId) = target ?: return
+        viewModelScope.launch(ForceRefresh) { refreshFlag.during { fetch(teamId, ageGroupId) } }
+    }
+
+    private suspend fun fetch(teamId: String?, ageGroupId: String?) {
+        val previous = _state.value as? FullStatsUiState.Loaded
+        if (previous == null) _state.update { FullStatsUiState.Loading }
+        _state.update {
+            try {
+                val data = if (teamId != null) getFullStatsUseCase.team(teamId) else getFullStatsUseCase.ageGroup(ageGroupId!!)
+                previous?.copy(data = data) ?: FullStatsUiState.Loaded(
+                    data = data,
+                    period = StatsPeriod.SEASON,
+                    customFrom = null,
+                    customTo = null,
+                    type = StatsFilter.ALL,
+                    teamId = teamId,
+                    position = null,
+                    // Staff open on the final ranking, the screen's point; everyone else on goals.
+                    sort = if (data.canSeeRatings) FullStatsColumn.FINAL_RATING else FullStatsColumn.GOALS,
+                    descending = true,
+                    hidden = parseHiddenColumns(uiPreferencesRepository.get(HIDDEN_COLUMNS_KEY)),
+                    today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+                )
+            } catch (e: Exception) {
+                if (e.isNotInPlan) FullStatsUiState.NotInPlan else previous ?: FullStatsUiState.Error
             }
         }
     }

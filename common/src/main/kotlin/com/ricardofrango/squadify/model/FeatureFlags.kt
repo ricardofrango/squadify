@@ -9,5 +9,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class FeatureFlags(
     /** Copying an age group between the clubs and coach apps (§81). On with FEATURE_AGE_GROUP_IMPORT=true. */
-    val ageGroupImport: Boolean = false
+    val ageGroupImport: Boolean = false,
+    /** How long the apps keep a general read (seconds); 0 turns client caching off. CLIENT_CACHE_SECONDS (§83). */
+    val cacheSeconds: Int = 0,
+    /** How long the apps keep a read of a game's status or results (seconds); 0 turns it off. CLIENT_MATCH_CACHE_SECONDS. */
+    val matchCacheSeconds: Int = 0
 )

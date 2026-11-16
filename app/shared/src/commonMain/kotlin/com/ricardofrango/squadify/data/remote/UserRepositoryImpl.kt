@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.data.remote
 
+import com.ricardofrango.squadify.data.cache.cachedGet
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.model.ChangePasswordRequest
@@ -19,7 +20,7 @@ class UserRepositoryImpl(
 ) : UserRepository {
 
     override suspend fun getCurrentUser(): User =
-        httpClient.get("${appConfig.baseUrl}/users/me").handleResponse()
+        httpClient.cachedGet("${appConfig.baseUrl}/users/me")
 
     override suspend fun updateProfile(request: UpdateProfileRequest): User =
         httpClient.patch("${appConfig.baseUrl}/users/me") {

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.dashboard
 
+import com.ricardofrango.squadify.data.cache.ForceRefresh
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
@@ -57,7 +58,7 @@ class DashboardViewModel(
      * surfaces inline (Idle.error) alongside the still-visible list, same idea as Login's inline error. */
     fun refresh() {
         val current = _state.value as? DashboardUiState.Idle ?: return
-        viewModelScope.launch {
+        viewModelScope.launch(ForceRefresh) {
             _state.value = current.copy(isRefreshing = true, error = null)
             try {
                 val clubs = getClubsUseCase().also(clubThemeStore::remember)

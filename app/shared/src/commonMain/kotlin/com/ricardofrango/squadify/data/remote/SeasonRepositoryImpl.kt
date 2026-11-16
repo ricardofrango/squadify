@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.data.remote
 
+import com.ricardofrango.squadify.data.cache.cachedGet
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.model.CreateSeasonRequest
@@ -14,9 +15,9 @@ class SeasonRepositoryImpl(
 ) : SeasonRepository {
 
     override suspend fun getSeasons(clubId: String): List<Season> =
-        httpClient.get("${appConfig.baseUrl}/seasons") {
+        httpClient.cachedGet("${appConfig.baseUrl}/seasons") {
             parameter("clubId", clubId)
-        }.handleResponse()
+        }
 
     override suspend fun createSeason(request: CreateSeasonRequest): Season =
         httpClient.post("${appConfig.baseUrl}/seasons") {
