@@ -112,9 +112,18 @@ fun MySpaceScreen(
     onSpaceDeleted: () -> Unit,
     spaceId: String? = null,
     onSpaceLeft: () -> Unit = {},
+    // Set when the plan changed while this screen was under Plans: it reloads the space, then says it has.
+    refresh: Boolean = false,
+    onRefreshed: () -> Unit = {},
     viewModel: MySpaceViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(refresh) {
+        if (refresh) {
+            onRefreshed()
+            viewModel.load()
+        }
+    }
     val deleteDialog by viewModel.deleteDialog.collectAsStateWithLifecycle()
     val leaveDialog by viewModel.leaveDialog.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
