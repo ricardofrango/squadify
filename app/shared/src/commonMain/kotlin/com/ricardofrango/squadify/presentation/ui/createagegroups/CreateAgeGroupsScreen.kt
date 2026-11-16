@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.presentation.ui.components.AgeGroupsNotInPlanNotice
 import com.ricardofrango.squadify.presentation.ui.components.ageGroupsLeftOnPlan
+import com.ricardofrango.squadify.presentation.ui.components.canAddAgeGroupsOnPlan
 import com.ricardofrango.squadify.presentation.ui.components.ownPlanFor
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.ui.text.input.ImeAction
@@ -146,6 +147,7 @@ fun CreateAgeGroupsScreen(
             rows = rows,
             ownPlan = ownPlanFor(clubId),
             ageGroupsLeft = ageGroupsLeftOnPlan(clubId),
+            canAddAgeGroups = canAddAgeGroupsOnPlan(clubId),
             teamSizeOptions = sport.teamSizes,
             onNavigateBack = onNavigateBack,
             onSeasonSelected = { seasonId ->
@@ -240,6 +242,7 @@ private fun CreateAgeGroupsContent(
     // app and with no limit. None left: the form gives way to the plan's box; a few left: rows up to that.
     ownPlan: SpacePlan? = null,
     ageGroupsLeft: Int? = null,
+    canAddAgeGroups: Boolean = true,
     onNavigateBack: () -> Unit,
     onSeasonSelected: (seasonId: String) -> Unit,
     onRowSpanTypeSelected: (rowKey: Int, spanType: AgeGroupSpanType) -> Unit,
@@ -290,7 +293,7 @@ private fun CreateAgeGroupsContent(
                         textAlign = TextAlign.Center
                     )
                 }
-            } else if (ownPlan != null && ageGroupsLeft == 0) {
+            } else if (ownPlan != null && !canAddAgeGroups) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -869,6 +872,7 @@ private fun CreateAgeGroupsNoneLeftOnPlanPreview() {
                 teamSizeOptions = listOf(4, 5, 7, 9, 11),
                 ownPlan = SpacePlan("FREE"),
                 ageGroupsLeft = 0,
+                canAddAgeGroups = false,
                 onNavigateBack = {},
                 onSeasonSelected = {},
                 onRowSpanTypeSelected = { _, _ -> },

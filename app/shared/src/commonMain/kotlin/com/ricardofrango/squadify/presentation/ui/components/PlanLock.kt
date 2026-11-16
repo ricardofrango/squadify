@@ -211,6 +211,10 @@ fun StaffNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier, ownSpac
 @Composable
 fun ageGroupsLeftOnPlan(spaceId: String): Int? = LocalOwnSpace.current?.takeIf { it.spaceId == spaceId }?.ageGroupsLeft
 
+/** Whether the own space can add an age group now, as the coach server decides it; true when [spaceId] isn't that space. */
+@Composable
+fun canAddAgeGroupsOnPlan(spaceId: String): Boolean = LocalOwnSpace.current?.takeIf { it.spaceId == spaceId }?.canAddAgeGroups ?: true
+
 /** The age-group limit's wording for [plan]: how many it has, then the plans with more. */
 @Composable
 private fun ageGroupsNotInPlanMessage(plan: SpacePlan): String {
@@ -285,7 +289,7 @@ val previewPlans: List<PlanDetails> = run {
 @Composable
 private fun PlanLimitBoxPreview() {
     SquadifyTheme {
-        CompositionLocalProvider(LocalSeePlans provides {}, LocalPlans provides previewPlans, LocalOwnSpace provides OwnSpace("s", SpacePlan("FREE"), 1, 0), LocalShownSpace provides "s") {
+        CompositionLocalProvider(LocalSeePlans provides {}, LocalPlans provides previewPlans, LocalOwnSpace provides OwnSpace("s", SpacePlan("FREE"), 1, 0, canAddAgeGroups = false), LocalShownSpace provides "s") {
             Column(Modifier.background(ScreenBackground).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatsNotInPlanMessage()
                 StaffNotInPlanNotice(SpacePlan("FREE"))

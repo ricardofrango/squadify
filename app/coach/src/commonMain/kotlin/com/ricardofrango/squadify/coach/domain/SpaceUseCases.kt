@@ -23,7 +23,7 @@ class GetSpacesUseCase(
     suspend operator fun invoke(): List<SpaceAgeGroups> =
         spaceRepository.getSpaces().also { spaces ->
             ownSpacePlan.space.value = spaces.firstOrNull { it.isOwner }
-                ?.let { OwnSpace(it.space.id, it.plan, it.ageGroupsThisSeason, it.ageGroupsLeft) }
+                ?.let { OwnSpace(it.space.id, it.plan, it.ageGroupsThisSeason, it.ageGroupsLeft, it.canAddAgeGroups) }
             coachAds.remember(spaces)
             // Best effort: the last plans loaded stay when they can't be fetched now.
             try {

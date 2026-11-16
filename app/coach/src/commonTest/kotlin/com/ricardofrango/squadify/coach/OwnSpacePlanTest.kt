@@ -74,7 +74,7 @@ class OwnSpacePlanTest {
 
         // The own space as the server counts it, and the server's plans.
         getSpaces()
-        assertEquals(OwnSpace("mine", SpacePlan("BASIC"), ageGroupsThisSeason = 2, ageGroupsLeft = 1), ownPlan.space.value)
+        assertEquals(OwnSpace("mine", SpacePlan("BASIC"), ageGroupsThisSeason = 2, ageGroupsLeft = 1, canAddAgeGroups = true), ownPlan.space.value)
         assertEquals(listOf(SpacePlan("FREE")), ownPlan.plans.value?.plans?.map { it.plan })
 
         // The plans can't be fetched: the spaces still load, and the last plans stay.

@@ -3192,7 +3192,7 @@ graph TD
     G --> P["The plan, the age groups it locks, the current season (CoachSeasons) and, for the owner, ageGroupsLeft"]
     P --> T["Each age group's active teams' names, sorted"]
     T --> U["Each age group's next game: the space's upcoming games (getUpcomingMatchesByClub, soonest first), the first per age group, with its opponent's name"]
-    U --> Z(["SpaceDetails: space, isOwner, ownerName, plan, seasonName, ageGroups (SpaceAgeGroup: ageGroup, teams, nextMatch, locked), ageGroupsLeft, showsAds"])
+    U --> Z(["SpaceDetails: space, isOwner, ownerName, plan, seasonName, ageGroups (SpaceAgeGroup: ageGroup, teams, nextMatch, locked), ageGroupsLeft, canAddAgeGroups, showsAds"])
 ```
 
 The app sorts the age groups by the club each plays for (the name's part before " - ") and then youngest first. Its opponents tab is the shared opponents list (`OpponentsBrowser`, the same search and list as the Opponents screen) for the space.

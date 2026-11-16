@@ -440,7 +440,7 @@ private fun AgeGroupList(
             item(key = "staff-note") { Note(stringResource(Res.string.space_details_staff_note)) }
         }
         // The owner's plan has no room for more age groups this season.
-        if (details.isOwner && details.ageGroupsLeft == 0) {
+        if (details.isOwner && !details.canAddAgeGroups) {
             item(key = "plan-full") { AgeGroupsNotInPlanNotice(details.plan) }
         }
         if (details.isOwner && onImport != null) item(key = "import") { ImportAgeGroupsButton(onImport) }
