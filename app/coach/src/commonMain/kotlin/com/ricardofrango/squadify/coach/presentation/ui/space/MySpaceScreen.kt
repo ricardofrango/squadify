@@ -121,7 +121,7 @@ fun MySpaceScreen(
     LaunchedEffect(refresh) {
         if (refresh) {
             onRefreshed()
-            viewModel.load()
+            viewModel.reloadKeepingContent()
         }
     }
     val deleteDialog by viewModel.deleteDialog.collectAsStateWithLifecycle()

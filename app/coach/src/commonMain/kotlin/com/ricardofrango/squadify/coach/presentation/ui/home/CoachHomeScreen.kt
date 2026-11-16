@@ -158,7 +158,7 @@ fun CoachHomeScreen(
     LaunchedEffect(refresh) {
         if (refresh) {
             onRefreshed()
-            viewModel.load()
+            viewModel.reloadKeepingContent()
         }
     }
 

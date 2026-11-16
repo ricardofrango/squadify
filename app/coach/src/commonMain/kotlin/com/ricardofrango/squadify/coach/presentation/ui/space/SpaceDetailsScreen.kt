@@ -203,7 +203,7 @@ fun SpaceDetailsScreen(
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.load(spaceId, force = true) },
         isRefreshing = isRefreshing,
-        onRefresh = { viewModel.load(spaceId, force = true) },
+        onRefresh = viewModel::refreshContent,
         onOpenAgeGroup = onOpenAgeGroup,
         onAddAgeGroups = { space -> askRoom { onAddAgeGroups(space) } },
         onEditSpace = onEditSpace,

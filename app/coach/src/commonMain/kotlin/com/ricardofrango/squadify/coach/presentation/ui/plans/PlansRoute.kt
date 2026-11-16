@@ -84,7 +84,10 @@ fun PlansRoute(onPlanChanged: () -> Unit, onNavigateBack: () -> Unit) {
         val replacement = storeReplacement(current.plans, current.currentPlan, current.currentPeriod, plan, period)
         return when (val outcome = billing.purchase(product, accountId, owned, replacement)) {
             is PurchaseOutcome.Bought -> {
-                if (savePurchase(outcome.purchase.productId, outcome.purchase.purchaseToken)) onPlanChanged()
+                if (savePurchase(outcome.purchase.productId, outcome.purchase.purchaseToken)) {
+                    onPlanChanged()
+                    onNavigateBack()
+                }
                 true
             }
             PurchaseOutcome.Cancelled -> true
@@ -106,6 +109,7 @@ fun PlansRoute(onPlanChanged: () -> Unit, onNavigateBack: () -> Unit) {
                     check(buy(plan, period))
                 } else if (requestPlan(plan)) {
                     onPlanChanged()
+                    onNavigateBack()
                 }
             }
         } else null,

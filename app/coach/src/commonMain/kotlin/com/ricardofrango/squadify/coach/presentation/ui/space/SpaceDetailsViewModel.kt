@@ -58,9 +58,13 @@ class SpaceDetailsViewModel(
     fun load(spaceId: String, force: Boolean = false) {
         if (!force && this.spaceId == spaceId && _state.value is SpaceDetailsUiState.Loaded) return
         this.spaceId = spaceId
-        viewModelScope.launch(if (force) ForceRefresh else EmptyCoroutineContext) {
-            if (force) refreshFlag.during { fetch(spaceId) } else fetch(spaceId)
-        }
+        viewModelScope.launch(if (force) ForceRefresh else EmptyCoroutineContext) { fetch(spaceId) }
+    }
+
+    /** A pull-to-refresh: the server, not the cache; the content stays on screen and the indicator shows. */
+    fun refreshContent() {
+        val id = spaceId ?: return
+        viewModelScope.launch(ForceRefresh) { refreshFlag.during { fetch(id) } }
     }
 
     private suspend fun fetch(spaceId: String) {

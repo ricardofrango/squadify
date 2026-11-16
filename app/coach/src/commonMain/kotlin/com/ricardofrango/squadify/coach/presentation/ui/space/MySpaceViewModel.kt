@@ -107,6 +107,11 @@ class MySpaceViewModel(
         viewModelScope.launch { reload(showLoading = true) }
     }
 
+    /** Reloads without a loading state: after a change made under another screen. */
+    fun reloadKeepingContent() {
+        viewModelScope.launch { reload(showLoading = false) }
+    }
+
     /** A pull-to-refresh: the server, not the cache, and the content stays on screen. */
     fun refreshContent() {
         viewModelScope.launch(ForceRefresh) { refreshFlag.during { reload(showLoading = false) } }
