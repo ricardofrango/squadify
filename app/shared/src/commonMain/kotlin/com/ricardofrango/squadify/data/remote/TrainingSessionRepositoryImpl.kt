@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.data.remote
 
+import com.ricardofrango.squadify.data.cache.CacheKind
 import com.ricardofrango.squadify.data.cache.cachedGet
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
@@ -90,7 +91,7 @@ class TrainingSessionRepositoryImpl(
         httpClient.cachedGet("${appConfig.baseUrl}/players/$playerId/training-stats")
 
     override suspend fun getRatings(sessionId: String): TrainingRatings =
-        httpClient.get("${sessionUrl(sessionId)}/ratings").handleResponse()
+        httpClient.cachedGet("${sessionUrl(sessionId)}/ratings", CacheKind.MATCH)
 
     override suspend fun saveRatings(sessionId: String, changes: List<TrainingRatingChange>): TrainingRatings =
         httpClient.put("${sessionUrl(sessionId)}/ratings") {
