@@ -99,6 +99,7 @@ import squadify.app.shared.generated.resources.sport_football
 import squadify.app.shared.generated.resources.sport_futsal
 import kotlin.time.Instant
 import squadify.app.shared.generated.resources.Res as SharedRes
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
 /**
  * A space's edit screen: its name and sport (a space has no logo: it's shown with the Squadify mark). The owner sees
@@ -116,12 +117,15 @@ fun MySpaceScreen(
     val uiState by viewModel.state.collectAsStateWithLifecycle()
     val deleteDialog by viewModel.deleteDialog.collectAsStateWithLifecycle()
     val leaveDialog by viewModel.leaveDialog.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     LaunchedEffect(spaceId) { viewModel.open(spaceId) }
     LaunchedEffect(viewModel) { viewModel.spaceDeleted.collect { onSpaceDeleted() } }
     LaunchedEffect(viewModel) { viewModel.spaceLeft.collect { onSpaceLeft() } }
     MySpaceContent(
         uiState = uiState,
         onRetry = viewModel::load,
+        isRefreshing = isRefreshing,
+        onRefresh = viewModel::refreshContent,
         onSeePlans = onSeePlans,
         onNavigateBack = onNavigateBack,
         deleteDialog = deleteDialog,
@@ -141,6 +145,8 @@ fun MySpaceScreen(
 private fun MySpaceContent(
     uiState: MySpaceUiState,
     onRetry: () -> Unit,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onSeePlans: () -> Unit,
     onNavigateBack: () -> Unit,
     deleteDialog: DeleteSpaceDialog? = null,
@@ -164,28 +170,29 @@ private fun MySpaceContent(
                 CircularProgressIndicator(color = PitchGreen)
             }
             MySpaceUiState.Failed -> ErrorScreen(title = stringResource(Res.string.msg_my_space_failed), body = null, onRetry = onRetry, modifier = Modifier.fillMaxSize().padding(paddingValues))
-            is MySpaceUiState.Loaded -> Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
-                    .readableWidth()
-                    .screenContentPadding(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            is MySpaceUiState.Loaded -> PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            Column(
+              modifier = Modifier
+                  .fillMaxSize()
+                  .verticalScroll(rememberScrollState())
+                  .readableWidth()
+                  .screenContentPadding(),
+              verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                SectionCard { SpaceHeader(uiState) }
-                if (uiState.isOwner) {
-                    PlanCard(uiState.plan, uiState.ageGroupsThisSeason, onSeePlans = onSeePlans)
-                    // Deleting the space takes its age groups, players, games and staff with it.
-                    TextButton(onClick = onOpenDeleteSpace, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(Res.string.btn_delete_space), color = AlertRed, fontWeight = FontWeight.Bold)
-                    }
-                } else {
-                    // Staff leave the space: their access to its age groups goes with it, their account stays.
-                    TextButton(onClick = onOpenLeaveSpace, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(Res.string.btn_leave_space), color = AlertRed, fontWeight = FontWeight.Bold)
-                    }
-                }
+              SectionCard { SpaceHeader(uiState) }
+              if (uiState.isOwner) {
+                  PlanCard(uiState.plan, uiState.ageGroupsThisSeason, onSeePlans = onSeePlans)
+                  // Deleting the space takes its age groups, players, games and staff with it.
+                  TextButton(onClick = onOpenDeleteSpace, modifier = Modifier.fillMaxWidth()) {
+                      Text(stringResource(Res.string.btn_delete_space), color = AlertRed, fontWeight = FontWeight.Bold)
+                  }
+              } else {
+                  // Staff leave the space: their access to its age groups goes with it, their account stays.
+                  TextButton(onClick = onOpenLeaveSpace, modifier = Modifier.fillMaxWidth()) {
+                      Text(stringResource(Res.string.btn_leave_space), color = AlertRed, fontWeight = FontWeight.Bold)
+                  }
+              }
+            }
             }
         }
     }

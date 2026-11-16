@@ -33,6 +33,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -130,11 +132,14 @@ fun FullStatsScreen(
 ) {
     SquadifyClubTheme {
         val state = viewModel.state.collectSettledState()
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
         LaunchedEffect(teamId, ageGroupId) { viewModel.load(teamId, ageGroupId) }
         FullStatsContent(
             state = state,
             onNavigateBack = onNavigateBack,
             onRetry = { viewModel.load(teamId, ageGroupId, force = true) },
+            isRefreshing = isRefreshing,
+            onRefreshContent = viewModel::refreshContent,
             onPeriodSelected = viewModel::onPeriodSelected,
             onCustomRange = viewModel::onCustomRange,
             onTypeSelected = viewModel::onTypeSelected,
@@ -162,7 +167,9 @@ private fun FullStatsContent(
     onSort: (FullStatsColumn?) -> Unit,
     onToggleColumn: (FullStatsColumn) -> Unit,
     onOpenPlayer: (String) -> Unit,
-    initialSheet: FullStatsSheet = FullStatsSheet.NONE
+    initialSheet: FullStatsSheet = FullStatsSheet.NONE,
+    isRefreshing: Boolean = false,
+    onRefreshContent: () -> Unit = {}
 ) {
     var sheet by rememberSaveable { mutableStateOf(initialSheet) }
     val loaded = state as? FullStatsUiState.Loaded
@@ -249,7 +256,10 @@ private fun FullStatsContent(
                 } else {
                     Column(Modifier.fillMaxSize()) {
                         filters(Modifier.fillMaxWidth())
-                        body(Modifier.weight(1f))
+                        // Pull down to read the stats again (the server, not the cache).
+                        PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefreshContent, modifier = Modifier.weight(1f)) {
+                            body(Modifier.fillMaxSize())
+                        }
                     }
                 }
             }

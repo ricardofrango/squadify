@@ -3694,7 +3694,7 @@ server still refuses its actions while someone else manages the game, and it sho
 
 **Never kept:** the feature flags, the room check, the live match console (`/matches/{id}`, its events, score and report), invites, account deletion, and training ratings.
 
-**Pull-to-refresh.** A refresh starts its coroutine with `ForceRefresh` (`launch(ForceRefresh)`): the reads under it go to the server and keep the new answer. Coroutines launched from it inherit the marker, so helper loads take it through a context parameter.
+**Pull-to-refresh.** A refresh starts its coroutine with `ForceRefresh` (`launch(ForceRefresh)`): the reads under it go to the server and keep the new answer. Coroutines launched from it inherit the marker, so helper loads take it through a context parameter. Each refreshing screen's view model exposes `isRefreshing` (a `RefreshFlag`) for the indicator, and keeps the content on screen while the refresh runs. The screens: coach Home, space details (its age groups and opponents), My Space, the opponents list, club players, club member details, full stats, plans, account (unsaved edits are kept), exercise library, and the week, month and season plans. Empty states don't pull, since nothing there scrolls.
 
 **Clearing.** A successful write (anything but a GET) clears the cache, so the change shows at once. The token refresh doesn't clear. Logout, login and a forced logout clear it too.
 

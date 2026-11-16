@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubmember
 
+import com.ricardofrango.squadify.data.cache.ForceRefresh
+import com.ricardofrango.squadify.presentation.refresh.RefreshFlag
 import squadify.app.shared.generated.resources.msg_remove_staff_failed
 import squadify.app.shared.generated.resources.msg_staff_removed
 import com.ricardofrango.squadify.model.MemberAgeGroupRole
@@ -54,26 +56,44 @@ class ClubMemberDetailsViewModel(
 
     private var loadedKey: String? = null
 
+    private val refreshFlag = RefreshFlag()
+
+    /** Up while a pull-to-refresh reads the member again; the card stays on screen meanwhile. */
+    val isRefreshing: StateFlow<Boolean> = refreshFlag.running
+
+    private var target: Triple<String, String?, String?>? = null
+
     fun load(clubId: String, userId: String?, inviteId: String?, force: Boolean = false) {
         val key = "$clubId/$userId/$inviteId"
         if (!force && loadedKey == key) return
         loadedKey = key
+        target = Triple(clubId, userId, inviteId)
         viewModelScope.launch {
             _state.value = ClubMemberDetailsUiState.Loading
-            _state.value = try {
-                // Just this member, or (for an invite) the pending invites, which always come whole.
-                val overview = if (userId != null) getClubMembersOverviewUseCase(clubId, userId = userId)
-                else getClubMembersOverviewUseCase(clubId, limit = 1)
-                val member = userId?.let { id -> overview.members.firstOrNull { it.userId == id } }
-                val invite = inviteId?.let { id -> overview.pendingInvites.firstOrNull { it.inviteId == id } }
-                when {
-                    member != null -> ClubMemberDetailsUiState.Member(overview, member)
-                    invite != null -> ClubMemberDetailsUiState.Invite(overview, invite)
-                    else -> ClubMemberDetailsUiState.Error
-                }
-            } catch (e: Exception) {
-                ClubMemberDetailsUiState.Error
+            fetch(clubId, userId, inviteId)
+        }
+    }
+
+    /** A pull-to-refresh: the server, not the cache; the card stays on screen while it runs. */
+    fun refreshContent() {
+        val (clubId, userId, inviteId) = target ?: return
+        viewModelScope.launch(ForceRefresh) { refreshFlag.during { fetch(clubId, userId, inviteId) } }
+    }
+
+    private suspend fun fetch(clubId: String, userId: String?, inviteId: String?) {
+        _state.value = try {
+            // Just this member, or (for an invite) the pending invites, which always come whole.
+            val overview = if (userId != null) getClubMembersOverviewUseCase(clubId, userId = userId)
+            else getClubMembersOverviewUseCase(clubId, limit = 1)
+            val member = userId?.let { id -> overview.members.firstOrNull { it.userId == id } }
+            val invite = inviteId?.let { id -> overview.pendingInvites.firstOrNull { it.inviteId == id } }
+            when {
+                member != null -> ClubMemberDetailsUiState.Member(overview, member)
+                invite != null -> ClubMemberDetailsUiState.Invite(overview, invite)
+                else -> ClubMemberDetailsUiState.Error
             }
+        } catch (e: Exception) {
+            ClubMemberDetailsUiState.Error
         }
     }
 

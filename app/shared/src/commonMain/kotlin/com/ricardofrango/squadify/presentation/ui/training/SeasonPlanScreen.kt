@@ -1,5 +1,11 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import androidx.compose.runtime.getValue
+
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -96,9 +102,10 @@ fun SeasonPlanScreen(
 ) {
     SquadifyClubTheme {
         val state = viewModel.state.collectSettledState()
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
         LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
         LaunchedEffect(refresh) { if (refresh) viewModel.load(ageGroupId, force = true) }
-        SeasonPlanContent(state, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, onOpenMonth)
+        SeasonPlanContent(state, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, onOpenMonth, isRefreshing = isRefreshing, onRefresh = viewModel::refreshContent)
     }
 }
 
@@ -108,7 +115,9 @@ private fun SeasonPlanContent(
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     onEdit: () -> Unit,
-    onOpenMonth: (LocalDate) -> Unit
+    onOpenMonth: (LocalDate) -> Unit,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     val plans = (state as? TrainingPlansUiState.Idle)?.plans
     val plan = plans?.plans?.planFor(TrainingPlanLevel.SEASON, plans.season.startDate)
@@ -136,29 +145,31 @@ private fun SeasonPlanContent(
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
         BoxWithConstraints(modifier) {
             val wide = isWide
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatsCard { SeasonTimeline(plans.season, plan?.phases.orEmpty(), today) }
-                if (plan == null) {
-                    StatsCard {
-                        PlanEmpty(
-                            message = stringResource(Res.string.msg_no_season_plan),
-                            actionText = if (plans.canEdit) stringResource(Res.string.btn_create_season_plan) else null,
-                            readOnlyText = stringResource(Res.string.msg_plan_read_only),
-                            onAction = onEdit
-                        )
+            PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    StatsCard { SeasonTimeline(plans.season, plan?.phases.orEmpty(), today) }
+                    if (plan == null) {
+                        StatsCard {
+                            PlanEmpty(
+                                message = stringResource(Res.string.msg_no_season_plan),
+                                actionText = if (plans.canEdit) stringResource(Res.string.btn_create_season_plan) else null,
+                                readOnlyText = stringResource(Res.string.msg_plan_read_only),
+                                onAction = onEdit
+                            )
+                        }
                     }
-                }
-                if (wide) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { if (plan != null) ObjectivesCard(plan) }
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { if (plan != null) PhasesCard(plan) }
-                        Column(Modifier.weight(1f)) { MonthsCard(plans, plan, onOpenMonth) }
-                    }
-                } else {
-                    MonthsCard(plans, plan, onOpenMonth)
-                    if (plan != null) {
-                        ObjectivesCard(plan)
-                        PhasesCard(plan)
+                    if (wide) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { if (plan != null) ObjectivesCard(plan) }
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { if (plan != null) PhasesCard(plan) }
+                            Column(Modifier.weight(1f)) { MonthsCard(plans, plan, onOpenMonth) }
+                        }
+                    } else {
+                        MonthsCard(plans, plan, onOpenMonth)
+                        if (plan != null) {
+                            ObjectivesCard(plan)
+                            PhasesCard(plan)
+                        }
                     }
                 }
             }

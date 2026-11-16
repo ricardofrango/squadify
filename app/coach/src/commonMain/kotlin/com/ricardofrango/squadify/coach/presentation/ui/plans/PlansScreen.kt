@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -112,7 +113,9 @@ fun PlansScreen(
     prices: Map<StoreProduct, String> = emptyMap(),
     currentPeriod: BillingPeriod? = null,
     pendingPlan: SpacePlan? = null,
-    pendingFrom: LocalDate? = null
+    pendingFrom: LocalDate? = null,
+    onRefresh: (() -> Unit)? = null,
+    isRefreshing: Boolean = false
 ) {
     var selected by remember(currentPlan, requestedPlan) { mutableStateOf(requestedPlan ?: currentPlan) }
     var period by remember(currentPeriod) { mutableStateOf(currentPeriod ?: BillingPeriod.MONTHLY) }
@@ -171,36 +174,38 @@ fun PlansScreen(
         }
     ) { paddingValues ->
         when {
-            plans.isNotEmpty() -> Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
-                    .readableWidth()
-                    .screenContentPadding(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                if (byStore) {
-                    SegmentedFilter(
-                        options = listOf(BillingPeriod.MONTHLY, BillingPeriod.YEARLY),
-                        selected = period,
-                        label = { stringResource(if (it == BillingPeriod.MONTHLY) Res.string.plans_monthly else Res.string.plans_yearly) },
-                        onSelect = { period = it; failed = false },
-                        edgePadding = ScreenPadding.Horizontal
-                    )
-                }
-                plans.forEachIndexed { index, details ->
-                    val price = details.storeProducts.firstOrNull { it.period == period }?.let { prices[it] }?.let {
-                        stringResource(if (period == BillingPeriod.MONTHLY) Res.string.plans_price_month else Res.string.plans_price_year, it)
+            plans.isNotEmpty() -> PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh ?: {}, modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                    
+                        .verticalScroll(rememberScrollState())
+                        .readableWidth()
+                        .screenContentPadding(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (byStore) {
+                        SegmentedFilter(
+                            options = listOf(BillingPeriod.MONTHLY, BillingPeriod.YEARLY),
+                            selected = period,
+                            label = { stringResource(if (it == BillingPeriod.MONTHLY) Res.string.plans_monthly else Res.string.plans_yearly) },
+                            onSelect = { period = it; failed = false },
+                            edgePadding = ScreenPadding.Horizontal
+                        )
                     }
-                    PlanCardView(
-                        details,
-                        plans.getOrNull(index - 1),
-                        price = price,
-                        isCurrent = details.plan == currentPlan,
-                        isSelected = details.plan == selected,
-                        onClick = if (onRequestPlan != null && !sending) ({ selected = details.plan; failed = false }) else null
-                    )
+                    plans.forEachIndexed { index, details ->
+                        val price = details.storeProducts.firstOrNull { it.period == period }?.let { prices[it] }?.let {
+                            stringResource(if (period == BillingPeriod.MONTHLY) Res.string.plans_price_month else Res.string.plans_price_year, it)
+                        }
+                        PlanCardView(
+                            details,
+                            plans.getOrNull(index - 1),
+                            price = price,
+                            isCurrent = details.plan == currentPlan,
+                            isSelected = details.plan == selected,
+                            onClick = if (onRequestPlan != null && !sending) ({ selected = details.plan; failed = false }) else null
+                        )
+                    }
                 }
             }
             onRetry != null -> ErrorScreen(title = stringResource(Res.string.plans_load_failed), onRetry = onRetry, modifier = Modifier.fillMaxSize().padding(paddingValues))

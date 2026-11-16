@@ -3,6 +3,8 @@ package com.ricardofrango.squadify.coach.presentation.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
+import com.ricardofrango.squadify.data.cache.ForceRefresh
+import com.ricardofrango.squadify.presentation.refresh.RefreshFlag
 import com.ricardofrango.squadify.domain.usecase.GetCurrentUserUseCase
 import com.ricardofrango.squadify.domain.usecase.LogoutUseCase
 import kotlinx.coroutines.CancellationException
@@ -29,29 +31,41 @@ class CoachHomeViewModel(
         load()
     }
 
+    private val refreshFlag = RefreshFlag()
+
+    /** Up while a pull-to-refresh reads the spaces again; the content stays on screen meanwhile. */
+    val isRefreshing: StateFlow<Boolean> = refreshFlag.running
+
     fun load() {
-        viewModelScope.launch {
-            _state.value = CoachHomeUiState.Loading
-            _state.value = try {
-                val spaces = getSpacesUseCase()
-                // Their name, for their space before it exists; best effort.
-                val userName = if (spaces.none { it.isOwner }) {
-                    try {
-                        getCurrentUserUseCase().let { "${it.firstName} ${it.lastName}".trim() }.ifEmpty { null }
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        null
-                    }
-                } else {
+        viewModelScope.launch { reload(showLoading = true) }
+    }
+
+    /** A pull-to-refresh: the server, not the cache, and the content stays on screen. */
+    fun refreshContent() {
+        viewModelScope.launch(ForceRefresh) { refreshFlag.during { reload(showLoading = false) } }
+    }
+
+    private suspend fun reload(showLoading: Boolean) {
+        if (showLoading) _state.value = CoachHomeUiState.Loading
+        _state.value = try {
+            val spaces = getSpacesUseCase()
+            // Their name, for their space before it exists; best effort.
+            val userName = if (spaces.none { it.isOwner }) {
+                try {
+                    getCurrentUserUseCase().let { "${it.firstName} ${it.lastName}".trim() }.ifEmpty { null }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
                     null
                 }
-                CoachHomeUiState.Loaded.of(spaces, userName)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                CoachHomeUiState.Failed
+            } else {
+                null
             }
+            CoachHomeUiState.Loaded.of(spaces, userName)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            CoachHomeUiState.Failed
         }
     }
 

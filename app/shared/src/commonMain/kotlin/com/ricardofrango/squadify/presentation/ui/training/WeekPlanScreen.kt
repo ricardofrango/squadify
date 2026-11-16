@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
@@ -87,10 +89,11 @@ fun WeekPlanScreen(
 ) {
     SquadifyClubTheme {
         val state = viewModel.state.collectSettledState()
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
         val sessions by viewModel.sessions.collectAsStateWithLifecycle()
         LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
         LaunchedEffect(refresh) { if (refresh) viewModel.load(ageGroupId, force = true) }
-        WeekPlanContent(state, monday, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, sessions, onOpenSession, onAddSession)
+        WeekPlanContent(state, monday, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, sessions, onOpenSession, onAddSession, isRefreshing = isRefreshing, onRefresh = viewModel::refreshContent)
     }
 }
 
@@ -115,7 +118,9 @@ private fun WeekPlanContent(
     onEdit: () -> Unit,
     sessions: TrainingSessions? = null,
     onOpenSession: (String) -> Unit = {},
-    onAddSession: (LocalDate) -> Unit = {}
+    onAddSession: (LocalDate) -> Unit = {},
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     val plans = (state as? TrainingPlansUiState.Idle)?.plans
     val plan: TrainingPlan? = plans?.plans?.planFor(TrainingPlanLevel.WEEK, monday)
@@ -144,20 +149,22 @@ private fun WeekPlanContent(
         }
         Column(modifier) {
             WeekContextStrip(plans, monday)
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).safeSidesPadding().readableWidth().screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (plan == null) {
-                    StatsCard {
-                        PlanEmpty(
-                            message = stringResource(Res.string.msg_week_no_plan),
-                            actionText = if (plans.canEdit) stringResource(Res.string.btn_plan_this_week) else null,
-                            readOnlyText = stringResource(Res.string.msg_plan_read_only),
-                            onAction = onEdit
-                        )
+            PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.weight(1f)) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).safeSidesPadding().readableWidth().screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (plan == null) {
+                        StatsCard {
+                            PlanEmpty(
+                                message = stringResource(Res.string.msg_week_no_plan),
+                                actionText = if (plans.canEdit) stringResource(Res.string.btn_plan_this_week) else null,
+                                readOnlyText = stringResource(Res.string.msg_plan_read_only),
+                                onAction = onEdit
+                            )
+                        }
+                    } else {
+                        PlanBody(plan) { plan.intensity?.let { IntensityChip(it) } }
                     }
-                } else {
-                    PlanBody(plan) { plan.intensity?.let { IntensityChip(it) } }
+                    if (sessions != null) WeekSessions(sessions, monday, onOpenSession, onAddSession)
                 }
-                if (sessions != null) WeekSessions(sessions, monday, onOpenSession, onAddSession)
             }
         }
     }

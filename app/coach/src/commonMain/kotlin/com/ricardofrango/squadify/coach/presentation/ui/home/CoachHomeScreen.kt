@@ -38,6 +38,7 @@ import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -150,6 +151,7 @@ fun CoachHomeScreen(
     viewModel: CoachHomeViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     // The Free plan's banner stands for the coach's own space here (CoachAds.homeSpaceId).
     val adSpaceId by koinInject<CoachAds>().homeSpaceId.collectAsStateWithLifecycle()
 
@@ -171,6 +173,8 @@ fun CoachHomeScreen(
     CoachHomeContent(
         uiState = uiState,
         onRetry = viewModel::load,
+        isRefreshing = isRefreshing,
+        onRefresh = viewModel::refreshContent,
         onSignOut = viewModel::onSignOutClicked,
         onOpenSpace = onOpenSpace,
         onCreateAgeGroups = {
@@ -200,7 +204,9 @@ private fun CoachHomeContent(
     adSpaceId: String? = null,
     // The ads' consent form again, where the user must be able to change it (the EU and UK); null otherwise.
     onPrivacyOptions: (() -> Unit)? = null,
-    drawerState: DrawerState = rememberDrawerState(DrawerValue.Closed)
+    drawerState: DrawerState = rememberDrawerState(DrawerValue.Closed),
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     // Closes the menu, then does what was picked.
@@ -267,8 +273,9 @@ private fun CoachHomeContent(
 
                 CoachHomeUiState.Failed -> ErrorScreen(title = stringResource(Res.string.msg_coach_home_failed), body = null, onRetry = onRetry, modifier = Modifier.fillMaxSize().padding(paddingValues))
 
-                is CoachHomeUiState.Loaded -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).readableWidth(),
+                is CoachHomeUiState.Loaded -> PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().readableWidth(),
                     contentPadding = ScreenPadding.Values,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -296,6 +303,7 @@ private fun CoachHomeContent(
                             JoinButton(onJoinWithCode)
                         }
                     }
+                }
                 }
             }
         }

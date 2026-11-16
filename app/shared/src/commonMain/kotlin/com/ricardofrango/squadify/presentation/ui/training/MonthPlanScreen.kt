@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
@@ -89,9 +93,10 @@ fun MonthPlanScreen(
 ) {
     SquadifyClubTheme {
         val state = viewModel.state.collectSettledState()
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
         LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
         LaunchedEffect(refresh) { if (refresh) viewModel.load(ageGroupId, force = true) }
-        MonthPlanContent(state, month, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, onOpenWeek)
+        MonthPlanContent(state, month, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, onOpenWeek, isRefreshing = isRefreshing, onRefresh = viewModel::refreshContent)
     }
 }
 
@@ -106,7 +111,9 @@ private fun MonthPlanContent(
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     onEdit: () -> Unit,
-    onOpenWeek: (LocalDate) -> Unit
+    onOpenWeek: (LocalDate) -> Unit,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     val plans = (state as? TrainingPlansUiState.Idle)?.plans
     val plan = plans?.plans?.planFor(TrainingPlanLevel.MONTH, month)
@@ -137,29 +144,31 @@ private fun MonthPlanContent(
             MonthContextStrip(plans, month)
             BoxWithConstraints(Modifier.weight(1f).safeSidesPadding()) {
                 val wide = isWide
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    val planPart: @Composable () -> Unit = {
-                        if (plan == null) {
-                            StatsCard {
-                                PlanEmpty(
-                                    message = stringResource(Res.string.msg_month_no_plan, monthName(month)),
-                                    actionText = if (plans.canEdit) stringResource(Res.string.title_plan_month, monthName(month)) else null,
-                                    readOnlyText = stringResource(Res.string.msg_plan_read_only),
-                                    onAction = onEdit
-                                )
+                PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        val planPart: @Composable () -> Unit = {
+                            if (plan == null) {
+                                StatsCard {
+                                    PlanEmpty(
+                                        message = stringResource(Res.string.msg_month_no_plan, monthName(month)),
+                                        actionText = if (plans.canEdit) stringResource(Res.string.title_plan_month, monthName(month)) else null,
+                                        readOnlyText = stringResource(Res.string.msg_plan_read_only),
+                                        onAction = onEdit
+                                    )
+                                }
+                            } else {
+                                PlanBody(plan)
+                            }
+                        }
+                        if (wide) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { planPart() }
+                                Column(Modifier.weight(1f)) { WeeksCard(plans, month, onOpenWeek) }
                             }
                         } else {
-                            PlanBody(plan)
+                            planPart()
+                            WeeksCard(plans, month, onOpenWeek)
                         }
-                    }
-                    if (wide) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { planPart() }
-                            Column(Modifier.weight(1f)) { WeeksCard(plans, month, onOpenWeek) }
-                        }
-                    } else {
-                        planPart()
-                        WeeksCard(plans, month, onOpenWeek)
                     }
                 }
             }

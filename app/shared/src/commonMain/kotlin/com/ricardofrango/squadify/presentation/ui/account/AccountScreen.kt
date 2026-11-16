@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.ricardofrango.squadify.presentation.ui.components.monthYearLabel
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
@@ -82,6 +84,7 @@ fun AccountScreen(
 ) {
     SquadifyClubTheme {
         val uiState = viewModel.state.collectSettledState()
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
 
         LaunchedEffect(Unit) {
             viewModel.navigationEvent.collect { event ->
@@ -134,7 +137,9 @@ fun AccountScreen(
             onPhotoPicked = viewModel::onPhotoPicked,
             onRemovePhoto = viewModel::onRemovePhoto,
             showPhoto = viewModel.showsPhoto,
-            onDeleteAccountClick = if (viewModel.offersAccountDeletion) onNavigateToDeleteAccount else null
+            onDeleteAccountClick = if (viewModel.offersAccountDeletion) onNavigateToDeleteAccount else null,
+            isRefreshing = isRefreshing,
+            onRefresh = viewModel::refreshContent
         )
     }
 }
@@ -158,7 +163,9 @@ private fun AccountContent(
     // False hides the photo: initials only, no photo actions (AppFeatures.photos).
     showPhoto: Boolean = true,
     // Null: no "Delete account" (the clubs app, for now).
-    onDeleteAccountClick: (() -> Unit)? = null
+    onDeleteAccountClick: (() -> Unit)? = null,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     val idle = uiState as? AccountUiState.Idle
 
@@ -201,9 +208,11 @@ private fun AccountContent(
                 ErrorScreen(title = uiState.message, body = null, onRetry = onRetry, modifier = boxModifier)
             }
             is AccountUiState.Idle -> {
+                // Pull down to read the account again; what's typed and not saved stays.
+                PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = boxModifier) {
                 AccountForm(
                     state = uiState,
-                    modifier = boxModifier,
+                    modifier = Modifier.fillMaxSize(),
                     onFirstNameChange = onFirstNameChange,
                     onLastNameChange = onLastNameChange,
                     onPhoneChange = onPhoneChange,
@@ -217,6 +226,7 @@ private fun AccountContent(
                     showPhoto = showPhoto,
                     onDeleteAccountClick = onDeleteAccountClick
                 )
+                }
             }
         }
     }

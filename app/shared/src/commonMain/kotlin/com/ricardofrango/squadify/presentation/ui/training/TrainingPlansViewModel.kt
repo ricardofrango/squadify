@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.refresh.RefreshFlag
+
+import com.ricardofrango.squadify.data.cache.ForceRefresh
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetTrainingPlansUseCase
@@ -31,19 +35,44 @@ class TrainingPlansViewModel(
     private val _state = MutableStateFlow<TrainingPlansUiState>(TrainingPlansUiState.Loading)
     val state: StateFlow<TrainingPlansUiState> = _state.asStateFlow()
 
+    private val refreshFlag = RefreshFlag()
+
+    /** Up while a pull-to-refresh reads the plans and sessions again; what's shown stays meanwhile. */
+    val isRefreshing: StateFlow<Boolean> = refreshFlag.running
+
+    private var ageGroup: String? = null
+
     /** [force] reloads after an editor saved, keeping what's shown meanwhile. */
     fun load(ageGroupId: String, force: Boolean = false) {
         if (!force && _state.value is TrainingPlansUiState.Idle) return
-        viewModelScope.launch { _sessions.value = runCatching { getTrainingSessionsUseCase(ageGroupId) }.getOrNull() ?: _sessions.value }
-        viewModelScope.launch {
-            val previous = _state.value as? TrainingPlansUiState.Idle
-            if (previous == null) _state.update { TrainingPlansUiState.Loading }
-            _state.update {
-                try {
-                    TrainingPlansUiState.Idle(getTrainingPlansUseCase(ageGroupId))
-                } catch (e: Exception) {
-                    previous ?: TrainingPlansUiState.Error
-                }
+        ageGroup = ageGroupId
+        viewModelScope.launch { fetchSessions(ageGroupId) }
+        viewModelScope.launch { fetchPlans(ageGroupId) }
+    }
+
+    /** A pull-to-refresh: the server, not the cache, for the plans and the week's sessions. */
+    fun refreshContent() {
+        val id = ageGroup ?: return
+        viewModelScope.launch(ForceRefresh) {
+            refreshFlag.during {
+                fetchSessions(id)
+                fetchPlans(id)
+            }
+        }
+    }
+
+    private suspend fun fetchSessions(ageGroupId: String) {
+        _sessions.value = runCatching { getTrainingSessionsUseCase(ageGroupId) }.getOrNull() ?: _sessions.value
+    }
+
+    private suspend fun fetchPlans(ageGroupId: String) {
+        val previous = _state.value as? TrainingPlansUiState.Idle
+        if (previous == null) _state.update { TrainingPlansUiState.Loading }
+        _state.update {
+            try {
+                TrainingPlansUiState.Idle(getTrainingPlansUseCase(ageGroupId))
+            } catch (e: Exception) {
+                previous ?: TrainingPlansUiState.Error
             }
         }
     }

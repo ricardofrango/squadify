@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import com.ricardofrango.squadify.presentation.ui.components.shortWindow
 import androidx.compose.foundation.layout.only
@@ -118,12 +119,15 @@ fun ExerciseLibraryScreen(
 ) {
     SquadifyClubTheme {
         val state by viewModel.state.collectAsStateWithLifecycle()
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
         LaunchedEffect(sessionId) { viewModel.start(sessionId) }
         LaunchedEffect(viewModel) { viewModel.done.collect { onAdded() } }
         ExerciseLibraryContent(
             state = state,
             onNavigateBack = { if (state.form != null) viewModel.closeForm() else onNavigateBack() },
             onRetry = { viewModel.start(sessionId, force = true) },
+            isRefreshing = isRefreshing,
+            onRefresh = viewModel::refreshContent,
             onQueryChange = viewModel::onQueryChange,
             onToggle = viewModel::toggle,
             onNew = viewModel::newExercise,
@@ -146,7 +150,9 @@ private fun ExerciseLibraryContent(
     onEdit: (TrainingExercise) -> Unit,
     onFormChange: (ExerciseForm) -> Unit,
     onSaveForm: () -> Unit,
-    onAddSelected: () -> Unit
+    onAddSelected: () -> Unit,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     val session = state.session
     val form = state.form
@@ -210,7 +216,7 @@ private fun ExerciseLibraryContent(
                     }
                 }
             } else {
-                LibraryList(state, onQueryChange, onToggle, onEdit, Modifier.weight(1f).safeSidesPadding(), searchInList = short)
+                LibraryList(state, onQueryChange, onToggle, onEdit, Modifier.weight(1f).safeSidesPadding(), searchInList = short, isRefreshing = isRefreshing, onRefresh = onRefresh)
             }
             if (!(short && form != null)) FormErrorLine(state.error)
             // The list's bar still hides while typing in the search lying down.
@@ -242,7 +248,9 @@ private fun LibraryList(
     onEdit: (TrainingExercise) -> Unit,
     modifier: Modifier,
     // Lying down on a phone: the search is the list's first row and scrolls away with it.
-    searchInList: Boolean = false
+    searchInList: Boolean = false,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     val session = state.session ?: return
     val inSession = session.exercises.map { it.id }.toSet()
@@ -266,47 +274,49 @@ private fun LibraryList(
     }
     Column(modifier) {
         if (!searchInList) search()
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = ScreenPadding.Bottom),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Keyed, so the field keeps its focus as the rows under it change with the search.
-            if (searchInList) item(key = "search") { search() }
-            item {
-                StatsHeading(
-                    stringResource(Res.string.label_section_count, stringResource(Res.string.label_library, session.ageGroup.name.uppercase()), state.library.size),
-                )
-            }
-            if (shown.isEmpty()) {
+        PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.weight(1f)) {
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = ScreenPadding.Bottom),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Keyed, so the field keeps its focus as the rows under it change with the search.
+                if (searchInList) item(key = "search") { search() }
                 item {
-                    Text(
-                        if (state.query.isBlank()) stringResource(Res.string.msg_library_empty) else stringResource(Res.string.msg_library_no_match, state.query.trim()),
-                        style = MaterialTheme.typography.bodyMedium, color = StatsSecondaryText, textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(24.dp)
+                    StatsHeading(
+                        stringResource(Res.string.label_section_count, stringResource(Res.string.label_library, session.ageGroup.name.uppercase()), state.library.size),
                     )
                 }
-            }
-            items(shown, key = { it.id }) { exercise ->
-                val selected = exercise.id in state.selected
-                // Each exercise is a white section; tapping it ticks it.
-                SectionCard(onClick = { onToggle(exercise.id) }, contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 4.dp, horizontal = 4.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(checked = selected, onCheckedChange = { onToggle(exercise.id) }, colors = CheckboxDefaults.colors(checkedColor = PitchGreen))
-                        Column(Modifier.weight(1f)) {
-                            Text(exercise.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = DeepCarbon)
-                            exercise.description?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText, maxLines = 2) }
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            exercise.durationMinutes?.let { Text("$it'", style = MaterialTheme.typography.labelLarge, color = DeepCarbon) }
-                            Text(stringResource(Res.string.label_used_n, exercise.usedCount), style = MaterialTheme.typography.labelSmall, color = StatsSecondaryText)
-                        }
-                        if (session.canEdit) {
-                            IconButton(onClick = { onEdit(exercise) }) {
-                                Icon(painterResource(Res.drawable.ic_edit), stringResource(Res.string.cd_edit_exercise), tint = DeepCarbon.copy(alpha = 0.45f), modifier = Modifier.size(18.dp))
+                if (shown.isEmpty()) {
+                    item {
+                        Text(
+                            if (state.query.isBlank()) stringResource(Res.string.msg_library_empty) else stringResource(Res.string.msg_library_no_match, state.query.trim()),
+                            style = MaterialTheme.typography.bodyMedium, color = StatsSecondaryText, textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(24.dp)
+                        )
+                    }
+                }
+                items(shown, key = { it.id }) { exercise ->
+                    val selected = exercise.id in state.selected
+                    // Each exercise is a white section; tapping it ticks it.
+                    SectionCard(onClick = { onToggle(exercise.id) }, contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 4.dp, horizontal = 4.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(checked = selected, onCheckedChange = { onToggle(exercise.id) }, colors = CheckboxDefaults.colors(checkedColor = PitchGreen))
+                            Column(Modifier.weight(1f)) {
+                                Text(exercise.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = DeepCarbon)
+                                exercise.description?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText, maxLines = 2) }
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                exercise.durationMinutes?.let { Text("$it'", style = MaterialTheme.typography.labelLarge, color = DeepCarbon) }
+                                Text(stringResource(Res.string.label_used_n, exercise.usedCount), style = MaterialTheme.typography.labelSmall, color = StatsSecondaryText)
+                            }
+                            if (session.canEdit) {
+                                IconButton(onClick = { onEdit(exercise) }) {
+                                    Icon(painterResource(Res.drawable.ic_edit), stringResource(Res.string.cd_edit_exercise), tint = DeepCarbon.copy(alpha = 0.45f), modifier = Modifier.size(18.dp))
+                                }
                             }
                         }
                     }

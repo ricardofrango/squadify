@@ -42,6 +42,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
@@ -85,6 +87,7 @@ fun ClubPlayersScreen(
 ) {
     SquadifyClubTheme {
         val state = viewModel.state.collectSettledState()
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
         LaunchedEffect(clubId) { viewModel.load(clubId) }
         LaunchedEffect(refresh) { if (refresh) viewModel.load(clubId, force = true) }
 
@@ -115,7 +118,9 @@ fun ClubPlayersScreen(
             onSearchChanged = viewModel::onSearchChanged,
             onDisable = viewModel::disable,
             onReactivate = viewModel::reactivate,
-            onLoadMore = viewModel::loadMore
+            onLoadMore = viewModel::loadMore,
+            isRefreshing = isRefreshing,
+            onRefresh = viewModel::refreshContent
         )
     }
 }
@@ -180,7 +185,9 @@ private fun ClubPlayersContent(
     onSearchChanged: (String) -> Unit,
     onDisable: (playerId: String) -> Unit,
     onReactivate: (playerId: String) -> Unit,
-    onLoadMore: () -> Unit = {}
+    onLoadMore: () -> Unit = {},
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     var confirmDisable by remember { mutableStateOf<Player?>(null) }
     Scaffold(
@@ -255,7 +262,12 @@ private fun ClubPlayersContent(
                 } else {
                     Column(Modifier.fillMaxSize()) {
                         Filters(s, onSeasonSelected, onAgeGroupSelected, onSearchChanged)
-                        if (notList != null) notList() else list(null)
+                        if (notList != null) {
+                            notList()
+                        } else {
+                            // Pull down to read the club's players again (the server, not the cache).
+                            PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.weight(1f)) { list(null) }
+                        }
                     }
                 }
             }

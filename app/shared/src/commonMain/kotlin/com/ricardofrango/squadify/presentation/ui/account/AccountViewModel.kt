@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import com.ricardofrango.squadify.data.cache.ForceRefresh
+import com.ricardofrango.squadify.presentation.refresh.RefreshFlag
+import kotlinx.coroutines.CancellationException
 import com.ricardofrango.squadify.domain.config.AppFeatures
 import squadify.app.shared.generated.resources.msg_password_change_wrong_password
 import org.jetbrains.compose.resources.getString
@@ -61,6 +64,41 @@ class AccountViewModel(
             } catch (e: Exception) {
                 AccountUiState.Error(errorMessage(e, Res.string.msg_failed_to_load_account))
             }
+        }
+    }
+
+    private val refreshFlag = RefreshFlag()
+
+    /** Up while a pull-to-refresh reads the account again. */
+    val isRefreshing: StateFlow<Boolean> = refreshFlag.running
+
+    /**
+     * A pull-to-refresh: the server's account, not the cache. What the user has typed and not saved is kept; if the
+     * read fails, the screen stays as it is.
+     */
+    fun refreshContent() {
+        viewModelScope.launch(ForceRefresh) { refreshFlag.during { reloadKeepingEdits() } }
+    }
+
+    private suspend fun reloadKeepingEdits() {
+        val fresh = try {
+            idleFor(getCurrentUserUseCase())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return
+        }
+        val current = _state.value as? AccountUiState.Idle
+        _state.value = if (current == null) {
+            fresh
+        } else {
+            current.copy(
+                email = fresh.email,
+                memberSince = fresh.memberSince,
+                status = fresh.status,
+                original = fresh.original,
+                form = if (current.form == current.original) fresh.form else current.form
+            )
         }
     }
 
