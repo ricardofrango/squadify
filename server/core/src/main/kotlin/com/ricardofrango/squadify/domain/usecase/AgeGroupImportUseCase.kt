@@ -96,6 +96,9 @@ class ImportAgeGroupUseCase(
             if (importRepository.findAgeGroup(targetClubId, sourceServer, group.id) != null) {
                 throw ConflictException("This age group is already imported into this club")
             }
+            // A copy deleted since an earlier import left its records behind: they point at rows that are gone, so this copy
+            // starts from none (the record checks below then only find what this import wrote).
+            importRepository.forgetRecords(targetClubId, sourceServer, group.id)
             val ageGroupId = createAgeGroup(userId, targetClubId, sourceServer, bundle, ::sizeFor)
             val seasonId = ageGroupRepository.getAgeGroupById(ageGroupId)!!.seasonId
 

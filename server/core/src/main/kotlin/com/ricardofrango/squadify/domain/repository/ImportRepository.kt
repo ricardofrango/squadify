@@ -31,4 +31,10 @@ interface ImportRepository {
     suspend fun findRecord(targetClubId: String, sourceServer: String, sourceAgeGroupId: String, kind: String, sourceId: String): String?
 
     suspend fun saveRecord(targetClubId: String, sourceServer: String, sourceAgeGroupId: String, kind: String, sourceId: String, targetId: String)
+
+    /**
+     * Forgets the records of [sourceAgeGroupId]'s earlier copy in [targetClubId]. Deleting that copy removes its rows but
+     * not these records, which would point at rows that no longer exist: a copy made again starts from none.
+     */
+    suspend fun forgetRecords(targetClubId: String, sourceServer: String, sourceAgeGroupId: String)
 }

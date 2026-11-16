@@ -164,4 +164,50 @@ class CoachAgeGroupImportTest {
             stopKoin()
         }
     }
+
+    // Imported, deleted, and imported again: the first copy's records (team, player, match ids) are still there
+    // after the delete, and the second import must not point at them.
+    @Test
+    fun anAgeGroupImportedDeletedAndImportedAgainIsCopiedAgain() = testApplication {
+        application { module() }
+        val api = jsonClient()
+
+        val ana = api.signUp()
+        val setup = api.post("/v1/space") {
+            json(ana, SetUpSpaceRequest("Ana's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-12", 2015, 2015, teamSize = 4), "Sub-12 A"))
+        }.body<SpaceSetup>()
+        api.post("/v1/players") {
+            json(ana, CreatePlayersRequest(setup.space.id, listOf(CreatePlayer("Rui", "Costa", LocalDate(2015, 4, 2))), ageGroupId = setup.ageGroup.id, addToAgeGroup = true))
+        }
+        val opponent = api.post("/v1/opponents?clubId=${setup.space.id}") { json(ana, CreateOpponentRequest("Benfica")) }.body<Opponent>()
+        api.post("/v1/matches") {
+            json(ana, CreateMatchRequest(setup.team.id, opponent.id, dateTime = Clock.System.now(), type = MatchType.FRIENDLY, venue = MatchVenue.HOME))
+        }.body<Match>()
+
+        val ben = api.signUp()
+        val benSpace = api.post("/v1/space") {
+            json(ben, SetUpSpaceRequest("Ben's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-10", 2016, 2016, teamSize = 4), "Sub-10 A"))
+        }.body<SpaceSetup>().space.id
+        api.setPlan(benSpace, PlanLimits.PRO)
+        val benId = api.get("/v1/users/me") { bearerAuth(ben) }.body<com.ricardofrango.squadify.model.User>().id
+
+        val koin = koinApplication { modules(coachModule) }.koin
+        try {
+            val importUseCase = koin.get<ImportAgeGroupUseCase>()
+            suspend fun exportBundle(): AgeGroupBundle {
+                val grant = api.post("/v1/export/grants") { bearerAuth(ana) }.body<ExportGrantResponse>()
+                return api.get("/v1/export/age-groups/${setup.ageGroup.id}/bundle") { header("X-Export-Grant", grant.token) }.body()
+            }
+
+            val first = importUseCase(benId, benSpace, "https://ana.example", exportBundle())
+            assertEquals(1, first.matches)
+            koin.get<com.ricardofrango.squadify.domain.usecase.DeleteAgeGroupUseCase>()(benId, first.ageGroupId)
+
+            val second = importUseCase(benId, benSpace, "https://ana.example", exportBundle())
+            assertEquals(1, second.teams)
+            assertEquals(1, second.matches)
+        } finally {
+            stopKoin()
+        }
+    }
 }
