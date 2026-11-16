@@ -3680,7 +3680,15 @@ server still refuses its actions while someone else manages the game, and it sho
 
 **What it is.** `GET /v1/feature-flags` on each server (the clubs and the coach server, unauthenticated, under `/v1`): the flags the apps read when they start, as one `FeatureFlags` object (`common`'s `model/FeatureFlags.kt`). A flag is on or off, from the server's own environment: `FEATURE_AGE_GROUP_IMPORT=true` turns on the age group import (§81). Missing or any other value means off. New features add a field to `FeatureFlags`, defaulting to off.
 
-**Both sides check it.** Each server refuses the signed-in import endpoints (`/import/source/age-groups`, `/import/age-groups`) with a 403 while the flag is off, so the import can't start from anywhere. The export endpoints are read by the other app and stay open. Each app reads the flags once at startup (`FeatureFlagsStore`, shared; everything off until it answers, and a failed read keeps what it had) and shows the import button only when the flag is on and the other app is installed.
+**Both sides check it.** Each server refuses the signed-in import endpoints (`/import/source/age-groups`, `/import/age-groups`) with a 403 while the flag is off, so the import can't start from anywhere. The export endpoints are read by the other app and stay open. Each app reads the flags at startup, through the root gate below, and shows the import button only when the flag is on and the other app is installed.
+
+**Startup gate (both apps).** `FeatureFlagsStore` has a status: `LOADING`, `LOADED` or `FAILED`. The app root (`App` in clubs, `CoachApp` in coach) wraps the navigation in `FeatureFlagsGate`, so no screen opens, not even Login, until the flags have been read with a 200:
+- **Loading:** the carbon splash look. On Android the system splash stays up until the splash screen runs.
+- **Failed:** a full-screen message asking for a connection, with Retry. The session is never touched: only a 401 from the refresh endpoint clears it (`CheckAndRefreshSessionUseCase`).
+- **Retry:** on Retry, when a network connection comes back (Android's default network callback, `ACCESS_NETWORK_STATE`; no signal on iOS for now, web or desktop), and when the app comes back to the front. A retry runs only while the status is `FAILED`.
+- **Once read,** a later failed read changes nothing: the app stays open with the flags it has.
+- **Restored apps:** Android can restore the app on an inner screen without the splash. The gate sits above the navigation, so that case is covered too.
+- **Offline start:** a signed-in user with no connection at startup sees only the connection message, not the last screen.
 
 ## 83. Client Cache of Reads
 
