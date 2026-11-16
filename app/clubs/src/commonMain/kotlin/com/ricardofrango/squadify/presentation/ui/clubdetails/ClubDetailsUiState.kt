@@ -29,6 +29,8 @@ sealed class ClubDetailsUiState {
         val homeRefreshFailed: Boolean = false,
         // Pull-to-refresh on the teams and age groups tabs: the club's details reload; the tab and filters stay.
         val isRefreshingDetails: Boolean = false,
+        // Pull-to-refresh on the matches tab: its lists reload from the server; the filters stay.
+        val isRefreshingMatches: Boolean = false,
         val filteredTeams: List<Team> = emptyList(),
         val selectedTab: Int = CLUB_TAB_HOME,
         // Available Filter Options (Contextual)

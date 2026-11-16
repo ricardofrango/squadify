@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import kotlin.coroutines.EmptyCoroutineContext
 import com.ricardofrango.squadify.data.cache.ForceRefresh
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.domain.service.LiveFeedEvent
@@ -53,6 +54,7 @@ interface ClubDetailsActions {
     fun connectToClubMatchesUpdates(clubId: String)
     fun disconnectFromClubMatchesUpdates()
     fun refreshMatches(clubId: String)
+    fun pullMatches(clubId: String)
     fun loadMoreMatches()
 }
 
@@ -239,11 +241,11 @@ class ClubDetailsViewModel(
      * Loads the Matches tab's first pages for its filters, enough for [atLeast] rows, replacing what was
      * there. Each page carries the scores of its started matches, so no request per match.
      */
-    private fun reloadMatches(atLeast: Int = Paging.PAGE_SIZE) {
+    private fun reloadMatches(atLeast: Int = Paging.PAGE_SIZE, pull: Boolean = false) {
         val start = _state.value as? ClubDetailsUiState.Idle ?: return
         val clubId = start.details?.club?.id ?: return
         matchesJob?.cancel()
-        matchesJob = viewModelScope.launch {
+        matchesJob = viewModelScope.launch(if (pull) ForceRefresh else EmptyCoroutineContext) {
             val cursor = MatchesCursor(start.matchesStatus)
             val matches = mutableListOf<Match>()
             val scores = mutableMapOf<String, MatchScore>()
@@ -332,6 +334,17 @@ class ClubDetailsViewModel(
      * while away and may have missed updates in the meantime (see MatchesTab's DisposableEffect). As
      * many rows as were loaded come back, so the list doesn't shrink under the user.
      */
+    /** Pull-to-refresh on Matches: the lists again from the server, for the filters on screen. */
+    override fun pullMatches(clubId: String) {
+        val start = _state.value as? ClubDetailsUiState.Idle ?: return
+        if (start.isRefreshingMatches) return
+        _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingMatches = true) ?: it }
+        reloadMatches(atLeast = maxOf(Paging.PAGE_SIZE, start.matches.size), pull = true)
+        matchesJob?.invokeOnCompletion {
+            _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingMatches = false) ?: it }
+        }
+    }
+
     override fun refreshMatches(clubId: String) {
         val loaded = (_state.value as? ClubDetailsUiState.Idle)?.matches?.size ?: 0
         reloadMatches(atLeast = maxOf(Paging.PAGE_SIZE, loaded))

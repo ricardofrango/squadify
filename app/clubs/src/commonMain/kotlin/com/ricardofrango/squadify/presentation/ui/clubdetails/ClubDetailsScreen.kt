@@ -1065,6 +1065,7 @@ private object PreviewClubDetailsActions : ClubDetailsActions {
     override fun refreshMatches(clubId: String) {}
     override fun refreshHome(clubId: String) {}
     override fun refreshDetails(clubId: String) {}
+    override fun pullMatches(clubId: String) {}
     override fun onHomeRefreshFailedShown() {}
     override fun loadMoreMatches() {}
 }

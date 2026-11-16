@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.lifecycle.compose.LifecycleStartEffect
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
@@ -212,6 +213,8 @@ fun MatchesTab(
             val listState = rememberLazyListState()
             LoadMoreEffect(listState, enabled = state.matchesHasMore && !state.matchesLoadingMore, onLoadMore = actions::loadMoreMatches)
             // On a wide screen the rows stay readable, centred, and the whole width still scrolls.
+            // Pull down to read the fixtures again (the server, not the cache); the filters above stay.
+            PullToRefreshBox(isRefreshing = state.isRefreshingMatches, onRefresh = { actions.pullMatches(details.club.id) }, modifier = Modifier.weight(1f)) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
             LazyColumn(
                 state = listState,
@@ -228,6 +231,7 @@ fun MatchesTab(
                     onOpenMatch = onNavigateToMatch
                 )
                 loadingMoreItem(state.matchesLoadingMore)
+            }
             }
             }
         }
