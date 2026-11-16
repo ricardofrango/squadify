@@ -697,6 +697,7 @@ fun ScreenRegistry.sharedScreens(navigator: AppNavigator, createPlayersInAgeGrou
             onOpenMatch = { matchId ->
                 navigator.navigate(Screen.MatchDetails(matchId))
             },
+            onOpenSession = { sessionId -> navigator.navigate(Screen.TrainingSession(sessionId)) },
             initialSeasonId = screen.seasonId,
             initialFilter = screen.statsFilter?.let { name -> StatsFilter.entries.firstOrNull { it.name == name } },
             refreshOnReturn = structureChanged

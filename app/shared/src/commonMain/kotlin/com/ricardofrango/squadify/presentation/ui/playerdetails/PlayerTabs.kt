@@ -227,7 +227,7 @@ internal fun PlayerGamesTab(
 
 /** Training tab: the season's attendance and average as the header, then every ended session, missed ones included. */
 @Composable
-internal fun PlayerTrainingTab(season: PlayerTrainingSeason) {
+internal fun PlayerTrainingTab(season: PlayerTrainingSeason, onOpenSession: (String) -> Unit = {}) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PlayerTrainingCard(season)
         if (season.sessionLines.isEmpty()) {
@@ -239,7 +239,7 @@ internal fun PlayerTrainingTab(season: PlayerTrainingSeason) {
                 StatsHeading(stringResource(Res.string.player_training_sessions), Modifier.padding(start = 2.dp, top = 4.dp, bottom = 8.dp))
                 StatsCard(contentPadding = 0.dp) {
                     season.sessionLines.forEachIndexed { i, line ->
-                        TrainingSessionRow(line)
+                        TrainingSessionRow(line, onClick = { onOpenSession(line.sessionId) })
                         if (i < season.sessionLines.lastIndex) HorizontalDivider(color = CarbonGray.copy(alpha = 0.07f))
                     }
                 }
@@ -249,8 +249,8 @@ internal fun PlayerTrainingTab(season: PlayerTrainingSeason) {
 }
 
 @Composable
-private fun TrainingSessionRow(line: PlayerTrainingSessionLine) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun TrainingSessionRow(line: PlayerTrainingSessionLine, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(weekdayDateLabel(line.date), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp), color = DeepCarbon)
             Spacer(Modifier.height(2.dp))
