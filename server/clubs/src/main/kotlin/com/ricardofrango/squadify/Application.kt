@@ -115,7 +115,7 @@ fun Application.module() {
             opponentRoutes()
             trainingRoutes()
             ageGroupImportRoutes(ImportSources(ServerConfig.importSources, ServerConfig.crossEnvironmentImportSources, emptySet()), importEnabled = ServerConfig.featureAgeGroupImport)
-            featureFlagRoutes(FeatureFlags(ageGroupImport = ServerConfig.featureAgeGroupImport))
+            featureFlagRoutes(FeatureFlags(ageGroupImport = ServerConfig.featureAgeGroupImport, cacheSeconds = ServerConfig.clientCacheSeconds, matchCacheSeconds = ServerConfig.clientMatchCacheSeconds))
             fcmTokenRoutes()
             publicImageRoutes()
         }

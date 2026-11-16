@@ -21,6 +21,12 @@ object CoachConfig {
 
     /** The feature flags apps read at startup: on with FEATURE_AGE_GROUP_IMPORT=true (TECHNICAL_DECISIONS §82). */
     val featureAgeGroupImport: Boolean = System.getenv("FEATURE_AGE_GROUP_IMPORT")?.trim()?.lowercase() == "true"
+
+    /** How long the apps keep general reads, in seconds; 0 (the default, or any invalid value) turns client caching off (§83). */
+    val clientCacheSeconds: Int = System.getenv("CLIENT_CACHE_SECONDS")?.trim()?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+
+    /** How long the apps keep reads of a game's status or results, in seconds; 0 turns it off (§83). */
+    val clientMatchCacheSeconds: Int = System.getenv("CLIENT_MATCH_CACHE_SECONDS")?.trim()?.toIntOrNull()?.coerceAtLeast(0) ?: 0
     private val appEnv = System.getenv("APP_ENV")?.trim()?.lowercase()
     val production: Boolean = appEnv in setOf("production", "prod")
 
