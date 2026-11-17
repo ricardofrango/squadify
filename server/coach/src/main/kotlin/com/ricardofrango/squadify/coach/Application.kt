@@ -74,7 +74,7 @@ fun Application.module() {
             gameRoutes(CoachTokens)
             trainingRoutes()
             ageGroupImportRoutes(ImportSources(CoachConfig.importSources, CoachConfig.crossEnvironmentImportSources, CoachConfig.platformAdminEmails), importEnabled = CoachConfig.featureAgeGroupImport)
-            featureFlagRoutes(FeatureFlags(ageGroupImport = CoachConfig.featureAgeGroupImport, cacheSeconds = CoachConfig.clientCacheSeconds, matchCacheSeconds = CoachConfig.clientMatchCacheSeconds))
+            featureFlagRoutes(FeatureFlags(ageGroupImport = CoachConfig.featureAgeGroupImport, cacheSeconds = CoachConfig.clientCacheSeconds, matchCacheSeconds = CoachConfig.clientMatchCacheSeconds, plansEnabled = CoachConfig.plansEnabled))
         }
     }
 }

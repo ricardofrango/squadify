@@ -22,6 +22,13 @@ object CoachConfig {
     /** The feature flags apps read at startup: on with FEATURE_AGE_GROUP_IMPORT=true (TECHNICAL_DECISIONS §82). */
     val featureAgeGroupImport: Boolean = System.getenv("FEATURE_AGE_GROUP_IMPORT")?.trim()?.lowercase() == "true"
 
+    /**
+     * Plans and ads (REQUIREMENTS §5c). Off by default: every space is Pro with no ads, plan requests and store
+     * purchases are refused, and the app hides the plan UI. Only PLANS_ENABLED=true turns them on; the stored plans
+     * are kept meanwhile, so a space falls back to its stored plan then.
+     */
+    val plansEnabled: Boolean = System.getenv("PLANS_ENABLED")?.trim()?.lowercase() == "true"
+
     /** How long the apps keep general reads, in seconds; 0 (the default, or any invalid value) turns client caching off (§83). */
     val clientCacheSeconds: Int = System.getenv("CLIENT_CACHE_SECONDS")?.trim()?.toIntOrNull()?.coerceAtLeast(0) ?: 0
 

@@ -104,8 +104,9 @@ object PlanLimits {
  * age groups created stay in use and the others are locked, and on each age group the first staff to
  * join keep access and the others lose it, until the plan allows them again. Call inside a transaction.
  */
-class CoachPlans(private val plans: SpacePlanRepository) {
-    suspend fun planOf(clubId: String): SpacePlan = plans.planOf(clubId)
+class CoachPlans(private val plans: SpacePlanRepository, private val plansEnabled: Boolean = true) {
+    /** The space's plan, as it counts now: its stored plan when plans are on, Pro while they're off (PLANS_ENABLED). */
+    suspend fun planOf(clubId: String): SpacePlan = if (plansEnabled) plans.planOf(clubId) else PlanLimits.PRO
 
     /** The plan the space's owner asked for and hasn't got yet; null: none. */
     suspend fun requestedPlan(clubId: String): SpacePlan? = plans.requestedPlan(clubId)

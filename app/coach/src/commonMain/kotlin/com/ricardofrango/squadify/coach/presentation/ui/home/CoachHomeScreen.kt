@@ -115,6 +115,7 @@ import squadify.app.coach.generated.resources.coach_menu_privacy_options
 import squadify.app.coach.generated.resources.ic_join
 import squadify.app.coach.generated.resources.ic_menu
 import squadify.app.coach.generated.resources.ic_plans
+import com.ricardofrango.squadify.presentation.ui.components.LocalPlansEnabled
 import squadify.app.coach.generated.resources.msg_coach_home_failed
 import squadify.app.coach.generated.resources.plans_title
 import squadify.app.coach.generated.resources.space_details_owned_by
@@ -238,8 +239,8 @@ private fun CoachHomeContent(
                     )
                     MenuItem(SharedRes.drawable.ic_add, stringResource(Res.string.coach_home_create_age_groups), fromMenu(onCreateAgeGroups))
                     MenuItem(Res.drawable.ic_join, stringResource(Res.string.coach_home_join), fromMenu(onJoinWithCode))
-                    // Only once they own a space: its plan.
-                    if ((uiState as? CoachHomeUiState.Loaded)?.ownSpace != null) {
+                    // Only once they own a space, and while plans are on: its plan.
+                    if (LocalPlansEnabled.current && (uiState as? CoachHomeUiState.Loaded)?.ownSpace != null) {
                         MenuItem(Res.drawable.ic_plans, stringResource(Res.string.plans_title), fromMenu(onOpenPlans))
                     }
                     MenuItem(SharedRes.drawable.ic_account, stringResource(Res.string.coach_menu_account), fromMenu(onOpenAccount))
@@ -377,7 +378,7 @@ private fun PitchBanner(space: SpaceAgeGroups?) {
         } else {
             SquadifyMark(size = 60.dp, lightDotColor = Color.White, darkDotColor = Color.White.copy(alpha = 0.85f), onTile = false)
         }
-        space?.plan?.let { plan ->
+        space?.plan?.takeIf { LocalPlansEnabled.current }?.let { plan ->
             Text(
                 plan.displayName(),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),

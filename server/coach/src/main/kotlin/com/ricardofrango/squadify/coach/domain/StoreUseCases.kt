@@ -74,9 +74,11 @@ class VerifyGooglePurchaseUseCase(
     private val google: GooglePlayApi,
     private val googleSubscriptions: GoogleSubscriptions,
     private val getPlansUseCase: GetPlansUseCase,
-    private val transactionManager: TransactionManager
+    private val transactionManager: TransactionManager,
+    private val plansEnabled: Boolean = true
 ) {
     suspend operator fun invoke(userId: String, request: GooglePurchaseRequest, language: String? = null): PlansResponse {
+        if (!plansEnabled) throw ForbiddenException("Plans are not on yet")
         val spaceId = transactionManager.runInTransaction {
             clubRepository.getMemberships(userId).firstOrNull { (_, role) -> role == ClubRole.CLUB_ADMIN }?.first?.id
         } ?: throw ForbiddenException("Only a space's owner can subscribe")

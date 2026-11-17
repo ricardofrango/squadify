@@ -92,6 +92,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.coach.generated.resources.Res
+import com.ricardofrango.squadify.presentation.ui.components.LocalPlansEnabled
 import squadify.app.coach.generated.resources.msg_my_space_failed
 import squadify.app.coach.generated.resources.my_space_title
 import squadify.app.shared.generated.resources.btn_retry
@@ -190,7 +191,7 @@ private fun MySpaceContent(
             ) {
               SectionCard { SpaceHeader(uiState) }
               if (uiState.isOwner) {
-                  PlanCard(uiState.plan, uiState.ageGroupsThisSeason, onSeePlans = onSeePlans)
+                  if (LocalPlansEnabled.current) PlanCard(uiState.plan, uiState.ageGroupsThisSeason, onSeePlans = onSeePlans)
                   // Deleting the space takes its age groups, players, games and staff with it.
                   TextButton(onClick = onOpenDeleteSpace, modifier = Modifier.fillMaxWidth()) {
                       Text(stringResource(Res.string.btn_delete_space), color = AlertRed, fontWeight = FontWeight.Bold)

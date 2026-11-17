@@ -3690,6 +3690,8 @@ server still refuses its actions while someone else manages the game, and it sho
 - **Restored apps:** Android can restore the app on an inner screen without the splash. The gate sits above the navigation, so that case is covered too.
 - **Offline start:** a signed-in user with no connection at startup sees only the connection message, not the last screen.
 
+**Plans (§84).** `FeatureFlags.plansEnabled` is the third flag, from `PLANS_ENABLED` on the coach server (off by default). Off, the coach app hides the plan UI and the coach server treats every space as Pro.
+
 ## 83. Client Cache of Reads
 
 **Why.** Each read is a request the server pays for. The apps keep a read for a period, so opening a screen again within it makes no request.
@@ -3707,3 +3709,19 @@ server still refuses its actions while someone else manages the game, and it sho
 **Clearing.** A successful write (anything but a GET) clears the cache, so the change shows at once. The token refresh doesn't clear. Logout, login and a forced logout clear it too.
 
 **Not kept across restarts** (memory only, for now).
+
+## 84. Plans Off at Launch
+
+**Why.** The coach app goes live with plans and ads off, to bring in users before charging for them (the developer, 2026-11-16). The developer turns them on later, once there are users.
+
+**The switch.** `PLANS_ENABLED` on the coach server; only `true` turns plans on, so the default is off. It's read at startup (a restart changes it). The flag reaches the apps in `FeatureFlags.plansEnabled` (§82). The clubs server has no plans and always sends it off.
+
+**Off, on the coach server.** `CoachPlans(plans, plansEnabled)` is the one point where a space's plan is read for the rules: `planOf` returns Pro while plans are off, so the age group and staff limits, training, stats, live games, the ad-free rule and the room checks all read Pro. The stored plan isn't changed. `GET /v1/spaces` and `GET /v1/plans` say Pro as the space's plan, and `showsAds` is false. Plan requests (`RequestPlanUseCase`) and store purchases (`VerifyGooglePurchaseUseCase`) are refused first with a 403, "Plans are not on yet", so nothing can change a plan while off. Google's notifications are still recorded, so the stored plans are right when they turn on. A platform admin can still set a stored plan.
+
+**On again.** A space falls back to its stored plan: Free for everyone without a purchase, or the plan an admin set. The downgrade rules of §72 apply at once, with no grace period: the extra age groups and staff lock, training and stats hide, the ads come back. A store subscription's lower plan still waits for its renewal (§72, going down).
+
+**In the coach app.** `LocalPlansEnabled` (shared, provided by the coach navigation from the flag) hides the Plans item in the menu, the plan badge on the space card on Home, and My Space's plan card. `LocalSeePlans` is null while off, so the shared plan boxes can't open Plans. The boxes don't appear anyway: Pro has no limits. `GetSpacesUseCase` doesn't fetch `GET /v1/plans` while off, and a Plans screen that's reached closes at once.
+
+**Tests.** `PlansSwitchTest` (server): Pro while off with no ads and no locks, the stored plan again while on, and the refusals. The end-to-end plan tests run with `PLANS_ENABLED=true` (`server/coach/build.gradle.kts`). `OwnSpacePlanTest` (app): spaces load with no plans fetched while off.
+
+**Turning them on.** Set `PLANS_ENABLED=true` on the coach service's environment (staging first, then production), then restart it. Check each space's plan and locks in the app afterwards.

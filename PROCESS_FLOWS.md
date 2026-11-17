@@ -3069,15 +3069,17 @@ graph TD
 
 All in one transaction, so a refused setup creates nothing. Being staff in other spaces doesn't count.
 
-`GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others, the space's `plan` and the ones it locks (`lockedAgeGroupIds`), and for their own space `ageGroupsThisSeason` (its age groups in today's season, from `CoachSeasons.currentOrNull`, which creates none; 0 for staff) and `ageGroupsLeft` (the plan's age groups a season less those, none below 0; null with no limit, and for staff), and `showsAds` (`PlanLimits.showsAds`: Free; the app shows a banner on that space's screens). An empty list before they set up or join one.
+`GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others, the space's `plan` and the ones it locks (`lockedAgeGroupIds`), and for their own space `ageGroupsThisSeason` (its age groups in today's season, from `CoachSeasons.currentOrNull`, which creates none; 0 for staff) and `ageGroupsLeft` (the plan's age groups a season less those, none below 0; null with no limit, and for staff), and `showsAds` (`PlanLimits.showsAds`: Free; the app shows a banner on that space's screens). While plans are off (`PLANS_ENABLED`, §84) every space's `plan` is Pro (`CoachPlans.planOf`) and `showsAds` is false. An empty list before they set up or join one.
 
-`GET /v1/plans` (`GetPlansUseCase`, in the app's `Accept-Language`, or `?language=`) returns `PlansResponse`: every plan from `PlanLimits`, cheapest first, with its name, features (their lines in Portuguese for "pt", English otherwise) and limits, `currentPlan`, the plan of the space the coach owns (`ClubRepository.getMemberships`, the CLUB_ADMIN one; null without one), `requestedPlan`, the plan its owner asked for (`plan_requests`; null: none), `changeBy` (`INSTANT` locally, `STORE` with Google's service account, else `REQUEST`), each paid plan's `storeProducts`, and from the space's entitled store subscriptions `currentPeriod`, `pendingPlan` and `pendingFrom`, with `storeAccountId` (the owner's user id) for the app to tag purchases with. The coach server's `GET /v1/age-groups/{id}/details` is `GetAgeGroupDetailsUseCase` (§4.4b) plus `staffFullOnPlan` (`CoachPlans.staffFullOn`: the space's plan when the age group has no room for more staff, else null).
+`GET /v1/plans` (`GetPlansUseCase`, in the app's `Accept-Language`, or `?language=`) returns `PlansResponse`: every plan from `PlanLimits`, cheapest first, with its name, features (their lines in Portuguese for "pt", English otherwise) and limits, `currentPlan`, the plan of the space the coach owns (`ClubRepository.getMemberships`, the CLUB_ADMIN one; null without one), `requestedPlan`, the plan its owner asked for (`plan_requests`; null: none), `changeBy` (`INSTANT` locally, `STORE` with Google's service account, else `REQUEST`), while plans are off `currentPlan` is Pro (§84), each paid plan's `storeProducts`, and from the space's entitled store subscriptions `currentPeriod`, `pendingPlan` and `pendingFrom`, with `storeAccountId` (the owner's user id) for the app to tag purchases with. The coach server's `GET /v1/age-groups/{id}/details` is `GetAgeGroupDetailsUseCase` (§4.4b) plus `staffFullOnPlan` (`CoachPlans.staffFullOn`: the space's plan when the age group has no room for more staff, else null).
 
 `POST /v1/plans/request?language=` (`RequestPlanUseCase`), the owner asking for a plan until payments, set at once on a local server:
 
 ```mermaid
 graph TD
-    A[Start: userId, plan] --> B{"Owns a space? (getMemberships, CLUB_ADMIN)"}
+    A[Start: userId, plan] --> P{"Plans on? (PLANS_ENABLED)"}
+    P -- No --> X(["Throw ForbiddenException, 403: Plans are not on yet"])
+    P -- Yes --> B{"Owns a space? (getMemberships, CLUB_ADMIN)"}
     B -- No --> F(["Throw ForbiddenException, 403"])
     B -- Yes --> C{"plan in PlanLimits, and not the space's own?"}
     C -- No --> V(["Throw ValidationException, 400"])
@@ -3093,7 +3095,9 @@ graph TD
 
 ```mermaid
 graph TD
-    A[Start: userId, productId, purchaseToken] --> B{"Owns a space?"}
+    A[Start: userId, productId, purchaseToken] --> P{"Plans on? (PLANS_ENABLED)"}
+    P -- No --> X(["Throw ForbiddenException, 403: Plans are not on yet"])
+    P -- Yes --> B{"Owns a space?"}
     B -- No --> F(["Throw ForbiddenException, 403"])
     B -- Yes --> C{"productId one of the plans', and the server has Google's service account?"}
     C -- No --> V(["Throw ValidationException, 400"])
