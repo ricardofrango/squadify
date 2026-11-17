@@ -111,6 +111,13 @@ class ExposedMatchRepository : MatchRepository {
             it[halfLengthMinutes] = match.halfLengthMinutes
             it[kickoffAt] = match.kickoffAt
             it[secondHalfStartedAt] = match.secondHalfStartedAt
+            // What a finished match has (an age group copied from another server arrives with them, TECHNICAL_DECISIONS §81);
+            // a new match has none of them, so they're null or false.
+            it[firstHalfEndMinute] = match.firstHalfEndMinute
+            it[fullTimeMinute] = match.fullTimeMinute
+            it[formation] = match.formation
+            it[startingFormation] = match.startingFormation
+            it[enteredAfterGame] = match.enteredAfterGame
         }.resultedValues
             ?.singleOrNull()
             ?.let(::toMatch)

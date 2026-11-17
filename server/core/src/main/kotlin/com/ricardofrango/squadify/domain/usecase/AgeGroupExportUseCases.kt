@@ -24,6 +24,7 @@ import com.ricardofrango.squadify.exception.UnauthorizedException
 import com.ricardofrango.squadify.model.AgeGroupBundle
 import com.ricardofrango.squadify.model.BundleAgeGroup
 import com.ricardofrango.squadify.model.BundleImage
+import com.ricardofrango.squadify.model.BundlePlayerMinutes
 import com.ricardofrango.squadify.model.BundleAgeGroupPlayer
 import com.ricardofrango.squadify.model.BundleCallUp
 import com.ricardofrango.squadify.model.BundleExercise
@@ -191,7 +192,8 @@ class ExportAgeGroupUseCase(
                     lineupChanges = matchRepository.getLineupChanges(match.id),
                     events = events.map { it.toBundle() },
                     ratings = stats.map { BundlePlayerRating(it.playerId, it.rating) },
-                    report = report?.toBundle()
+                    report = report?.toBundle(),
+                    minutes = stats.map { BundlePlayerMinutes(it.playerId, it.started, it.minutesPlayed) }
                 )
             }
 

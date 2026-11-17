@@ -338,7 +338,12 @@ class ImportAgeGroupUseCase(
         }
 
         if (m.fullTimeMinute != null) {
-            val lines = MatchPlayerStatsCalculator.calculate(match, callUps, events)
+            // The source's stored minutes win over the ones worked out here: for a result typed in after the game they
+            // aren't in any line-up or substitution. A source that sent none leaves them as worked out.
+            val stored = m.minutes.mapNotNull { r -> playerIds[r.playerId]?.let { it to r } }.toMap()
+            val lines = MatchPlayerStatsCalculator.calculate(match, callUps, events).map { line ->
+                stored[line.playerId]?.let { line.copy(started = it.started, minutesPlayed = it.minutesPlayed) } ?: line
+            }
             statsRepository.replaceForMatch(match.id, lines)
             val ratings = m.ratings.mapNotNull { r -> playerIds[r.playerId]?.let { it to r.rating } }.toMap()
             if (ratings.isNotEmpty()) statsRepository.updateRatings(match.id, ratings)

@@ -147,8 +147,17 @@ data class BundleMatch(
     val lineupChanges: List<MatchLineupChange>,
     val events: List<BundleEvent>,
     val ratings: List<BundlePlayerRating>,
-    val report: BundleReport?
+    val report: BundleReport?,
+    // Each player's stored minutes (BundlePlayerMinutes). Empty from a server that didn't send them.
+    val minutes: List<BundlePlayerMinutes> = emptyList()
 )
+
+/**
+ * A player's stored minutes in a finished match, as the source has them. For a result typed in after the game they
+ * exist nowhere else: there's no line-up or substitution to work them out from.
+ */
+@Serializable
+data class BundlePlayerMinutes(val playerId: String, val started: Boolean, val minutesPlayed: Int)
 
 /** The coach's rating of a player in a finished match (MatchPlayerStats.rating), kept as the source has it. */
 @Serializable
