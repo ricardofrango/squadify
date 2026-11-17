@@ -63,5 +63,7 @@ tasks.test {
     environment("RESEND_API_KEY", "")
     // The tests' platform admin, who sets spaces' plans (TestApi.setPlan).
     environment("PLATFORM_ADMIN_EMAILS", "platform-admin@test.com")
+    // Plans on, as the end-to-end plan tests need them (PlansSwitchTest covers them off, with no env).
+    environment("PLANS_ENABLED", "true")
     finalizedBy(dropTestDatabase)
 }

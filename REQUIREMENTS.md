@@ -137,6 +137,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - **A higher plan, same period:** Basic paid on 1 January, Pro chosen on 10 January: Pro from that moment, charged (€5 − €3) × 22/31 ≈ €1.42 for 10–31 January; from 1 February, Pro's own price.
         - **Monthly to yearly:** Basic monthly paid on 1 January, yearly chosen on 10 January: the yearly subscription starts on 10 January, its price less the 22 unused days of the month (€3 × 22/31 ≈ €2.13).
         - Only going down waits (above).
+- **Plans off at launch** (the developer, 2026-11-16): `PLANS_ENABLED` on the coach server (off by default) turns plans and ads off. Off, every space counts as Pro with no ads, plans can't be asked for or bought, and the app hides the Plans menu item, the plan badge and My Space's plan card. Turning them on falls back to each space's stored plan, with the downgrade rules at once (`TECHNICAL_DECISIONS.md` §84).
 - **Referrals** (the developer, 2026-11-03):
     - **Who has a code:** a subscriber, from their first successful payment. Free coaches have none.
     - **Using one:** a new coach enters the code when they subscribe. Any paid plan counts, on either side (Basic or Pro).

@@ -373,9 +373,11 @@ class RequestPlanUseCase(
     private val adminEmails: Set<String>,
     private val atOnce: Boolean,
     private val transactionManager: TransactionManager,
-    private val clock: Clock = Clock.System
+    private val clock: Clock = Clock.System,
+    private val plansEnabled: Boolean = true
 ) {
     suspend operator fun invoke(userId: String, plan: SpacePlan, language: String? = null): PlansResponse {
+        if (!plansEnabled) throw ForbiddenException("Plans are not on yet")
         val (response, email) = transactionManager.runInTransaction {
             val space = clubRepository.getMemberships(userId).firstOrNull { (_, role) -> role == ClubRole.CLUB_ADMIN }?.first
                 ?: throw ForbiddenException("Only a space's owner can ask for a plan")

@@ -72,6 +72,12 @@ fun ownPlanFor(spaceId: String): SpacePlan? = LocalOwnSpace.current?.takeIf { it
 val LocalSeePlans = compositionLocalOf<(() -> Unit)?> { null }
 
 /**
+ * Whether the plans are on (FeatureFlags.plansEnabled, PLANS_ENABLED on the coach server). Off, the coach app hides the
+ * plan UI: the Plans menu item, the plan badge on Home and My Space's plan card. Set by the coach app; false elsewhere.
+ */
+val LocalPlansEnabled = compositionLocalOf { false }
+
+/**
  * The space the screen shows (its club id), set by each screen once its data loads ([ShownSpace]); null
  * until then. The plan boxes check it against [LocalOwnSpace]: only its owner changes the plan.
  */

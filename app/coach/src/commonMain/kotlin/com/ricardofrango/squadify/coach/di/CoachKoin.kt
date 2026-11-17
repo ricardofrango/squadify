@@ -58,7 +58,7 @@ val coachModule = module {
     factory { DeleteAccountUseCase(get()) }
     single { OwnSpacePlan() }
     single { CoachAds() }
-    factory { GetSpacesUseCase(get(), get(), get(), get()) }
+    factory { GetSpacesUseCase(get(), get(), get(), get(), plansEnabled = { get<FeatureFlagsStore>().flags.value.plansEnabled }) }
     factory { DeleteSpaceUseCase(get()) }
     factory { LeaveSpaceUseCase(get()) }
     factory { GetSpaceDetailsUseCase(get()) }

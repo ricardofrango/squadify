@@ -60,6 +60,18 @@ class OwnSpacePlanTest {
         override suspend fun leaveSpace(spaceId: String, currentPassword: String): Unit = error("not used")
     }
 
+    // Plans off (PLANS_ENABLED): the spaces load, the plans aren't fetched.
+    @Test
+    fun withPlansOffThePlansAreNotLoaded() = runTest {
+        val ownPlan = OwnSpacePlan()
+        val repository = Spaces(listOf(SpaceAgeGroups(space("mine"), isOwner = true, ageGroups = emptyList(), plan = SpacePlan("PRO"), ageGroupsThisSeason = 1, ageGroupsLeft = 0)))
+        val getSpaces = GetSpacesUseCase(repository, ownPlan, LoadPlansUseCase(repository, ownPlan), CoachAds(), plansEnabled = { false })
+
+        getSpaces()
+        assertNull(ownPlan.plans.value)
+        assertEquals("mine", ownPlan.space.value?.spaceId)
+    }
+
     @Test
     fun eachLoadKeepsTheOwnSpace() = runTest {
         val ownPlan = OwnSpacePlan()

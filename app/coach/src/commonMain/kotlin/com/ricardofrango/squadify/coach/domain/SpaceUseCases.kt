@@ -18,16 +18,18 @@ class GetSpacesUseCase(
     private val spaceRepository: SpaceRepository,
     private val ownSpacePlan: OwnSpacePlan,
     private val loadPlansUseCase: LoadPlansUseCase,
-    private val coachAds: CoachAds
+    private val coachAds: CoachAds,
+    // Whether the plans are on (FeatureFlags.plansEnabled): off, they aren't loaded.
+    private val plansEnabled: () -> Boolean = { true }
 ) {
     suspend operator fun invoke(): List<SpaceAgeGroups> =
         spaceRepository.getSpaces().also { spaces ->
             ownSpacePlan.space.value = spaces.firstOrNull { it.isOwner }
                 ?.let { OwnSpace(it.space.id, it.plan, it.ageGroupsThisSeason, it.ageGroupsLeft, it.canAddAgeGroups) }
             coachAds.remember(spaces)
-            // Best effort: the last plans loaded stay when they can't be fetched now.
+            // Best effort: the last plans loaded stay when they can't be fetched now. Not loaded while plans are off.
             try {
-                loadPlansUseCase()
+                if (plansEnabled()) loadPlansUseCase()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

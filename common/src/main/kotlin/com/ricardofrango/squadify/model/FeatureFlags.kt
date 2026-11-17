@@ -13,5 +13,7 @@ data class FeatureFlags(
     /** How long the apps keep a general read (seconds); 0 turns client caching off. CLIENT_CACHE_SECONDS (§83). */
     val cacheSeconds: Int = 0,
     /** How long the apps keep a read of a game's status or results (seconds); 0 turns it off. CLIENT_MATCH_CACHE_SECONDS. */
-    val matchCacheSeconds: Int = 0
+    val matchCacheSeconds: Int = 0,
+    /** Plans and ads (REQUIREMENTS §5c): off, every space is Pro and the app hides the plan UI. On with PLANS_ENABLED=true (coach server). */
+    val plansEnabled: Boolean = false
 )

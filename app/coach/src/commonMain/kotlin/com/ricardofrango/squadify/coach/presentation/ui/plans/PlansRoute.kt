@@ -19,6 +19,7 @@ import com.ricardofrango.squadify.model.BillingPeriod
 import com.ricardofrango.squadify.model.PlanChange
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.StoreProduct
+import com.ricardofrango.squadify.presentation.ui.components.LocalPlansEnabled
 import com.ricardofrango.squadify.data.cache.ForceRefresh
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.CancellationException
@@ -37,6 +38,9 @@ import org.koin.compose.koinInject
  */
 @Composable
 fun PlansRoute(onPlanChanged: () -> Unit, onNavigateBack: () -> Unit) {
+    // The plans are off (PLANS_ENABLED): nothing to change here, so it closes.
+    val plansOn = LocalPlansEnabled.current
+    LaunchedEffect(plansOn) { if (!plansOn) onNavigateBack() }
     val response by koinInject<OwnSpacePlan>().plans.collectAsStateWithLifecycle()
     val loadPlans = koinInject<LoadPlansUseCase>()
     val requestPlan = koinInject<RequestPlanUseCase>()

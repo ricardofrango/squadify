@@ -271,7 +271,7 @@ val coachModule = module {
     // Who may do what: the space's owner everywhere, its staff in their age groups.
     // Plans (REQUIREMENTS §5c): what each space's plan allows and locks, and the admin who sets them.
     single<SpacePlanRepository> { ExposedSpacePlanRepository() }
-    factory { CoachPlans(get()) }
+    factory { CoachPlans(get(), plansEnabled = CoachConfig.plansEnabled) }
     factory { PlatformAdmins(get(), CoachConfig.platformAdminEmails) }
     factory { GetAdminSpacesUseCase(get(), get(), get()) }
     factory { SetSpacePlanUseCase(get(), get(), get(), get()) }
@@ -293,10 +293,10 @@ val coachModule = module {
         GetPlansUseCase(get(), get(), get(), changeBy, get())
     }
     factory { GoogleSubscriptions(get(), get(), get(), CoachConfig.acceptsTestPurchases, CoachConfig.acceptsRealPurchases) }
-    factory { VerifyGooglePurchaseUseCase(get(), get(), get(), get(), get()) }
+    factory { VerifyGooglePurchaseUseCase(get(), get(), get(), get(), get(), plansEnabled = CoachConfig.plansEnabled) }
     factory { HandleGoogleNotificationUseCase(get(), get(), get(), get(), get()) }
     // Locally a plan asked for is set at once; deployed, a platform admin sets it.
-    factory { RequestPlanUseCase(get(), get(), get(), get(), CoachConfig.platformAdminEmails, atOnce = !CoachConfig.deployed, transactionManager = get()) }
+    factory { RequestPlanUseCase(get(), get(), get(), get(), CoachConfig.platformAdminEmails, atOnce = !CoachConfig.deployed, transactionManager = get(), plansEnabled = CoachConfig.plansEnabled) }
 
     // Staff: invite codes for an age group, and taking someone off one.
     single<StaffInviteRepository> { ExposedStaffInviteRepository() }

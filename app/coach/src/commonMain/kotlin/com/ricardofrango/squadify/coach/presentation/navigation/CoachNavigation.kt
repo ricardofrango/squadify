@@ -34,9 +34,11 @@ import com.ricardofrango.squadify.coach.presentation.ui.space.MySpaceScreen
 import com.ricardofrango.squadify.coach.presentation.ui.space.SpaceDetailsScreen
 import com.ricardofrango.squadify.coach.presentation.ui.plans.PlansRoute
 import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
+import com.ricardofrango.squadify.domain.config.FeatureFlagsStore
 import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.presentation.ui.components.LocalOwnSpace
+import com.ricardofrango.squadify.presentation.ui.components.LocalPlansEnabled
 import com.ricardofrango.squadify.presentation.ui.components.LocalSeePlans
 import com.ricardofrango.squadify.coach.presentation.ui.agegroups.AddAgeGroupsScreen
 import com.ricardofrango.squadify.domain.service.SessionEventBus
@@ -119,12 +121,15 @@ fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
     // or a team with Home under it, never shown: then they're loaded here, once signed in, so the plan
     // boxes there have the plans' names and limits.
     val getSpacesUseCase = koinInject<GetSpacesUseCase>()
-    LaunchedEffect(navigator) {
+    // The plan UI is on only when the server's plans are (PLANS_ENABLED); off, no plan box or plan name shows.
+    val featureFlags by koinInject<FeatureFlagsStore>().flags.collectAsStateWithLifecycle()
+    val plansOn = featureFlags.plansEnabled
+    LaunchedEffect(navigator, plansOn) {
         snapshotFlow { navigator.currentBackStackEntry?.screen }.filterNotNull()
             .map { screen -> !screen.isBeforeSignIn() && screen != Screen.CoachHome }
             .distinctUntilChanged()
             .collect { pastHome ->
-                if (!pastHome || ownSpacePlan.plans.value != null) return@collect
+                if (!plansOn || !pastHome || ownSpacePlan.plans.value != null) return@collect
                 try {
                     getSpacesUseCase()
                 } catch (e: CancellationException) {
@@ -135,7 +140,7 @@ fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
             }
     }
     // Everyone gets See plans; with no space of their own, Plans marks none as theirs.
-    val seePlans: () -> Unit = { navigator.navigate(Screen.Plans) }
+    val seePlans: (() -> Unit)? = if (plansOn) ({ navigator.navigate(Screen.Plans) }) else null
     val adBanner: @Composable (String?) -> Unit = { spaceId -> CoachAdBanner(spaceId) }
 
     CompositionLocalProvider(
@@ -143,6 +148,7 @@ fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
         LocalOwnSpace provides ownSpace,
         LocalPlans provides plansResponse?.plans.orEmpty(),
         LocalSeePlans provides seePlans,
+        LocalPlansEnabled provides plansOn,
         // The Free plan's banner, for the shared screens' ad slot (AdBanner).
         LocalAdBanner provides adBanner
     ) {
