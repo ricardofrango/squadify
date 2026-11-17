@@ -1835,7 +1835,7 @@ graph TD
     C -- allowed --> LV{"match.status is LIVE or HALF_TIME?"}
     LV -- No --> VL(["Throw ValidationException: events only while live"])
     LV -- Yes --> TL{"SHOT / SHOT_ON_GOAL / FOUL / CORNER / opponent's OWN_GOAL?"}
-    TL -- Yes --> TV{"Shot: our called-up player. Foul: our called-up player, or the opponent with none. Corner: either side, no player. The opponent's own goal: no player (it scores for us)"}
+    TL -- Yes --> TV{"Shot and foul: our called-up player, or the opponent with none. Corner: either side, no player. The opponent's own goal: no player (it scores for us)"}
     TV -- No --> VT(["Throw ValidationException"])
     TV -- Yes --> AS
     TL -- No --> AS{"assistPlayerId given?"}

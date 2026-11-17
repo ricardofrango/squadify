@@ -1050,6 +1050,17 @@ private fun PlayerActionSheet(
                             }
                         }
                     }
+                    // The opponent's shots are the team's (no player), logged like their fouls; ours are each player's.
+                    if (sheet.isOpponent) {
+                        ActionTileRow {
+                            ActionTile(stringResource(Res.string.lm_action_shot), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
+                                actions.onLogTeamEvent(EventType.SHOT, isOpponent = true, minute = minute); onDismiss()
+                            }
+                            ActionTile(stringResource(Res.string.lm_action_shot_on_goal), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
+                                actions.onLogTeamEvent(EventType.SHOT_ON_GOAL, isOpponent = true, minute = minute); onDismiss()
+                            }
+                        }
+                    }
                     ActionTileRow {
                         ActionTile(stringResource(Res.string.lm_action_corner), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
                             actions.onLogTeamEvent(EventType.CORNER, sheet.isOpponent, minute); onDismiss()
@@ -1238,8 +1249,8 @@ private fun eventLineFor(event: MatchEvent, details: MatchDetails, nameFor: (Mat
         EventType.YELLOW_CARD -> Triple("Y", CardYellow, stringResource(Res.string.label_event_yellow_card, ourName ?: "-"))
         EventType.RED_CARD -> Triple("R", LiveRed, stringResource(Res.string.label_event_red_card, ourName ?: "-"))
         EventType.SUBSTITUTION_IN, EventType.SUBSTITUTION_OUT -> Triple("⇄", Color.White, ourName ?: "-")
-        EventType.SHOT -> Triple("↗", Color.White, stringResource(Res.string.label_event_shot, ourName ?: "-"))
-        EventType.SHOT_ON_GOAL -> Triple("◎", PitchGreen, stringResource(Res.string.label_event_shot_on_goal, ourName ?: "-"))
+        EventType.SHOT -> Triple("↗", Color.White.copy(alpha = if (event.isOpponent) 0.6f else 1f), stringResource(Res.string.label_event_shot, if (event.isOpponent) opponentName else ourName ?: "-"))
+        EventType.SHOT_ON_GOAL -> Triple("◎", if (event.isOpponent) Color.White.copy(alpha = 0.6f) else PitchGreen, stringResource(Res.string.label_event_shot_on_goal, if (event.isOpponent) opponentName else ourName ?: "-"))
         EventType.FOUL -> Triple("!", Color.White.copy(alpha = 0.6f), stringResource(Res.string.label_event_foul, if (event.isOpponent) opponentName else ourName ?: "-"))
         EventType.CORNER -> Triple("⚑", Color.White.copy(alpha = if (event.isOpponent) 0.6f else 1f), stringResource(Res.string.label_event_corner, if (event.isOpponent) opponentName else details.team.name))
     }

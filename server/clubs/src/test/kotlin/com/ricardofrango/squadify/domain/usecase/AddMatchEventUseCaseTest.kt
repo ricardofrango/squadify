@@ -236,10 +236,12 @@ class AddMatchEventUseCaseTest {
         coEvery { matchEventRepository.addEvent(any()) } answers { firstArg() }
         coEvery { matchEventRepository.getScoreByMatch("m-1") } returns MatchScore("m-1", 0, 0)
 
-        // Allowed: our player's shot and foul, the opponent's foul, either side's corner.
+        // Allowed: our player's shot and foul, the opponent's shots (as a team) and foul, either side's corner.
         listOf(
             CreateMatchEventRequest(EventType.SHOT, 3, playerId = "p-1"),
             CreateMatchEventRequest(EventType.SHOT_ON_GOAL, 4, playerId = "p-1"),
+            CreateMatchEventRequest(EventType.SHOT, 4, isOpponent = true),
+            CreateMatchEventRequest(EventType.SHOT_ON_GOAL, 4, isOpponent = true),
             CreateMatchEventRequest(EventType.FOUL, 5, playerId = "p-1"),
             CreateMatchEventRequest(EventType.FOUL, 6, isOpponent = true),
             CreateMatchEventRequest(EventType.CORNER, 7),
@@ -248,11 +250,11 @@ class AddMatchEventUseCaseTest {
             CreateMatchEventRequest(EventType.OWN_GOAL, 8, isOpponent = true)
         ).forEach { useCase(coach.id, "m-1", it) }
 
-        // Refused: a shot with no player or by the opponent, a foul with neither or both, a player's
-        // corner, and a player who wasn't called up.
+        // Refused: a shot with neither a player nor the opponent, or with both, a foul with neither or both,
+        // a player's corner, and a player who wasn't called up.
         listOf(
             CreateMatchEventRequest(EventType.SHOT, 9),
-            CreateMatchEventRequest(EventType.SHOT_ON_GOAL, 9, isOpponent = true),
+            CreateMatchEventRequest(EventType.SHOT_ON_GOAL, 9, playerId = "p-1", isOpponent = true),
             CreateMatchEventRequest(EventType.FOUL, 9),
             CreateMatchEventRequest(EventType.FOUL, 9, playerId = "p-1", isOpponent = true),
             CreateMatchEventRequest(EventType.CORNER, 9, playerId = "p-1"),
@@ -261,7 +263,7 @@ class AddMatchEventUseCaseTest {
         ).forEach { request ->
             assertFailsWith<ValidationException>(request.toString()) { useCase(coach.id, "m-1", request) }
         }
-        coVerify(exactly = 7) { matchEventRepository.addEvent(any()) }
+        coVerify(exactly = 9) { matchEventRepository.addEvent(any()) }
         // Only the own goal is a goal, and pushes as one.
         coVerify(exactly = 1) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }

@@ -42,11 +42,11 @@ class AddMatchEventUseCase(
                 throw ValidationException("Events can only be logged while the match is live")
             }
 
-            // The live game's tallies (MatchTallies.kt): shots are our player's; a foul is our player's or
-            // the opponent's as a team; a corner is a side's, never a player's.
+            // The live game's tallies (MatchTallies.kt): a shot or a foul is our player's or the opponent's as
+            // a team (no player); a corner is a side's, never a player's.
             when (request.type) {
-                EventType.SHOT, EventType.SHOT_ON_GOAL -> if (request.isOpponent || request.playerId == null) {
-                    throw ValidationException("A shot needs one of our players")
+                EventType.SHOT, EventType.SHOT_ON_GOAL -> if (request.isOpponent == (request.playerId != null)) {
+                    throw ValidationException("A shot is one of our players' or the opponent's")
                 }
                 EventType.FOUL -> if (request.isOpponent == (request.playerId != null)) {
                     throw ValidationException("A foul is one of our players' or the opponent's")

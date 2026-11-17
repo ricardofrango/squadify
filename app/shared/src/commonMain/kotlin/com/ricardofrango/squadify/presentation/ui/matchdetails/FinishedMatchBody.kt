@@ -259,8 +259,8 @@ private fun MatchStatColumn.nameRes(): StringResource = when (this) {
 }
 
 /**
- * Our side against theirs, a line each: shots and shots on goal (ours only: "–" for the opponent, whose
- * aren't recorded), corners and fouls. Home on the left, as the score reads.
+ * Our side against theirs, a line each: shots and shots on goal ("–" for the opponent in an older match, where
+ * theirs weren't recorded), corners and fouls. Home on the left, as the score reads.
  */
 @Composable
 private fun TallyComparison(tallies: MatchTallies, details: MatchDetails) {
@@ -509,8 +509,8 @@ internal fun RecordEventRow(event: DisplayEvent, details: MatchDetails, onClick:
                 EventType.YELLOW_CARD -> Triple("Y", Amber, stringResource(Res.string.label_event_yellow_card, name ?: "-"))
                 EventType.RED_CARD -> Triple("R", LossRed, stringResource(Res.string.label_event_red_card, name ?: "-"))
                 EventType.SUBSTITUTION_IN, EventType.SUBSTITUTION_OUT -> Triple("⇄", DeepCarbon, name ?: "-")
-                EventType.SHOT -> Triple("↗", DeepCarbon, stringResource(Res.string.label_event_shot, name ?: "-"))
-                EventType.SHOT_ON_GOAL -> Triple("◎", PitchGreen, stringResource(Res.string.label_event_shot_on_goal, name ?: "-"))
+                EventType.SHOT -> Triple("↗", if (e.isOpponent) CarbonGray else DeepCarbon, stringResource(Res.string.label_event_shot, if (e.isOpponent) opponent else name ?: "-"))
+                EventType.SHOT_ON_GOAL -> Triple("◎", if (e.isOpponent) CarbonGray else PitchGreen, stringResource(Res.string.label_event_shot_on_goal, if (e.isOpponent) opponent else name ?: "-"))
                 EventType.FOUL -> Triple("!", CarbonGray, stringResource(Res.string.label_event_foul, if (e.isOpponent) opponent else name ?: "-"))
                 EventType.CORNER -> Triple("⚑", if (e.isOpponent) CarbonGray else DeepCarbon, stringResource(Res.string.label_event_corner, if (e.isOpponent) opponent else details.team.name))
             }
