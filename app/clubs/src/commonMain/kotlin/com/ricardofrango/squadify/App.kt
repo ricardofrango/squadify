@@ -1,8 +1,7 @@
 package com.ricardofrango.squadify
 
-import com.ricardofrango.squadify.domain.config.FeatureFlagsStore
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
+import com.ricardofrango.squadify.presentation.ui.startup.FeatureFlagsGate
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -23,9 +22,6 @@ fun App() {
     // Images (club logos) are served to signed-in members only, so Coil fetches them with the same
     // authenticated client as the API (bearer token, refresh on 401).
     val httpClient = koinInject<HttpClient>()
-    // The server's feature flags, read once at startup: a feature the server has off isn't shown.
-    val featureFlagsStore = koinInject<FeatureFlagsStore>()
-    LaunchedEffect(Unit) { featureFlagsStore.refresh() }
     setSingletonImageLoaderFactory { context ->
         ImageLoader.Builder(context)
             .components { add(KtorNetworkFetcherFactory(httpClient = { httpClient })) }
@@ -36,7 +32,8 @@ fun App() {
         val navigator = rememberAppNavigator()
         val clubThemes by koinInject<ClubThemeStore>().themes.collectAsStateWithLifecycle()
         CompositionLocalProvider(LocalAppNavigator provides navigator, LocalClubThemes provides clubThemes) {
-            AppNavigation(navigator)
+            // Nothing opens until the server's feature flags have been read (TECHNICAL_DECISIONS §82).
+            FeatureFlagsGate { AppNavigation(navigator) }
         }
     }
 }

@@ -1035,6 +1035,7 @@
     <string name="msg_ask_coordinator_opponent">Peça a um coordenador para o adicionar.</string>
     <string name="msg_opponents_load_failed">Não foi possível carregar os adversários</string>
     <string name="msg_check_connection">Verifique a sua ligação e tente novamente.</string>
+    <string name="startup_needs_connection_title">Sem ligação</string>
     <string name="more_opponents">Adversários</string>
     <!-- Create / Edit opponent (design 38e) -->
     <string name="title_create_opponent">Criar adversário</string>

@@ -4,6 +4,9 @@
     <!-- Push notifications, for both apps (com.ricardofrango.squadify.push). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Retries the server's feature flags when a connection comes back (presentation/ui/startup). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application>
         <service
             android:name="com.ricardofrango.squadify.push.SquadifyMessagingService"

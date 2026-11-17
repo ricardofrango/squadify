@@ -1038,6 +1038,7 @@
     <string name="msg_ask_coordinator_opponent">Ask a coordinator to add it.</string>
     <string name="msg_opponents_load_failed">Couldn't load opponents</string>
     <string name="msg_check_connection">Check your connection and try again.</string>
+    <string name="startup_needs_connection_title">No connection</string>
     <string name="more_opponents">Opponents</string>
     <!-- Create / Edit opponent (design 38e) -->
     <string name="title_create_opponent">Create opponent</string>
