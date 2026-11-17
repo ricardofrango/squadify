@@ -425,6 +425,9 @@
     <string name="label_event_goal">Goal · %1$s</string>
     <string name="label_event_goal_with_assist">Goal · %1$s (assist %2$s)</string>
     <string name="label_event_goal_unattributed">Goal</string>
+    <string name="label_event_goal_goalkeeper">Goal · %1$s (goalkeeper %2$s)</string>
+    <string name="label_goalkeeper">Goalkeeper</string>
+    <string name="action_no_goalkeeper">No goalkeeper</string>
     <string name="label_event_own_goal">Own goal · %1$s</string>
     <string name="label_event_yellow_card">Yellow · %1$s</string>
     <string name="label_event_red_card">Red · %1$s</string>

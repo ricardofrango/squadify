@@ -422,6 +422,9 @@
     <string name="label_event_goal">Golo · %1$s</string>
     <string name="label_event_goal_with_assist">Golo · %1$s (assistência %2$s)</string>
     <string name="label_event_goal_unattributed">Golo</string>
+    <string name="label_event_goal_goalkeeper">Golo · %1$s (guarda-redes %2$s)</string>
+    <string name="label_goalkeeper">Guarda-redes</string>
+    <string name="action_no_goalkeeper">Sem guarda-redes</string>
     <string name="label_event_own_goal">Autogolo · %1$s</string>
     <string name="label_event_yellow_card">Amarelo · %1$s</string>
     <string name="label_event_red_card">Vermelho · %1$s</string>

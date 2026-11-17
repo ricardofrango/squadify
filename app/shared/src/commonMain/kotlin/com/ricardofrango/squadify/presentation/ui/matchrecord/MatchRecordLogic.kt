@@ -80,7 +80,9 @@ data class DraftEvent(
     val period: Int,
     val playerId: String?,
     val isOpponent: Boolean,
-    val assistPlayerId: String? = null
+    val assistPlayerId: String? = null,
+    // The opponent's goals only: our goalkeeper who suffered it (any called-up player; null: not known).
+    val goalkeeperPlayerId: String? = null
 ) {
     val kind: RecordEventKind?
         get() = when (type) {
@@ -98,7 +100,8 @@ data class DraftEvent(
         period = period,
         playerId = if (isOpponent) null else playerId,
         isOpponent = isOpponent,
-        assistPlayerId = if (type == EventType.GOAL && !isOpponent) assistPlayerId else null
+        assistPlayerId = if (type == EventType.GOAL && !isOpponent) assistPlayerId else null,
+        goalkeeperPlayerId = if (type == EventType.GOAL && isOpponent) goalkeeperPlayerId else null
     )
 }
 
@@ -112,7 +115,8 @@ internal fun draftEvents(events: List<MatchEvent>): List<DraftEvent> {
         .map {
             DraftEvent(
                 key = it.id, id = it.id, type = it.type, minute = it.minute, period = it.period ?: 1,
-                playerId = it.playerId, isOpponent = it.isOpponent, assistPlayerId = assists[it.id]?.playerId
+                playerId = it.playerId, isOpponent = it.isOpponent, assistPlayerId = assists[it.id]?.playerId,
+                goalkeeperPlayerId = it.goalkeeperPlayerId
             )
         }
         .sortedWith(compareBy({ it.period }, { it.minute }))
@@ -137,7 +141,10 @@ internal fun draftScore(events: List<DraftEvent>): Pair<Int, Int> {
  * as its own linked event). [matchId] and [at] only fill the fields the rows don't use.
  */
 internal fun List<DraftEvent>.asMatchEvents(matchId: String, at: Instant): List<MatchEvent> = flatMap { draft ->
-    val event = MatchEvent(draft.key, matchId, draft.type, draft.minute, draft.playerId, isOpponent = draft.isOpponent, createdAt = at, period = draft.period)
+    val event = MatchEvent(
+        draft.key, matchId, draft.type, draft.minute, draft.playerId, isOpponent = draft.isOpponent, createdAt = at, period = draft.period,
+        goalkeeperPlayerId = draft.goalkeeperPlayerId.takeIf { draft.type == EventType.GOAL && draft.isOpponent }
+    )
     val assist = draft.assistPlayerId?.takeIf { draft.type == EventType.GOAL && !draft.isOpponent }?.let {
         event.copy(id = "${draft.key}-assist", type = EventType.ASSIST, playerId = it, relatedEventId = draft.key)
     }

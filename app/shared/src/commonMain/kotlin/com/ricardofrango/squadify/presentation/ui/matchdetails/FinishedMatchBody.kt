@@ -494,7 +494,11 @@ internal fun RecordEventRow(event: DisplayEvent, details: MatchDetails, onClick:
             val name = nameOf(e)
             when (e.type) {
                 EventType.GOAL -> when {
-                    e.isOpponent -> Triple("G", CarbonGray, stringResource(Res.string.label_event_goal, opponent))
+                    e.isOpponent -> {
+                        // Our goalkeeper who suffered it, when known (§86).
+                        val keeper = e.goalkeeperPlayerId?.let { players[it] }?.let { "${it.firstName} ${it.lastName}" }
+                        Triple("G", CarbonGray, if (keeper != null) stringResource(Res.string.label_event_goal_goalkeeper, opponent, keeper) else stringResource(Res.string.label_event_goal, opponent))
+                    }
                     name != null && event.assist != null -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal_with_assist, name, nameOf(event.assist) ?: "-"))
                     name != null -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal, name))
                     else -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal_unattributed))

@@ -265,4 +265,36 @@ class AddMatchEventUseCaseTest {
         // Only the own goal is a goal, and pushes as one.
         coVerify(exactly = 1) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }
+
+    // The opponent's goal records our goalkeeper at that moment: whoever the pitch has in goal (TECHNICAL_DECISIONS §86).
+    @Test
+    fun anOpponentGoalRecordsTheGoalkeeperInGoalAndOurGoalDoesNot() = runBlocking {
+        val match = Match(
+            "m-1", "club-1", "t-1", "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE,
+            teamSize = 3, halfLengthMinutes = 30, kickoffAt = Instant.fromEpochMilliseconds(1)
+        )
+        val coach = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
+        coEvery { matchRepository.getMatchById("m-1") } returns match
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, "club-1") } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns AgeGroupRole.COACH
+        coEvery { teamRepository.getTeamById("t-1") } returns Team("t-1", "club-1", "ag-1", "s-1", "Sub-15 A", "A", active = true)
+        val keeper = io.mockk.mockk<com.ricardofrango.squadify.model.Player> { io.mockk.every { position } returns null }
+        coEvery { matchRepository.getCallUpsForMatch("m-1") } returns listOf(
+            com.ricardofrango.squadify.model.MatchCallUpWithPlayer(MatchCallUp("c1", "m-1", "gk", CallUpStatus.CALLED_UP, null, true, 0), keeper),
+            com.ricardofrango.squadify.model.MatchCallUpWithPlayer(MatchCallUp("c2", "m-1", "d1", CallUpStatus.CALLED_UP, null, true, 1), keeper),
+            com.ricardofrango.squadify.model.MatchCallUpWithPlayer(MatchCallUp("c3", "m-1", "a1", CallUpStatus.CALLED_UP, null, true, 2), keeper)
+        )
+        coEvery { matchRepository.getLineupChanges("m-1") } returns emptyList()
+        coEvery { matchEventRepository.getEventsByMatch("m-1") } returns emptyList()
+        coEvery { matchEventRepository.addEvent(any()) } answers { firstArg() }
+        coEvery { matchEventRepository.getScoreByMatch("m-1") } returns MatchScore("m-1", 0, 1)
+
+        val against = useCase(coach.id, "m-1", CreateMatchEventRequest(type = EventType.GOAL, minute = 12, isOpponent = true))
+        assertEquals("gk", against.goalkeeperPlayerId)
+
+        // Our own goal has no goalkeeper to record.
+        val ours = useCase(coach.id, "m-1", CreateMatchEventRequest(type = EventType.GOAL, minute = 14, playerId = null))
+        assertEquals(null, ours.goalkeeperPlayerId)
+    }
 }

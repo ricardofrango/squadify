@@ -1175,7 +1175,10 @@ private fun EventRow(de: DisplayEvent, details: MatchDetails, onDelete: (() -> U
     fun nameFor(event: MatchEvent) = event.playerId?.let { playersById[it] }?.let { "${it.firstName} ${it.lastName}" } ?: "-"
 
     val (glyph, glyphColor, text) = when (de) {
-        is DisplayEvent.Simple -> eventLineFor(de.event, details, ::nameFor, assistName = de.assist?.let(::nameFor))
+        is DisplayEvent.Simple -> eventLineFor(
+            de.event, details, ::nameFor, assistName = de.assist?.let(::nameFor),
+            goalkeeperName = de.event.goalkeeperPlayerId?.let { playersById[it] }?.let { "${it.firstName} ${it.lastName}" }
+        )
         is DisplayEvent.Substitution -> Triple(
             "⇄",
             Color.White,
@@ -1215,12 +1218,15 @@ private fun EventRow(de: DisplayEvent, details: MatchDetails, onDelete: (() -> U
 }
 
 @Composable
-private fun eventLineFor(event: MatchEvent, details: MatchDetails, nameFor: (MatchEvent) -> String, assistName: String? = null): Triple<String, Color, String> {
+private fun eventLineFor(event: MatchEvent, details: MatchDetails, nameFor: (MatchEvent) -> String, assistName: String? = null, goalkeeperName: String? = null): Triple<String, Color, String> {
     val ourName = event.playerId?.let { nameFor(event) }
     val opponentName = details.opponent.shortName ?: details.opponent.name
     return when (event.type) {
         EventType.GOAL -> when {
-            event.isOpponent -> Triple("•", Color.White.copy(alpha = 0.6f), stringResource(Res.string.label_event_goal, opponentName))
+            event.isOpponent -> Triple(
+                "•", Color.White.copy(alpha = 0.6f),
+                if (goalkeeperName != null) stringResource(Res.string.label_event_goal_goalkeeper, opponentName, goalkeeperName) else stringResource(Res.string.label_event_goal, opponentName)
+            )
             ourName != null && assistName != null -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal_with_assist, ourName, assistName))
             ourName != null -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal, ourName))
             else -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal_unattributed))

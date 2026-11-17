@@ -3749,3 +3749,21 @@ server still refuses its actions while someone else manages the game, and it sho
 **Not covered.** Builds already in the stores don't send the headers, so they aren't refused; only builds from this change on are. The App Store page is the generic `apps.apple.com` until the iOS app's id is set. Production store builds aren't produced by CI yet, so their minimum has no build number to match.
 
 **Tests.** `AppVersionGateTest` (server, with `MIN_ANDROID_BUILD=50`, `MIN_IOS_BUILD=50` in the test task): a build below its minimum gets 426, one at the minimum passes, each platform has its own minimum, no headers pass, and the flags say `updateRequired`. `FeatureFlagsStoreTest` (app): the status from the flags, from a 426, and a failed read while updating.
+
+## 86. Goalkeeper on Goals Against
+
+**Why.** The developer wants to know which goalkeeper was in goal when the opponent scored (2026-11-17), to see goals conceded per goalkeeper later.
+
+**What is stored.** `MatchEvent.goalkeeperPlayerId`, a nullable column on `match_events` (`goalkeeper_player_id`, V38 on the clubs server, V14 on the coach server), a foreign key to `players`. Only a `GOAL` by the opponent has one; null means not known. An own goal doesn't (it isn't a shot the goalkeeper faced). Both servers store it, since the events, the record editor and the import are shared code.
+
+**Live game (the server decides).** `AddMatchEventUseCase` sets it when an opponent's goal is logged: `goalkeeperOnPitch` (`common`, `Formation.kt`) takes whoever the pitch has in slot 0 at that moment, from the saved arrangement and the substitutions and red cards since it (`currentPitchSlots`, the same rule every device uses to draw the pitch). The app sends nothing for it. After a goalkeeper is sent off, the coach puts another player in goal on the pitch, and the next goal records that player; until then the slot is empty and the goal records none. A game kicked off before the pitch view places its starters by position.
+
+**Record editor (after the game).** On an opponent's goal the event sheet has a Goalkeeper field listing everyone called up, whether or not they played (a goalkeeper may have been sent off and replaced), with "No goalkeeper" first. It is optional. `PUT /matches/{matchId}/record` takes `MatchRecordEvent.goalkeeperPlayerId`: refused unless the event is an opponent's goal and the player was called up. This is also how a goal logged live is corrected afterwards: the editor sends back the goalkeeper the goal has.
+
+**Where it shows.** On the goal in the events list, "Goal · Benfica (goalkeeper Rui Costa)", in the live console and in a finished game's Events tab and record editor. No stat is built from it yet.
+
+**Import.** `BundleEvent.goalkeeperPlayerId` travels in the bundle and is mapped to the copy's player; the goalkeeper's player is added to the bundle even if they have no other event (§81). Deleting an age group keeps a player who is still a goalkeeper in another game.
+
+**Not covered.** Goals logged live before this change have none, and can be filled in through the record editor. An old app that saves a record sends no goalkeeper, which clears it, so saving a record from an old build drops the goalkeepers (the forced update, §85, is how old builds are retired).
+
+**Tests.** `GoalkeeperOnPitchTest`, `AddMatchEventUseCaseTest` and `SaveMatchRecordUseCaseTest` (clubs), `CoachGoalkeeperOnGoalsAgainstTest` (coach, end to end with the copy), `MatchRecordEventSheetTest` (app).

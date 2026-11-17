@@ -193,6 +193,7 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             val elsewhere = AgeGroupPlayers.selectAll().where { AgeGroupPlayers.playerId inList poolPlayerIds }.map { it[AgeGroupPlayers.playerId] }.toSet()
             val referenced = (MatchCallUps.selectAll().where { MatchCallUps.playerId inList poolPlayerIds }.map { it[MatchCallUps.playerId] } +
                 MatchEvents.selectAll().where { MatchEvents.playerId inList poolPlayerIds }.mapNotNull { it[MatchEvents.playerId] } +
+                MatchEvents.selectAll().where { MatchEvents.goalkeeperPlayerId inList poolPlayerIds }.mapNotNull { it[MatchEvents.goalkeeperPlayerId] } +
                 MatchPlayerStatsTable.selectAll().where { MatchPlayerStatsTable.playerId inList poolPlayerIds }.map { it[MatchPlayerStatsTable.playerId] } +
                 TrainingRatingsTable.selectAll().where { TrainingRatingsTable.playerId inList poolPlayerIds }.map { it[TrainingRatingsTable.playerId] }).toSet()
             val lone = poolPlayerIds.filter { it !in elsewhere && it !in referenced }

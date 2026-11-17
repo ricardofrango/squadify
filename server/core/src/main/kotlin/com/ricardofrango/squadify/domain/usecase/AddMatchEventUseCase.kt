@@ -79,6 +79,17 @@ class AddMatchEventUseCase(
                 }
             }
 
+            // The opponent's goal records our goalkeeper at that moment: whoever the pitch has in goal (TECHNICAL_DECISIONS §86).
+            val goalkeeperPlayerId = if (request.type == EventType.GOAL && request.isOpponent) {
+                goalkeeperOnPitch(
+                    match,
+                    matchRepository.getCallUpsForMatch(matchId),
+                    matchEventRepository.getEventsByMatch(matchId),
+                    matchRepository.getLineupChanges(matchId).maxOfOrNull { it.createdAt },
+                    request.minute
+                )
+            } else null
+
             // 3. Create the event
             val event = MatchEvent(
                 id = Uuid.random().toString(),
@@ -88,6 +99,7 @@ class AddMatchEventUseCase(
                 playerId = request.playerId,
                 opponentPlayerName = request.opponentPlayerName,
                 isOpponent = request.isOpponent,
+                goalkeeperPlayerId = goalkeeperPlayerId,
                 createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
                 // The half is fixed now, from the match state -- not inferred later from timestamps,
                 // since secondHalfStartedAt is the clock's reference point and moves with pause/resume

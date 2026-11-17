@@ -327,7 +327,8 @@ class ImportAgeGroupUseCase(
                 isOpponent = e.isOpponent,
                 createdAt = e.createdAt,
                 period = e.period,
-                relatedEventId = e.relatedEventId?.let { eventIds[it] }
+                relatedEventId = e.relatedEventId?.let { eventIds[it] },
+                goalkeeperPlayerId = e.goalkeeperPlayerId?.let { playerIds[it] }
             )
         }
         // An assist points at its goal (relatedEventId), which must be written first: events without a related event

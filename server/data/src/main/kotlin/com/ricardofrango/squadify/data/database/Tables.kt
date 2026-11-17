@@ -318,6 +318,8 @@ object MatchEvents : Table("match_events") {
     val period = integer("period").nullable()
     // For an ASSIST, the GOAL it belongs to (see MatchEvent.relatedEventId). FK declared in V8.
     val relatedEventId = uuid("related_event_id").nullable()
+    // For a GOAL by the opponent, our goalkeeper who suffered it (see MatchEvent.goalkeeperPlayerId). V38 (clubs) / V14 (coach).
+    val goalkeeperPlayerId = uuid("goalkeeper_player_id").references(Players.id).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

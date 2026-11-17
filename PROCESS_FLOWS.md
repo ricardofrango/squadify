@@ -1842,7 +1842,7 @@ graph TD
     AS -- Yes --> AV{"type == GOAL by one of our players, assister != scorer, assister called up?"}
     AV -- No --> VA(["Throw ValidationException"])
     AV -- Yes --> D
-    AS -- No --> D["Create MatchEvent record — period = 2 if LIVE with secondHalfStartedAt set, else 1"]
+    AS -- No --> D["Create MatchEvent record — period = 2 if LIVE with secondHalfStartedAt set, else 1. An opponent's GOAL also gets goalkeeperPlayerId: whoever the pitch has in slot 0 at that moment (goalkeeperOnPitch: saved arrangement, substitutions, red cards), null if the slot is empty"]
     D --> E["Persist event; if an assist was given, also persist an ASSIST at the same minute/period with relatedEventId = the goal"]
     E --> G["Recalculate score from all events for this match"]
     G --> H["Publish LiveMatchUpdate(event, score) via LiveMatchBus for matchId"]
@@ -1908,7 +1908,7 @@ graph TD
     ML -- Yes --> VM(["Throw ValidationException: a game followed live keeps its minutes"])
     ML -- No --> EV
     MH --> EV["Validate events: GOAL / OWN_GOAL / cards (an ASSIST only by id, a lone one); period 1..halves; minute 0..150; an id must be an editable event of this match, listed once"]
-    EV --> EP["Ours: player called up (a GOAL may have none: scorer unknown, then no assist); a goal, own goal or assist by someone who played. Opponent: GOAL / OWN_GOAL only, no player. Assist: our GOAL, another called-up player who played"]
+    EV --> EP["Ours: player called up (a GOAL may have none: scorer unknown, then no assist); a goal, own goal or assist by someone who played. Opponent: GOAL / OWN_GOAL only, no player. Assist: our GOAL, another called-up player who played. goalkeeperPlayerId: only on the opponent's GOAL, a called-up player (needn't have played)"]
     EP -- invalid --> VE(["Throw ValidationException"])
     EP -- ok --> AP["Delete every goal-linked ASSIST, then the editable events not sent back; update those sent with an id; insert the new ones; insert each goal's assist linked to it. Substitutions and the live game's shots, fouls and corners untouched"]
     AP --> FT{"afterGame?"}
@@ -2539,6 +2539,7 @@ erDiagram
     MATCHES ||--o| MATCH_REPORTS : "reported_in (cascade)"
     USERS ||--o{ MATCH_REPORTS : last_edited
     PLAYERS ||--o{ MATCH_EVENTS : optionally_involved
+    PLAYERS ||--o{ MATCH_EVENTS : "suffered (goalkeeper)"
 
     USERS {
         uuid id PK
@@ -2737,6 +2738,7 @@ erDiagram
         timestamp created_at
         integer period "nullable -- 1 or 2, the half it happened in, recorded when logged"
         uuid related_event_id FK "nullable -- an ASSIST's GOAL (V8)"
+        uuid goalkeeper_player_id FK "nullable -- our goalkeeper who suffered an opponent's GOAL (V38 clubs, V14 coach)"
     }
     MATCH_PLAYER_STATS {
         uuid id PK
@@ -2832,7 +2834,7 @@ erDiagram
 
 - **Unique indexes**: `users.email`; `refresh_tokens.token`; `password_reset_codes.user_id` (the primary key, so a new Forgot-password request replaces the pending code, `V11__password_reset_codes.sql`); `email_change_codes.user_id` (likewise for Change email, `V12__email_change_codes.sql`); `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list; `match_call_ups(match_id, pitch_slot) WHERE pitch_slot IS NOT NULL` — one player per position on the pitch (`unique_match_pitch_slot`, `V25__match_lineup.sql`; `setLineup` clears every position before setting them, so a swap never collides); `match_player_stats(match_id, player_id)` — one stats line per player per match; `match_reports.match_id` — one report per match; `training_plans(age_group_id, level, period_start)` — one plan per period (`V15__training_plans.sql`); `training_sessions(age_group_id, date, start_time)` — one session per age group, date and start time, so creating another replaces it (`V17__training_sessions.sql`). A `CHECK` keeps `match_player_stats.rating` NULL or between 0 and 10.
 - **Club colours** (`V23__club_theme.sql`): `chk_clubs_theme_pair` keeps `clubs.theme_primary_color` and `theme_secondary_color` both set or both NULL, and `chk_clubs_theme_format` keeps each one an upper-case `#RRGGBB`. The contrast rules are checked in `UpdateClubUseCase`, not the database.
-- **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
+- **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table). `match_events.goalkeeper_player_id` is also nullable: only an opponent's `GOAL` has one (§86).
 - **`ON DELETE CASCADE` on the team → match chain** (`V21__cascade_team_and_match_deletes.sql`): `matches.team_id` → `teams`, and `match_id` on `match_call_ups`, `match_events`, `match_player_stats`, `match_lineup_changes` (`V26__match_lineup_changes.sql`) and `match_reports` → `matches`. Deleting a team takes its matches and everything under them (§4.6a); deleting a match takes its children (§7.2b). `matches` is the only table with a `team_id`: players and staff hang off the age group, not the team. `match_events.related_event_id` (an assist pointing at its goal) stays `NO ACTION`; a match's events are deleted in one cascaded statement, where that check passes.
 - **Every other foreign key has no `onDelete` behavior** — the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) fails at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
 - Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`age_group_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.
