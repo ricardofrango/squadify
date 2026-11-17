@@ -3690,6 +3690,8 @@ server still refuses its actions while someone else manages the game, and it sho
 - **Restored apps:** Android can restore the app on an inner screen without the splash. The gate sits above the navigation, so that case is covered too.
 - **Offline start:** a signed-in user with no connection at startup sees only the connection message, not the last screen.
 
+**Forced update (§85).** The flags also say `updateRequired`, from the app's build headers. The app shows a full-screen update message while its build is below the minimum.
+
 **Plans (§84).** `FeatureFlags.plansEnabled` is the third flag, from `PLANS_ENABLED` on the coach server (off by default). Off, the coach app hides the plan UI and the coach server treats every space as Pro.
 
 ## 83. Client Cache of Reads
@@ -3725,3 +3727,23 @@ server still refuses its actions while someone else manages the game, and it sho
 **Tests.** `PlansSwitchTest` (server): Pro while off with no ads and no locks, the stored plan again while on, and the refusals. The end-to-end plan tests run with `PLANS_ENABLED=true` (`server/coach/build.gradle.kts`). `OwnSpacePlanTest` (app): spaces load with no plans fetched while off.
 
 **Turning them on.** Set `PLANS_ENABLED=true` on the coach service's environment (staging first, then production), then restart it. Check each space's plan and locks in the app afterwards.
+
+## 85. Forced Update
+
+**Why.** A breaking server change needs the old app builds out. The server decides, from the build each app sends, so no rule lives in the app (rules stay on the backend: the developer's rule for plans, §84).
+
+**What the app sends.** Each request from the Android and iOS apps carries `X-App-Platform` (`android` or `ios`) and `X-App-Build` (the Android `versionCode`, the iOS `CFBundleVersion`), set on the public client's default request (`Koin.kt`) so the authenticated client inherits them. Web and desktop send neither, so they are never refused. The constants are shared (`common`'s `model/AppHeaders.kt`).
+
+**The minimums.** `MIN_ANDROID_BUILD` and `MIN_IOS_BUILD` on each server (clubs and coach separately, each with its own apps' builds). Unset, 0 or any invalid value means no minimum. Read at startup, so a change needs a restart. The Android numbers are the CI run numbers: each Firebase workflow passes `-PversionCode=${{ github.run_number }}`, and the clubs and coach workflows count separately. iOS build numbers are set by hand (`CURRENT_PROJECT_VERSION`), so `MIN_IOS_BUILD` works only if that number goes up with each release.
+
+**The refusal.** `AppVersionGate` (`server/web`, installed by `installSquadifyApi`) answers every request from a build below its platform's minimum with **426 Upgrade Required** and `ErrorResponse` `APP_001`, before routing: every endpoint, and the live game's socket on connect. A request with no headers passes (the other server's export calls, tools, Google's notifications). The flags endpoint (`/v1/feature-flags`) is exempt, so an old app can still read that it must update.
+
+**The flags.** `FeatureFlags.updateRequired` is true when the asking build is below its minimum. It's computed per request from the headers, not stored.
+
+**The app.** `FeatureFlagsStore` has the status `UPDATE_REQUIRED`: set when the flags say `updateRequired`, or by `reportUpdateRequired()` when any response is 426 (the public client's validator, `mapNetworkErrors`). The gate (`FeatureFlagsGate`) then shows "Update needed" with an Update button that opens the app's store page (`AppConfig.storeUrl`: the Play listing of the package, or the App Store). The gate sits above the navigation, so the update screen covers the app, live game included. The session is never cleared: a 426 is not a 401.
+
+**Coming back.** The app reads the flags again when it comes back to the front, or on a connection (the same triggers as §82), so lowering a minimum unblocks an app that's open. A build left open with the minimum raised keeps running until its next request, then gets 426.
+
+**Not covered.** Builds already in the stores don't send the headers, so they aren't refused; only builds from this change on are. The App Store page is the generic `apps.apple.com` until the iOS app's id is set. Production store builds aren't produced by CI yet, so their minimum has no build number to match.
+
+**Tests.** `AppVersionGateTest` (server, with `MIN_ANDROID_BUILD=50`, `MIN_IOS_BUILD=50` in the test task): a build below its minimum gets 426, one at the minimum passes, each platform has its own minimum, no headers pass, and the flags say `updateRequired`. `FeatureFlagsStoreTest` (app): the status from the flags, from a 426, and a failed read while updating.

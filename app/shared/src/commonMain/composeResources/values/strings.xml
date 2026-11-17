@@ -32,6 +32,7 @@
     <string name="title_account">Account</string>
     <string name="btn_logout">Logout</string>
     <string name="btn_retry">Retry</string>
+    <string name="btn_update">Update</string>
     <string name="msg_no_clubs">No clubs found</string>
     <string name="msg_failed_to_load_clubs">Couldn't load your clubs. Please try again.</string>
     <string name="sport_football">Football</string>
@@ -1039,6 +1040,8 @@
     <string name="msg_opponents_load_failed">Couldn't load opponents</string>
     <string name="msg_check_connection">Check your connection and try again.</string>
     <string name="startup_needs_connection_title">No connection</string>
+    <string name="startup_update_title">Update needed</string>
+    <string name="startup_update_body">This version of the app is out of date. Update it to keep using Squadify.</string>
     <string name="more_opponents">Opponents</string>
     <!-- Create / Edit opponent (design 38e) -->
     <string name="title_create_opponent">Create opponent</string>

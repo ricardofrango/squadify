@@ -15,5 +15,7 @@ data class FeatureFlags(
     /** How long the apps keep a read of a game's status or results (seconds); 0 turns it off. CLIENT_MATCH_CACHE_SECONDS. */
     val matchCacheSeconds: Int = 0,
     /** Plans and ads (REQUIREMENTS §5c): off, every space is Pro and the app hides the plan UI. On with PLANS_ENABLED=true (coach server). */
-    val plansEnabled: Boolean = false
+    val plansEnabled: Boolean = false,
+    /** Whether the asking app's build is below its platform's minimum (MIN_ANDROID_BUILD, MIN_IOS_BUILD; §85): it must update. */
+    val updateRequired: Boolean = false
 )

@@ -15,7 +15,10 @@ class CoachApplication : Application() {
         val appConfig = DefaultAppConfig(
             baseUrl = BuildConfig.BASE_URL,
             isDebug = BuildConfig.DEBUG,
-            appVersion = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+            appVersion = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+            platform = "android",
+            buildNumber = BuildConfig.VERSION_CODE,
+            storeUrl = "https://play.google.com/store/apps/details?id=${BuildConfig.APPLICATION_ID}"
         )
         initCoachKoin(appConfig = appConfig, pushTokenProvider = FirebasePushTokenProvider()) {
             androidContext(this@CoachApplication)

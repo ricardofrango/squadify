@@ -17,6 +17,7 @@ import com.ricardofrango.squadify.presentation.routes.opponentRoutes
 import com.ricardofrango.squadify.presentation.routes.trainingRoutes
 import com.ricardofrango.squadify.presentation.routes.ageGroupImportRoutes
 import com.ricardofrango.squadify.presentation.routes.featureFlagRoutes
+import com.ricardofrango.squadify.presentation.AppMinimums
 import com.ricardofrango.squadify.model.FeatureFlags
 import com.ricardofrango.squadify.presentation.routes.ImportSources
 import com.ricardofrango.squadify.presentation.routes.fcmTokenRoutes
@@ -94,7 +95,7 @@ fun Application.module() {
     // one) as written, unlike Ktor's Url.hostWithPort, which always forces one in -- allowHost needs to
     // match the browser's actual Origin header ("https://host", no ":443") exactly.
     configureCors(ServerConfig.webAppBaseUrl, allowAnyLocalhost = ServerConfig.environment == AppEnvironment.DEV)
-    installSquadifyApi(JwtConfig, realm = "club-manager")
+    installSquadifyApi(JwtConfig, realm = "club-manager", minimums = AppMinimums(android = ServerConfig.minimumAndroidBuild, ios = ServerConfig.minimumIosBuild))
 
     routing {
         // Unversioned -- infra/uptime checks hit this directly, no reason to make them know the API version.
@@ -115,7 +116,7 @@ fun Application.module() {
             opponentRoutes()
             trainingRoutes()
             ageGroupImportRoutes(ImportSources(ServerConfig.importSources, ServerConfig.crossEnvironmentImportSources, emptySet()), importEnabled = ServerConfig.featureAgeGroupImport)
-            featureFlagRoutes(FeatureFlags(ageGroupImport = ServerConfig.featureAgeGroupImport, cacheSeconds = ServerConfig.clientCacheSeconds, matchCacheSeconds = ServerConfig.clientMatchCacheSeconds))
+            featureFlagRoutes(FeatureFlags(ageGroupImport = ServerConfig.featureAgeGroupImport, cacheSeconds = ServerConfig.clientCacheSeconds, matchCacheSeconds = ServerConfig.clientMatchCacheSeconds), AppMinimums(android = ServerConfig.minimumAndroidBuild, ios = ServerConfig.minimumIosBuild))
             fcmTokenRoutes()
             publicImageRoutes()
         }

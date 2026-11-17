@@ -48,6 +48,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - **Admins/Coordinators**: Full access within their specific club context.
     - **Coaches**: Can only manage teams where they are assigned as staff.
 - **Error Handling**: Standardized `ErrorResponse` JSON for all failures, using a custom `SquadifyException` hierarchy.
+- **Forced update**: each server refuses a mobile app build below its minimum (`MIN_ANDROID_BUILD`, `MIN_IOS_BUILD`) with 426 `APP_001`, and the update screen takes over (`TECHNICAL_DECISIONS.md` §85).
 
 ## 5. Match Management
 - **Match**: Details about opponent (linked to Opponent entity), location, date, status, and type (`MatchType`: `FRIENDLY`, `CHAMPIONSHIP`, `TOURNAMENT`, required when scheduling; older matches may have none). Played in 2 halves (default) or 1 -- a single period with no half time, for youth fixtures of one 20/25/30-minute period. Played with its team's size unless it says otherwise (a 9-a-side team playing a 7-a-side game); see the roadmap item below.

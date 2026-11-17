@@ -64,4 +64,32 @@ class FeatureFlagsStoreTest {
         assertEquals(FeatureFlags(ageGroupImport = true), store.flags.value)
         assertEquals(1, repository.reads)
     }
+
+    // A build below its minimum (TECHNICAL_DECISIONS §85): the update screen, until a read says the build is current.
+    @Test
+    fun updateRequiredFromTheFlagsShowsTheUpdateScreenUntilARead() = runTest {
+        val store = FeatureFlagsStore(FakeFlags(FeatureFlags(updateRequired = true), FeatureFlags(updateRequired = false)))
+        store.load()
+        assertEquals(FeatureFlagsStatus.UPDATE_REQUIRED, store.status.value)
+        store.retryIfFailed()
+        assertEquals(FeatureFlagsStatus.LOADED, store.status.value)
+    }
+
+    @Test
+    fun aRefusedRequestShowsTheUpdateScreenAfterTheFlagsLoaded() = runTest {
+        val store = FeatureFlagsStore(FakeFlags(FeatureFlags(), FeatureFlags()))
+        store.load()
+        store.reportUpdateRequired()
+        assertEquals(FeatureFlagsStatus.UPDATE_REQUIRED, store.status.value)
+        store.retryIfFailed()
+        assertEquals(FeatureFlagsStatus.LOADED, store.status.value)
+    }
+
+    @Test
+    fun aFailedReadWhileUpdatingKeepsTheUpdateScreen() = runTest {
+        val store = FeatureFlagsStore(FakeFlags(FeatureFlags(updateRequired = true), null))
+        store.load()
+        store.retryIfFailed()
+        assertEquals(FeatureFlagsStatus.UPDATE_REQUIRED, store.status.value)
+    }
 }

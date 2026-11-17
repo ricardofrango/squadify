@@ -18,6 +18,7 @@ import com.ricardofrango.squadify.presentation.routes.gameRoutes
 import com.ricardofrango.squadify.presentation.routes.trainingRoutes
 import com.ricardofrango.squadify.presentation.routes.ageGroupImportRoutes
 import com.ricardofrango.squadify.presentation.routes.featureFlagRoutes
+import com.ricardofrango.squadify.presentation.AppMinimums
 import com.ricardofrango.squadify.model.FeatureFlags
 import com.ricardofrango.squadify.presentation.routes.ImportSources
 import com.ricardofrango.squadify.presentation.routes.imageRoutes
@@ -55,7 +56,7 @@ fun Application.module() {
         }
     }
 
-    installSquadifyApi(CoachTokens, realm = "squadify-coach")
+    installSquadifyApi(CoachTokens, realm = "squadify-coach", minimums = AppMinimums(android = CoachConfig.minimumAndroidBuild, ios = CoachConfig.minimumIosBuild))
 
     routing {
         get("/") { call.respondText("Squadify for Coaches API is running") }
@@ -74,7 +75,7 @@ fun Application.module() {
             gameRoutes(CoachTokens)
             trainingRoutes()
             ageGroupImportRoutes(ImportSources(CoachConfig.importSources, CoachConfig.crossEnvironmentImportSources, CoachConfig.platformAdminEmails), importEnabled = CoachConfig.featureAgeGroupImport)
-            featureFlagRoutes(FeatureFlags(ageGroupImport = CoachConfig.featureAgeGroupImport, cacheSeconds = CoachConfig.clientCacheSeconds, matchCacheSeconds = CoachConfig.clientMatchCacheSeconds, plansEnabled = CoachConfig.plansEnabled))
+            featureFlagRoutes(FeatureFlags(ageGroupImport = CoachConfig.featureAgeGroupImport, cacheSeconds = CoachConfig.clientCacheSeconds, matchCacheSeconds = CoachConfig.clientMatchCacheSeconds, plansEnabled = CoachConfig.plansEnabled), AppMinimums(android = CoachConfig.minimumAndroidBuild, ios = CoachConfig.minimumIosBuild))
         }
     }
 }
