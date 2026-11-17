@@ -35,6 +35,7 @@ class ExposedMatchEventRepository : MatchEventRepository {
             it[createdAt] = event.createdAt
             it[period] = event.period
             it[relatedEventId] = event.relatedEventId?.toUuid()
+            it[goalkeeperPlayerId] = event.goalkeeperPlayerId?.toUuid()
         }.resultedValues
             ?.singleOrNull()
             ?.let(::toMatchEvent)
@@ -57,6 +58,7 @@ class ExposedMatchEventRepository : MatchEventRepository {
             it[opponentPlayerName] = event.opponentPlayerName
             it[isOpponent] = event.isOpponent
             it[relatedEventId] = event.relatedEventId?.toUuid()
+            it[goalkeeperPlayerId] = event.goalkeeperPlayerId?.toUuid()
         } > 0
 
     override suspend fun deleteEventsByMatch(matchId: String) {
@@ -140,6 +142,7 @@ class ExposedMatchEventRepository : MatchEventRepository {
         isOpponent = row[MatchEvents.isOpponent],
         createdAt = row[MatchEvents.createdAt],
         period = row[MatchEvents.period],
-        relatedEventId = row[MatchEvents.relatedEventId]?.toString()
+        relatedEventId = row[MatchEvents.relatedEventId]?.toString(),
+        goalkeeperPlayerId = row[MatchEvents.goalkeeperPlayerId]?.toString()
     )
 }

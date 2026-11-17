@@ -183,7 +183,9 @@ data class BundleEvent(
     val isOpponent: Boolean,
     val period: Int?,
     val relatedEventId: String?,
-    val createdAt: Instant
+    val createdAt: Instant,
+    // An opponent's goal: our goalkeeper who suffered it (MatchEvent.goalkeeperPlayerId), the source's id.
+    val goalkeeperPlayerId: String? = null
 )
 
 /** The coach's post-match report; its author is the source's user, mapped to a user the target knows, or null. */

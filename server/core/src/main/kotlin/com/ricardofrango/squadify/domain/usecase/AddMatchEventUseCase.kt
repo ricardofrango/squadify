@@ -42,11 +42,11 @@ class AddMatchEventUseCase(
                 throw ValidationException("Events can only be logged while the match is live")
             }
 
-            // The live game's tallies (MatchTallies.kt): shots are our player's; a foul is our player's or
-            // the opponent's as a team; a corner is a side's, never a player's.
+            // The live game's tallies (MatchTallies.kt): a shot or a foul is our player's or the opponent's as
+            // a team (no player); a corner is a side's, never a player's.
             when (request.type) {
-                EventType.SHOT, EventType.SHOT_ON_GOAL -> if (request.isOpponent || request.playerId == null) {
-                    throw ValidationException("A shot needs one of our players")
+                EventType.SHOT, EventType.SHOT_ON_GOAL -> if (request.isOpponent == (request.playerId != null)) {
+                    throw ValidationException("A shot is one of our players' or the opponent's")
                 }
                 EventType.FOUL -> if (request.isOpponent == (request.playerId != null)) {
                     throw ValidationException("A foul is one of our players' or the opponent's")
@@ -79,6 +79,17 @@ class AddMatchEventUseCase(
                 }
             }
 
+            // The opponent's goal records our goalkeeper at that moment: whoever the pitch has in goal (TECHNICAL_DECISIONS §86).
+            val goalkeeperPlayerId = if (request.type == EventType.GOAL && request.isOpponent) {
+                goalkeeperOnPitch(
+                    match,
+                    matchRepository.getCallUpsForMatch(matchId),
+                    matchEventRepository.getEventsByMatch(matchId),
+                    matchRepository.getLineupChanges(matchId).maxOfOrNull { it.createdAt },
+                    request.minute
+                )
+            } else null
+
             // 3. Create the event
             val event = MatchEvent(
                 id = Uuid.random().toString(),
@@ -88,6 +99,7 @@ class AddMatchEventUseCase(
                 playerId = request.playerId,
                 opponentPlayerName = request.opponentPlayerName,
                 isOpponent = request.isOpponent,
+                goalkeeperPlayerId = goalkeeperPlayerId,
                 createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
                 // The half is fixed now, from the match state -- not inferred later from timestamps,
                 // since secondHalfStartedAt is the clock's reference point and moves with pause/resume

@@ -162,7 +162,7 @@ class ExportAgeGroupUseCase(
                 val callUps = matchRepository.getCallUpsForMatch(match.id)
                 callUps.forEach { p -> if (p.player.id !in players) players[p.player.id] = playerBundle(p.player) }
                 val events = eventRepository.getEventsByMatch(match.id)
-                events.mapNotNull { it.playerId }.distinct().forEach { id ->
+                (events.mapNotNull { it.playerId } + events.mapNotNull { it.goalkeeperPlayerId }).distinct().forEach { id ->
                     if (id !in players) playerRepository.getPlayerById(id)?.let { players[id] = playerBundle(it) }
                 }
                 val stats = statsRepository.getByMatch(match.id)
@@ -262,7 +262,7 @@ private fun com.ricardofrango.squadify.model.Player.toBundle(photo: BundleImage?
 private fun com.ricardofrango.squadify.model.MatchCallUp.toBundle() = BundleCallUp(id, playerId, status, notes, isStarting, pitchSlot)
 
 private fun com.ricardofrango.squadify.model.MatchEvent.toBundle() = BundleEvent(
-    id, type, minute, playerId, opponentPlayerName, isOpponent, period, relatedEventId, createdAt
+    id, type, minute, playerId, opponentPlayerName, isOpponent, period, relatedEventId, createdAt, goalkeeperPlayerId
 )
 
 private fun com.ricardofrango.squadify.model.MatchReport.toBundle() = BundleReport(

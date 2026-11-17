@@ -318,6 +318,8 @@ object MatchEvents : Table("match_events") {
     val period = integer("period").nullable()
     // For an ASSIST, the GOAL it belongs to (see MatchEvent.relatedEventId). FK declared in V8.
     val relatedEventId = uuid("related_event_id").nullable()
+    // For a GOAL by the opponent, our goalkeeper who suffered it (see MatchEvent.goalkeeperPlayerId). V38 (clubs) / V14 (coach).
+    val goalkeeperPlayerId = uuid("goalkeeper_player_id").references(Players.id).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -357,6 +359,8 @@ object MatchPlayerStatsTable : Table("match_player_stats") {
     val shots = integer("shots").default(0)
     val shotsOnGoal = integer("shots_on_goal").default(0)
     val fouls = integer("fouls").default(0)
+    // V39 (clubs) / V15 (coach): the goals the opponent scored with this player as our goalkeeper (§86).
+    val goalsConceded = integer("goals_conceded").default(0)
 
     override val primaryKey = PrimaryKey(id)
 

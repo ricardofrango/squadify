@@ -417,6 +417,7 @@ private fun FullStatsColumn.width(): Dp = when (this) {
     FullStatsColumn.WON, FullStatsColumn.DRAWN, FullStatsColumn.LOST -> 40.dp
     FullStatsColumn.YELLOW_CARDS, FullStatsColumn.RED_CARDS -> 44.dp
     FullStatsColumn.SHOTS, FullStatsColumn.SHOTS_ON_GOAL, FullStatsColumn.FOULS -> 56.dp
+    FullStatsColumn.GOALS_CONCEDED -> 84.dp
 }
 
 private fun FullStatsColumn.shortRes(): StringResource = when (this) {
@@ -435,6 +436,7 @@ private fun FullStatsColumn.shortRes(): StringResource = when (this) {
     FullStatsColumn.SHOTS -> Res.string.fs_col_shots
     FullStatsColumn.SHOTS_ON_GOAL -> Res.string.fs_col_shots_on_goal
     FullStatsColumn.FOULS -> Res.string.fs_col_fouls
+    FullStatsColumn.GOALS_CONCEDED -> Res.string.fs_col_goals_conceded
 }
 
 private fun FullStatsColumn.nameRes(): StringResource = when (this) {
@@ -453,6 +455,7 @@ private fun FullStatsColumn.nameRes(): StringResource = when (this) {
     FullStatsColumn.SHOTS -> Res.string.fs_name_shots
     FullStatsColumn.SHOTS_ON_GOAL -> Res.string.fs_name_shots_on_goal
     FullStatsColumn.FOULS -> Res.string.fs_col_fouls
+    FullStatsColumn.GOALS_CONCEDED -> Res.string.fs_name_goals_conceded
 }
 
 /**

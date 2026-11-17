@@ -189,4 +189,20 @@ class MatchPlayerStatsCalculatorTest {
         val b = statsFor("b", callUps, events)
         assertEquals(listOf(0, 0, 0), listOf(b.shots, b.shotsOnGoal, b.fouls))
     }
+
+    // The goals the opponent scored with a player in goal (TECHNICAL_DECISIONS §86).
+    @Test
+    fun anOpponentGoalCountsAgainstTheGoalkeeperItRecordedOnly() {
+        val callUps = listOf(callUp("gk", true), callUp("d", true))
+        fun against(goalkeeper: String?, type: EventType = EventType.GOAL, opponent: Boolean = true) =
+            event(type, null, 10, half = 1, isOpponent = opponent).copy(goalkeeperPlayerId = goalkeeper)
+        val events = listOf(
+            against("gk"), against("gk"), against("d"),
+            // Not counted: no goalkeeper known, our own goal (no goalkeeper on it), the opponent's own goal.
+            against(null), event(EventType.GOAL, "d", 20, half = 1), against(null, type = EventType.OWN_GOAL)
+        )
+        val stats = MatchPlayerStatsCalculator.calculate(match, callUps, events).associateBy { it.playerId }
+        assertEquals(2, stats.getValue("gk").goalsConceded)
+        assertEquals(1, stats.getValue("d").goalsConceded)
+    }
 }

@@ -153,3 +153,27 @@ data class MatchLineupChange(
     val slots: Map<Int, String>,
     val createdAt: kotlin.time.Instant
 )
+
+/**
+ * Who stands in goal (slot 0) now in a live game: whoever the pitch has there, from the saved arrangement, the
+ * substitutions and red cards since (see [currentPitchSlots]). The server records this on each goal the opponent
+ * scores (TECHNICAL_DECISIONS §86). Null when nobody is in goal (the slot is empty).
+ */
+fun goalkeeperOnPitch(
+    match: Match,
+    callUps: List<MatchCallUpWithPlayer>,
+    events: List<MatchEvent>,
+    lineupSavedAt: kotlin.time.Instant? = null,
+    liveMinute: Int? = null
+): String? {
+    val stored = callUps.mapNotNull { c -> c.callUp.pitchSlot?.let { it to c.callUp.playerId } }.toMap()
+    // A game kicked off before the pitch view has no arrangement: its starters are placed by their positions.
+    val base = stored.ifEmpty {
+        autoArrangeSlots(
+            matchFormation(match.formation, match.teamSize),
+            callUps.filter { it.callUp.isStarting }.map { it.callUp.playerId to it.player.position }
+        )
+    }
+    val onPitch = playerMinutes(match, callUps.map { it.callUp }, events, liveMinute).filterValues { it.onPitch }.keys
+    return currentPitchSlots(match.teamSize, base, onPitch, events, lineupSavedAt)[0]
+}

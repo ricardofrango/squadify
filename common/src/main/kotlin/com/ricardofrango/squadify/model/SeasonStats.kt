@@ -47,6 +47,8 @@ data class PlayerSeasonMatch(
     val shots: Int = 0,
     val shotsOnGoal: Int = 0,
     val fouls: Int = 0,
+    // Goals the opponent scored with him in goal (MatchPlayerStats.goalsConceded, §86).
+    val goalsConceded: Int = 0,
     // The team he played for in that match ("Sub-15 A"), so A and B are never ambiguous.
     val teamName: String = "",
     // Home first in the row's "Team vs Opponent" (MatchVenue.ourSideFirst).
@@ -94,7 +96,9 @@ data class PlayerSeasonTotals(
     // Mean of the ratings in the filter, one decimal; null with no rated matches.
     val averageRating: Double?,
     // Matches with no type, in this selection -- only ever non-zero under ALL (design 30a's note).
-    val untypedMatches: Int
+    val untypedMatches: Int,
+    // Goals the opponent scored with him in goal (§86).
+    val goalsConceded: Int = 0
 )
 
 /**
@@ -123,7 +127,8 @@ fun List<PlayerSeasonMatch>.totals(filter: StatsFilter): PlayerSeasonTotals {
         fouls = rows.sumOf { it.fouls },
         ratedMatches = ratings.size,
         averageRating = ratings.takeIf { it.isNotEmpty() }?.average()?.roundToTwoDecimals(),
-        untypedMatches = rows.count { it.matchType == null }
+        untypedMatches = rows.count { it.matchType == null },
+        goalsConceded = rows.sumOf { it.goalsConceded }
     )
 }
 

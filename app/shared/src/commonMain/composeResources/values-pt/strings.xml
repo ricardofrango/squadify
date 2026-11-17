@@ -422,6 +422,9 @@
     <string name="label_event_goal">Golo · %1$s</string>
     <string name="label_event_goal_with_assist">Golo · %1$s (assistência %2$s)</string>
     <string name="label_event_goal_unattributed">Golo</string>
+    <string name="label_event_goal_goalkeeper">Golo · %1$s (guarda-redes %2$s)</string>
+    <string name="label_goalkeeper">Guarda-redes</string>
+    <string name="action_no_goalkeeper">Sem guarda-redes</string>
     <string name="label_event_own_goal">Autogolo · %1$s</string>
     <string name="label_event_yellow_card">Amarelo · %1$s</string>
     <string name="label_event_red_card">Vermelho · %1$s</string>
@@ -646,6 +649,7 @@
     <string name="stats_minutes_value">%1$d min</string>
     <string name="stats_cards">%1$d amarelos · %2$d vermelhos</string>
     <string name="stats_shots_fouls">%1$d remates (%2$d à baliza) · %3$d faltas</string>
+    <string name="stats_goals_conceded">%1$d golos sofridos</string>
     <string name="stats_matches">Jogos</string>
     <string name="stats_empty_friendly">Sem jogos amigáveis nesta época</string>
     <string name="stats_empty_official">Sem jogos oficiais nesta época</string>
@@ -1494,6 +1498,8 @@
     <string name="fs_col_minutes">Min.</string>
     <string name="fs_col_position">Posição</string>
     <string name="fs_col_shots">Remates</string>
+    <string name="fs_col_goals_conceded">Sofridos</string>
+    <string name="fs_name_goals_conceded">Golos sofridos</string>
     <string name="fs_col_shots_on_goal">À baliza</string>
     <string name="fs_col_fouls">Faltas</string>
     <string name="fs_name_shots">Remates</string>

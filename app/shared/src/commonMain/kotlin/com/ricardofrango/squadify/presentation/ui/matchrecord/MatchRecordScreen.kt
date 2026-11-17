@@ -420,7 +420,11 @@ private fun EventSheet(
                 selected = kind,
                 label = { stringResource(it.labelRes()) },
                 onSelect = { k ->
-                    draft = draft.copy(type = k.type, isOpponent = draft.isOpponent && k.hasSide, assistPlayerId = draft.assistPlayerId.takeIf { k == RecordEventKind.GOAL && draft.playerId != null })
+                    draft = draft.copy(
+                        type = k.type, isOpponent = draft.isOpponent && k.hasSide,
+                        assistPlayerId = draft.assistPlayerId.takeIf { k == RecordEventKind.GOAL && draft.playerId != null },
+                        goalkeeperPlayerId = draft.goalkeeperPlayerId.takeIf { k == RecordEventKind.GOAL && draft.isOpponent }
+                    )
                 },
                 edgePadding = ScreenPadding.Horizontal
             )
@@ -430,7 +434,7 @@ private fun EventSheet(
                     options = listOf(false, true),
                     selected = draft.isOpponent,
                     label = { if (it) them else us },
-                    onSelect = { opp -> draft = draft.copy(isOpponent = opp, playerId = draft.playerId.takeIf { !opp }, assistPlayerId = null) },
+                    onSelect = { opp -> draft = draft.copy(isOpponent = opp, playerId = draft.playerId.takeIf { !opp }, assistPlayerId = null, goalkeeperPlayerId = draft.goalkeeperPlayerId.takeIf { opp }) },
                     edgePadding = ScreenPadding.Horizontal
                 )
             }
@@ -457,6 +461,15 @@ private fun EventSheet(
                         onPick = { id -> draft = draft.copy(assistPlayerId = id.ifEmpty { null }) }
                     )
                 }
+            } else if (kind == RecordEventKind.GOAL) {
+                // Our goalkeeper who suffered it: anyone called up, as a goalkeeper may have been sent off and replaced (§86).
+                val noGoalkeeper = stringResource(Res.string.action_no_goalkeeper)
+                PickerField(
+                    label = stringResource(Res.string.label_goalkeeper),
+                    value = players.firstOrNull { it.id == draft.goalkeeperPlayerId }?.let { "${it.firstName} ${it.lastName}" } ?: noGoalkeeper,
+                    options = listOf("" to noGoalkeeper) + players.map { it.id to "${it.firstName} ${it.lastName}" },
+                    onPick = { id -> draft = draft.copy(goalkeeperPlayerId = id.ifEmpty { null }) }
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(

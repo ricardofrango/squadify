@@ -24,22 +24,32 @@ class MatchTalliesTest {
         MatchEvent("e${seq++}", "m", type, 10, playerId = playerId, isOpponent = opponent, createdAt = at, period = 1)
 
     @Test
-    fun bothSidesAreCountedAndTheOpponentsShotsAreUnknown() {
+    fun bothSidesAreCounted() {
         val tallies = matchTallies(
             listOf(
                 event(EventType.SHOT, "a"), event(EventType.SHOT, "b"),
                 event(EventType.SHOT_ON_GOAL, "a"),
-                // Our goals count as shots on goal, a goal without its scorer too; theirs don't count for anyone.
+                // The opponent's shots are the team's, with none of our players.
+                event(EventType.SHOT, opponent = true), event(EventType.SHOT, opponent = true), event(EventType.SHOT_ON_GOAL, opponent = true),
+                // Each side's goals count as shots on goal, a goal without its scorer too.
                 event(EventType.GOAL, "a"), event(EventType.GOAL), event(EventType.GOAL, opponent = true),
                 event(EventType.CORNER), event(EventType.CORNER), event(EventType.CORNER, opponent = true),
                 event(EventType.FOUL, "b"), event(EventType.FOUL, opponent = true), event(EventType.FOUL, opponent = true)
             )
         )
         assertEquals(listOf(5, 3, 2, 1), tallies.ours.let { listOf(it.shots, it.shotsOnGoal, it.corners, it.fouls) })
+        // Theirs: 2 shots, 1 on goal and a goal: 4 shots, 2 on goal.
+        assertEquals(listOf(4, 2, 1, 2), tallies.theirs.let { listOf(it.shots, it.shotsOnGoal, it.corners, it.fouls) })
+        assertTrue(tallies.recorded)
+    }
+
+    // An older match has nothing beyond goals recorded: the opponent's shots were never recorded, so unknown ("–").
+    @Test
+    fun theOpponentsShotsAreUnknownWhereNothingBeyondGoalsWasRecorded() {
+        val tallies = matchTallies(listOf(event(EventType.GOAL, "a"), event(EventType.GOAL, opponent = true)))
         assertNull(tallies.theirs.shots)
         assertNull(tallies.theirs.shotsOnGoal)
-        assertEquals(listOf(1, 2), tallies.theirs.let { listOf(it.corners, it.fouls) })
-        assertTrue(tallies.recorded)
+        assertEquals(1, tallies.ours.shotsOnGoal)
     }
 
     @Test

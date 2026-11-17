@@ -425,6 +425,9 @@
     <string name="label_event_goal">Goal · %1$s</string>
     <string name="label_event_goal_with_assist">Goal · %1$s (assist %2$s)</string>
     <string name="label_event_goal_unattributed">Goal</string>
+    <string name="label_event_goal_goalkeeper">Goal · %1$s (goalkeeper %2$s)</string>
+    <string name="label_goalkeeper">Goalkeeper</string>
+    <string name="action_no_goalkeeper">No goalkeeper</string>
     <string name="label_event_own_goal">Own goal · %1$s</string>
     <string name="label_event_yellow_card">Yellow · %1$s</string>
     <string name="label_event_red_card">Red · %1$s</string>
@@ -649,6 +652,7 @@
     <string name="stats_minutes_value">%1$d min</string>
     <string name="stats_cards">%1$d yellow · %2$d red</string>
     <string name="stats_shots_fouls">%1$d shots (%2$d on goal) · %3$d fouls</string>
+    <string name="stats_goals_conceded">%1$d goals conceded</string>
     <string name="stats_matches">Matches</string>
     <string name="stats_empty_friendly">No friendlies this season</string>
     <string name="stats_empty_official">No official matches this season</string>
@@ -1497,6 +1501,8 @@
     <string name="fs_col_minutes">Min</string>
     <string name="fs_col_position">Position</string>
     <string name="fs_col_shots">Shots</string>
+    <string name="fs_col_goals_conceded">Conceded</string>
+    <string name="fs_name_goals_conceded">Goals conceded</string>
     <string name="fs_col_shots_on_goal">On goal</string>
     <string name="fs_col_fouls">Fouls</string>
     <string name="fs_name_shots">Shots</string>

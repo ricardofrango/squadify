@@ -259,8 +259,8 @@ private fun MatchStatColumn.nameRes(): StringResource = when (this) {
 }
 
 /**
- * Our side against theirs, a line each: shots and shots on goal (ours only: "–" for the opponent, whose
- * aren't recorded), corners and fouls. Home on the left, as the score reads.
+ * Our side against theirs, a line each: shots and shots on goal ("–" for the opponent in an older match, where
+ * theirs weren't recorded), corners and fouls. Home on the left, as the score reads.
  */
 @Composable
 private fun TallyComparison(tallies: MatchTallies, details: MatchDetails) {
@@ -494,7 +494,11 @@ internal fun RecordEventRow(event: DisplayEvent, details: MatchDetails, onClick:
             val name = nameOf(e)
             when (e.type) {
                 EventType.GOAL -> when {
-                    e.isOpponent -> Triple("G", CarbonGray, stringResource(Res.string.label_event_goal, opponent))
+                    e.isOpponent -> {
+                        // Our goalkeeper who suffered it, when known (§86).
+                        val keeper = e.goalkeeperPlayerId?.let { players[it] }?.let { "${it.firstName} ${it.lastName}" }
+                        Triple("G", CarbonGray, if (keeper != null) stringResource(Res.string.label_event_goal_goalkeeper, opponent, keeper) else stringResource(Res.string.label_event_goal, opponent))
+                    }
                     name != null && event.assist != null -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal_with_assist, name, nameOf(event.assist) ?: "-"))
                     name != null -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal, name))
                     else -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal_unattributed))
@@ -505,8 +509,8 @@ internal fun RecordEventRow(event: DisplayEvent, details: MatchDetails, onClick:
                 EventType.YELLOW_CARD -> Triple("Y", Amber, stringResource(Res.string.label_event_yellow_card, name ?: "-"))
                 EventType.RED_CARD -> Triple("R", LossRed, stringResource(Res.string.label_event_red_card, name ?: "-"))
                 EventType.SUBSTITUTION_IN, EventType.SUBSTITUTION_OUT -> Triple("⇄", DeepCarbon, name ?: "-")
-                EventType.SHOT -> Triple("↗", DeepCarbon, stringResource(Res.string.label_event_shot, name ?: "-"))
-                EventType.SHOT_ON_GOAL -> Triple("◎", PitchGreen, stringResource(Res.string.label_event_shot_on_goal, name ?: "-"))
+                EventType.SHOT -> Triple("↗", if (e.isOpponent) CarbonGray else DeepCarbon, stringResource(Res.string.label_event_shot, if (e.isOpponent) opponent else name ?: "-"))
+                EventType.SHOT_ON_GOAL -> Triple("◎", if (e.isOpponent) CarbonGray else PitchGreen, stringResource(Res.string.label_event_shot_on_goal, if (e.isOpponent) opponent else name ?: "-"))
                 EventType.FOUL -> Triple("!", CarbonGray, stringResource(Res.string.label_event_foul, if (e.isOpponent) opponent else name ?: "-"))
                 EventType.CORNER -> Triple("⚑", if (e.isOpponent) CarbonGray else DeepCarbon, stringResource(Res.string.label_event_corner, if (e.isOpponent) opponent else details.team.name))
             }

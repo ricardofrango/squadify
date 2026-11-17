@@ -213,7 +213,10 @@ data class MatchEvent(
     val period: Int? = null,
     // For an ASSIST: the GOAL it set up (logged together, see CreateMatchEventRequest.assistPlayerId).
     // Null for anything else, and for assists logged on their own before this existed.
-    val relatedEventId: String? = null
+    val relatedEventId: String? = null,
+    // For a GOAL by the opponent: our goalkeeper who suffered it (TECHNICAL_DECISIONS §86). Set by the server from the
+    // pitch when the goal is logged live, or picked in the match record. Null for anything else, or when not known.
+    val goalkeeperPlayerId: String? = null
 )
 
 @Serializable
@@ -293,7 +296,9 @@ data class MatchRecordEvent(
     val playerId: String? = null,
     val opponentPlayerName: String? = null,
     val isOpponent: Boolean = false,
-    val assistPlayerId: String? = null
+    val assistPlayerId: String? = null,
+    // The opponent's goals only: our goalkeeper who suffered it, one of the called-up players; null: not known.
+    val goalkeeperPlayerId: String? = null
 )
 
 /**
@@ -1126,7 +1131,9 @@ data class MatchPlayerStats(
     // Counted as in football (MatchTallies.kt): a goal is also a shot on goal, a shot on goal also a shot.
     val shots: Int = 0,
     val shotsOnGoal: Int = 0,
-    val fouls: Int = 0
+    val fouls: Int = 0,
+    // Goals the opponent scored with this player as our goalkeeper (MatchEvent.goalkeeperPlayerId, §86).
+    val goalsConceded: Int = 0
 )
 
 /**

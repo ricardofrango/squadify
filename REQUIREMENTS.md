@@ -201,6 +201,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - **Show and hide columns:** the coach picks which stats are shown, e.g. hiding goals. The choice is remembered on the device.
         - **Filters:** a date range (from / to, e.g. last Friday to today, for "this week's ranking"), the match type (All / Official / Tournament / Friendly), the team and the player's position (the developer, 2026-11-05). Each is a chip in one row that scrolls sideways, and each opens a bottom sheet with its options, as the period does. The season isn't a filter: a team and an age group belong to one season.
         - **Sorting** by any column, the player's name included, and tapping a row opens the player.
+      - [x] **Goalkeeper on goals against** (the developer, 2026-11-17; `TECHNICAL_DECISIONS.md` §86): when the opponent scores in a live game, the goalkeeper in goal (the pitch's goalkeeper position) is recorded on the goal by the server. In the match record, an opponent's goal has an optional Goalkeeper picker with everyone called up. The goal's row in the events list shows the goalkeeper. Each player's stats count the goals conceded with them in goal: a Conceded column in Full stats and a line in the player's season stats. Both apps.
       - [x] **Editing the match record after the game** (the developer, 2026-10-26; see TECHNICAL_DECISIONS §70), by any of the age group's staff, always editable:
         - **A game followed live:** its goals (scorer, assist), own goals and cards can be added, changed or deleted afterwards. Who started, the substitutions and the minutes played stay as they were.
         - **A game not followed live** (no battery, no signal): once its kickoff has passed, "Enter result" records its goals (our scorer can be left unknown), cards and each player's minutes, typed in (sorted by name or position; Next moves between players), and finishes it. Halves default to 30 minutes, and an event's half follows its minute. It has no substitutions or timeline. One push announces the final result.
@@ -352,10 +353,10 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
     - [x] **More in the live game** (the developer, 2026-11-03; built 2026-11-04), both apps (`TECHNICAL_DECISIONS.md` §77):
         - **Shots, shots on goal and fouls**, recorded per player, like goals and cards. A shot and a shot on goal are two separate options to record.
         - **Our team's sheet:** tapping our team in the live game opens a new bottom sheet to add a corner won. Only corners go on it.
-        - **The opponent's sheet:** tapping the opponent opens one to add a corner or a foul (the opponent has no players, so theirs are per team).
+        - **The opponent's sheet:** tapping the opponent opens one to add a goal, an own goal, a shot, a shot on goal, a corner or a foul (the opponent has no players, so theirs are per team; the opponent's shots were added 2026-11-17).
         - **Where they show:** in the match's stats, the timeline and the season stats.
         - **Counted as in football** (the developer, 2026-11-04): a goal is also a shot on goal, and a shot on goal also a shot, so each attempt is recorded once, with how it ended.
-        - **A match's Stats tab:** both sides compared (shots, shots on goal, corners, fouls; the opponent's shots show "–", since they aren't recorded), then Shots, On goal and Fouls columns in the player table.
+        - **A match's Stats tab:** both sides compared (shots, shots on goal, corners, fouls; the opponent's shots show "–" only in older matches, where they weren't recorded), then Shots, On goal and Fouls columns in the player table.
         - **The season:** each player's season card and Full stats (Shots, On goal, Fouls); the team's and age group's records (corners and fouls, ours and against).
         - **Not corrected after the game** for now: the match record keeps them as recorded live.
     - [x] **One person manages a game while it's on** (the developer, 2026-11-07), both apps (`TECHNICAL_DECISIONS.md` §80):

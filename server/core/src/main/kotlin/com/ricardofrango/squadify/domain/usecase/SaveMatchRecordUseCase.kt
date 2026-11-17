@@ -182,6 +182,11 @@ class SaveMatchRecordUseCase(
             if (event.period !in 1..match.halves) throw ValidationException("This match has ${match.halves} half(s)")
             if (event.minute !in 0..MAX_EVENT_MINUTE) throw ValidationException("The minute must be between 0 and $MAX_EVENT_MINUTE")
 
+            // Our goalkeeper who suffered the opponent's goal: one of the called-up players (they needn't have played).
+            if (event.goalkeeperPlayerId != null) {
+                if (!event.isOpponent || event.type != EventType.GOAL) throw ValidationException("Only the opponent's goals have a goalkeeper")
+                if (event.goalkeeperPlayerId !in calledUp) throw ValidationException("The goalkeeper wasn't called up for this match")
+            }
             if (event.isOpponent) {
                 if (event.type != EventType.GOAL && event.type != EventType.OWN_GOAL) {
                     throw ValidationException("Only the opponent's goals are recorded")
@@ -226,7 +231,8 @@ class SaveMatchRecordUseCase(
                     period = event.period,
                     playerId = if (event.isOpponent) null else event.playerId,
                     opponentPlayerName = if (event.isOpponent) event.opponentPlayerName else null,
-                    isOpponent = event.isOpponent
+                    isOpponent = event.isOpponent,
+                    goalkeeperPlayerId = if (event.isOpponent && event.type == EventType.GOAL) event.goalkeeperPlayerId else null
                 )
             }
             val goal = event.id?.let { id ->

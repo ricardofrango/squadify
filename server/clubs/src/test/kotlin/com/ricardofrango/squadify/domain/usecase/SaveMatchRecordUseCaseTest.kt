@@ -331,4 +331,30 @@ class SaveMatchRecordUseCaseTest {
         coVerify { eventRepository.deleteEvent("g1") }
         tallies.forEach { coVerify(exactly = 0) { eventRepository.deleteEvent(it.id) } }
     }
+
+    // The goalkeeper who suffered the opponent's goal (TECHNICAL_DECISIONS §86): anyone called up, played or not.
+    @Test
+    fun anOpponentGoalKeepsTheGoalkeeperPickedEvenIfHeDidntPlay() = runBlocking {
+        stubFinished(emptyList())
+        useCase(staff, matchId, SaveMatchRecordRequest(listOf(MatchRecordEvent(type = EventType.GOAL, minute = 8, isOpponent = true, goalkeeperPlayerId = "duda"))))
+        coVerify { eventRepository.addEvent(match { it.type == EventType.GOAL && it.isOpponent && it.goalkeeperPlayerId == "duda" }) }
+    }
+
+    @Test
+    fun aGoalkeeperNotCalledUpIsRefused() = runBlocking {
+        stubFinished(emptyList())
+        assertFailsWith<ValidationException> {
+            useCase(staff, matchId, SaveMatchRecordRequest(listOf(MatchRecordEvent(type = EventType.GOAL, minute = 8, isOpponent = true, goalkeeperPlayerId = "stranger"))))
+        }
+        Unit
+    }
+
+    @Test
+    fun onlyTheOpponentsGoalsHaveAGoalkeeper() = runBlocking {
+        stubFinished(emptyList())
+        assertFailsWith<ValidationException> {
+            useCase(staff, matchId, SaveMatchRecordRequest(listOf(MatchRecordEvent(type = EventType.GOAL, minute = 8, playerId = "ana", goalkeeperPlayerId = "duda"))))
+        }
+        Unit
+    }
 }
