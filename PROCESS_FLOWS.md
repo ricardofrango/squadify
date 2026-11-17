@@ -900,6 +900,29 @@ Everything on screen is derived on the client by shared code (`SeasonStats.kt`):
 - **`memberSeasons()`:** each player's apps, minutes and the teams he played for (Members tab).
 - **`averageRating()` / `playersUsed()`:** per team, for the Teams tab cards.
 
+### 4.4d Age Group Crest (`UploadAgeGroupLogoUseCase` / `DeleteAgeGroupLogoUseCase` / `GetAgeGroupLogoUseCase`)
+
+The crest of the club an age group plays for (the coach app's "Povoense - Sub 11"; `TECHNICAL_DECISIONS.md` §57, §72). `PUT /age-groups/{ageGroupId}/logo` (raw PNG or JPEG body) → the new `logoUrl`; `DELETE /age-groups/{ageGroupId}/logo`; `GET /age-groups/{ageGroupId}/logo/{imageId}.png`. It works like an opponent's logo (§6.5): checked and resized to a PNG, a new image id on every upload, the old file deleted first, and only the current one served.
+
+```mermaid
+graph TD
+    A[Start: userId, ageGroupId, image bytes] --> B[Fetch AgeGroup by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C["AccessPolicy.requireEditAgeGroup: the same gate as editing the age group (admins, coordinators, or this age group's coaches)"]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> S{Image storage available?}
+    S -- No --> V0(["Throw ValidationException: uploads aren't set up"])
+    S -- Yes --> P["LogoImage.toPng"]
+    P -- bad image --> V(["Throw ValidationException (current crest untouched)"])
+    P -- ok --> D["Delete the current crest's file, if any"]
+    D --> G["New imageId; store the file under the age group"]
+    G -- fails --> X["age_groups.logo_url = null"] --> E(["Rethrow"])
+    G -- ok --> U["age_groups.logo_url = /age-groups/{ageGroupId}/logo/{imageId}.png"]
+    U --> Z(["Return the new logoUrl"])
+```
+
+Delete: the same gate; removes the file and clears `logo_url` (nothing to do without a crest), so the age group shows its initials again. Get: anyone who can see the age group's club (`requireViewClub`); `NotFoundException` unless `{imageId}` is the current crest, so an old link stops working. Copying an age group between the apps carries its crest as a file (§14.5).
+
 ### 4.5 Create Team (`CreateTeamUseCase`)
 
 ```mermaid
@@ -2829,6 +2852,31 @@ erDiagram
         timestamp updated_at
         uuid updated_by FK
     }
+    USERS ||--o{ EXPORT_GRANTS : "creates (cascade)"
+    CLUBS ||--o{ IMPORT_LINKS : "target of (cascade)"
+    AGE_GROUPS ||--o| IMPORT_LINKS : "is the copy (cascade)"
+    CLUBS ||--o{ IMPORT_RECORDS : "target of (cascade)"
+    EXPORT_GRANTS {
+        varchar token_hash PK "64 chars -- the SHA-256 of the token; the token itself is never stored (V37 clubs, V13 coach)"
+        uuid user_id FK "who created it"
+        timestamptz expires_at "five minutes after it's created"
+        timestamptz used_at "nullable -- set when its bundle is read; a grant works once"
+    }
+    IMPORT_LINKS {
+        uuid target_club_id PK, FK "the club or space the age group was copied into"
+        varchar source_server PK "255 chars -- the other server's address"
+        uuid source_age_group_id PK "the age group on the other server"
+        uuid target_age_group_id FK "its copy here"
+        timestamptz imported_at "default CURRENT_TIMESTAMP"
+    }
+    IMPORT_RECORDS {
+        uuid target_club_id PK, FK
+        varchar source_server PK
+        uuid source_age_group_id PK
+        varchar kind PK "TEAM, PLAYER, OPPONENT, MATCH, CALL_UP, EVENT, EXERCISE, SESSION or PLAN"
+        uuid source_id PK "the record on the other server"
+        uuid target_id "its copy here"
+    }
 ```
 
 ### 12.2 Constraints & defaults worth knowing
@@ -2865,7 +2913,7 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/clubs/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, `V7__match_report_opponent_tactic.sql`, `V8__match_event_assist_link.sql`, and so on up to `V26__match_lineup_changes.sql` (see the folder for the full list). An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
+- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/clubs/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, `V7__match_report_opponent_tactic.sql`, `V8__match_event_assist_link.sql`, and so on up to `V39__match_player_stats_goals_conceded.sql` (see the folder for the full list). An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
 - **Legacy backfill**: right after Flyway, `DatabaseFactory.init()` still runs a raw, idempotent SQL block that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column (§4.3/§5.3). It's a no-op once `birth_year` is gone. It was deliberately left outside the migration chain because there's no way to confirm every environment has already run it.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 
@@ -2879,7 +2927,7 @@ erDiagram
 
 ### 12.6 The coach database (Squadify for Coaches)
 
-The coach server has its own Postgres database (`squadify_coach_dev` locally, its own service on Railway), created by its own migrations, `server/coach/src/main/resources/db/migration/` (`V1__shared_tables.sql` to `V10__…`). It reuses the clubs' tables for accounts, structure, games and training (`sharedTables` in `Tables.kt`, `TECHNICAL_DECISIONS.md` §72) and adds four of its own. As checked against both local databases on 2026-11-09:
+The coach server has its own Postgres database (`squadify_coach_dev` locally, its own service on Railway), created by its own migrations, `server/coach/src/main/resources/db/migration/` (`V1__shared_tables.sql` to `V15__…`). It reuses the clubs' tables for accounts, structure, games and training (`sharedTables` in `Tables.kt`, `TECHNICAL_DECISIONS.md` §72) and adds four of its own. As checked against both local databases on 2026-11-09:
 
 | Tables | Clubs database | Coach database |
 |---|---|---|
@@ -2888,6 +2936,7 @@ The coach server has its own Postgres database (`squadify_coach_dev` locally, it
 | Structure: `seasons`, `age_groups`, `teams`, `players`, `age_group_players`, `age_group_staff`, `opponents` | yes | yes, every `club_id` being the space's id |
 | Games: `matches`, `match_call_ups`, `match_events`, `match_lineup_changes`, `match_player_stats`, `match_reports` | yes | yes |
 | Training: `training_plans`, `training_sessions`, `training_exercises`, `training_session_exercises`, `training_ratings` | yes | yes |
+| Age group copy: `export_grants`, `import_links`, `import_records` (§14) | yes (V37) | yes (V13) |
 | `club_permission_overrides`, `invites`, `user_players` | yes | no (no configurable permissions, no email invites, no parent accounts) |
 | `space_plans`, `plan_requests`, `staff_invites`, `store_subscriptions` | no | yes (plans, payments, staff join codes) |
 
@@ -3119,13 +3168,13 @@ graph TD
     NS -- Yes --> S
 ```
 
-A platform admin's `PUT /v1/admin/spaces/{id}/plan` (`SetSpacePlanUseCase`) deletes the space's request with setting its plan; `GET /v1/admin/spaces` lists each space's `requestedPlan`.
+A platform admin's `PUT /v1/admin/spaces/{id}/plan` (`SetSpacePlanUseCase`) deletes the space's request with setting its plan; `GET /v1/admin/spaces` (`GetAdminSpacesUseCase`: a platform admin only, every space with its owner's email, its stored plan and `requestedPlan`) lists each space's `requestedPlan`.
 
 ### 13.3 Games on the coach server
 
 The games are the shared `gameRoutes` (`:server:web`), the same use cases and paths as on the clubs server (§7–§8), behind `CoachAccessPolicy` (§13.1): the owner in every age group, staff in their own. Full stats has no trainings to count. The WebSockets accept only the coach server's own tokens.
 
-### 13.4 Staff invites (`CreateStaffInviteUseCase`, `AcceptStaffInviteUseCase`, `RemoveStaffUseCase`)
+### 13.4 Staff invites (`CreateStaffInviteUseCase`, `GetStaffInvitesUseCase`, `RevokeStaffInviteUseCase`, `AcceptStaffInviteUseCase`, `RemoveStaffUseCase`)
 
 ```mermaid
 graph TD
@@ -3159,6 +3208,8 @@ graph TD
     K -- lost a race --> C3(["Throw ConflictException: rolls back"])
     K -- marked --> Z(["Return CoachSpace, isOwner = false"])
 ```
+
+The owner sees the codes still waiting (`GET /age-groups/{id}/invites`, `GetStaffInvitesUseCase`: `requireManageStaff`, then the age group's unused, unexpired codes) and withdraws one (`DELETE /age-groups/{id}/invites/{code}`, `RevokeStaffInviteUseCase`: the same gate, `NotFoundException` when the code isn't one of the age group's unused codes).
 
 Other spaces don't matter: an owner of one space, or staff in another, can use a code. After it's used, the space's owner gets a push (`sendStaffJoined`) naming who joined which age group. Removing (`DELETE /age-groups/{id}/staff/{userId}`, the owner only): the owner can't be removed; otherwise the staff row goes, and the space membership too when it was their last age group of the space. Withdrawing (`DELETE /age-groups/{id}/invites/{code}`) deletes a code that hasn't been used.
 
@@ -3265,3 +3316,117 @@ graph TD
 ```
 
 One transaction. Their account, their other spaces, and the reports and ratings they wrote here (which stay under the owner's name) are untouched.
+
+---
+
+## 14. Copying an Age Group Between the Servers
+
+How an age group moves from one server to the other, the clubs server to the coach server or back (`TECHNICAL_DECISIONS.md` §81; REQUIREMENTS, "Copying an age group between the two apps"). Shared code (`:server:core` and `:server:web`), on both servers, under `/v1`. The user allows it in the app that exports, which asks its own server for a **grant**; the app that imports hands the grant to its own server, which reads the age group from the other server with it and writes the copy. The source never changes.
+
+Every route that starts an import (`POST /import/source/age-groups`, `POST /import/age-groups`) checks, before anything else: the feature flag `FEATURE_AGE_GROUP_IMPORT` is on (`ForbiddenException`, 403, when off; §82); the source's address is in `IMPORT_SOURCES` (`ValidationException`: "set IMPORT_SOURCES on this server to that address"); and, for an address also in `IMPORT_SOURCES_CROSS_ENVIRONMENT`, the user is a platform admin. The two read routes the other server calls (`GET /export/age-groups` and its bundle) aren't signed-in routes: the grant, in the `X-Export-Grant` header, is the only credential.
+
+### 14.1 Export Grant (`CreateExportGrantUseCase`, `POST /export/grants`)
+
+```mermaid
+graph TD
+    A[Start: userId, signed in] --> B["token = 32 random bytes, base64url"]
+    B --> C["Store export_grants: SHA-256(token), user_id, expires_at = now + 5 minutes"]
+    C --> Z(["Return ExportGrantResponse(token, expiresAt): the token is shown once, never stored"])
+```
+
+### 14.2 List Exportable Age Groups (`ListExportableAgeGroupsUseCase`, `GET /export/age-groups`)
+
+```mermaid
+graph TD
+    A["Start: token (X-Export-Grant)"] --> B{"A grant with this hash, not expired?"}
+    B -- No --> U(["Throw UnauthorizedException: invalid or expired"])
+    B -- Yes --> C["The grant's user's memberships (club_members only)"]
+    C --> D{"requireEditClub for each club or space?"}
+    D -- No --> S["Skip it"]
+    D -- Yes --> E["Its age groups with their season"]
+    E --> Z(["Return ExportableAgeGroup: id, club, name, birth years, season name, type and dates, sport"])
+    S --> Z
+```
+
+Clubs server: the clubs the user may edit (admins and coordinators); coach server: the owner's space. It doesn't use the grant up.
+
+### 14.3 Export One Age Group (`ExportAgeGroupUseCase`, `GET /export/age-groups/{ageGroupId}/bundle`)
+
+```mermaid
+graph TD
+    A["Start: token, ageGroupId"] --> B{"Redeem the grant: valid, not expired, not used (marks it used)?"}
+    B -- No --> U(["Throw UnauthorizedException: invalid, expired or used"])
+    B -- Yes --> C[Fetch AgeGroup by id]
+    C -- not found --> N(["Throw NotFoundException"])
+    C -- found --> D{"requireEditClub for the grant's user?"}
+    D -- No --> F(["Throw ForbiddenException"])
+    D -- Yes --> E["Read only. Season, the age group's teams, its players"]
+    E --> G["Its matches that aren't LIVE or HALF_TIME: call-ups, line-up changes, events, ratings, each player's stored minutes, report"]
+    G --> H["Add the players its matches use (call-ups, scorers, assisters, goalkeepers) and the opponents they play"]
+    H --> I["Images as files, base64: players' photos, opponents' logos, the crest"]
+    I --> J["Training: exercises, sessions with their ratings (in hundredths), plans"]
+    J --> Z(["Return AgeGroupBundle: the source's ids throughout"])
+```
+
+The grant is used up here, so a second read of the bundle is `UnauthorizedException`. Nothing on the source server changes.
+
+### 14.4 List Importable Age Groups (`ListImportableAgeGroupsUseCase`, `POST /import/source/age-groups`)
+
+The importing server reads the other server's list (14.2) with the grant, then marks each age group with why this club can't copy it now. Read only.
+
+```mermaid
+graph TD
+    A["Start: userId, targetClubId, offered list"] --> B{"requireEditClub on the target?"}
+    B -- No --> F(["Throw ForbiddenException"])
+    B -- Yes --> C["For each offered age group"]
+    C --> D{"Already in import_links for this club and source?"}
+    D -- Yes --> R1(["ALREADY_IMPORTED"])
+    D -- No --> E{"Another sport than the club's?"}
+    E -- Yes --> R2(["OTHER_SPORT"])
+    E -- No --> G{"A season here with the same type and dates?"}
+    G -- No --> R3(["OTHER_SEASON"])
+    G -- Yes --> H{"Room for one more age group in that season on the plan? (the coach server)"}
+    H -- No --> R4(["NO_ROOM_IN_PLAN"])
+    H -- Yes --> I{"A club age group sharing birth years in that season?"}
+    I -- Yes --> R5(["BIRTH_YEARS_TAKEN, with the clashing age group's name and years"])
+    I -- No --> R6(["null: it can be copied"])
+```
+
+### 14.5 Import (`ImportAgeGroupUseCase`, `POST /import/age-groups`)
+
+After the route's checks, the importing server reads the bundle from the other server (14.3: the grant is used up) and answers `201` with the counts. The use case is **one transaction**: a refusal writes nothing.
+
+```mermaid
+graph TD
+    A["Start: userId, targetClubId, source address, bundle"] --> B{"requireEditClub on the target?"}
+    B -- No --> F(["Throw ForbiddenException"])
+    B -- Yes --> C{"Already in import_links?"}
+    C -- Yes --> K1(["Throw ConflictException: already imported"])
+    C -- No --> D["Forget leftover import_records of a copy that was deleted"]
+    D --> S{"A season here with the source's type and dates?"}
+    S -- No --> K2(["Throw ConflictException: not this club's season"])
+    S -- Yes --> P{"Room on the plan? Birth years free in the season?"}
+    P -- "No room" --> PL(["Throw PlanLimitException"])
+    P -- "Clash" --> K3(["Throw ConflictException: names the clashing age group"])
+    P -- ok --> AG["Create the age group (and copy its crest) and link it in import_links"]
+    AG --> T["Teams: team size must be one the sport plays, else ValidationException"]
+    T --> PL2["Players: the same name and birth date in the club is reused, else created with the photo copied"]
+    PL2 --> O["Opponents: the same name (ignoring case and accents) is reused, else created with the logo copied"]
+    O --> M["Each match: created with every field (status, kickoff, full time, formations, entered after the game), then call-ups, line-up changes, events (an assist after its goal; a goal against keeps its goalkeeper), the report"]
+    M --> ST{"Match finished (has a full time)?"}
+    ST -- Yes --> LN["Player lines worked out again from the events; the source's stored minutes and started override the worked-out ones; ratings put back"]
+    ST -- No --> TR
+    LN --> TR{"Training allowed on the plan?"}
+    TR -- Yes --> TX["Exercises, sessions (cancelled ones by the importer) with their ratings, plans"]
+    TR -- "No, and the source has training" --> SK["Skipped: trainingSkipped = true"]
+    TX --> Z(["Return ImportAgeGroupResult: age group id, counts, trainingSkipped"])
+    SK --> Z
+```
+
+Every record created is remembered in `import_records` (kind and source id to its copy), and the age group in `import_links`, so it is copied once. A server with no image storage refuses an age group that has photos or logos (`ValidationException`) rather than lose them. Later changes in the source don't reach the copy.
+
+**A long request.** A copy can take over 15 seconds (every record, photo and logo is written one by one). The apps wait up to 3 minutes for it, and a timeout is not reported as a failure: the server goes on (§81, `IMPORT_TIMEOUT_MILLIS`). A `499` in the server's log is the client having stopped waiting.
+
+**The copy's tables** (§12): `export_grants` (a token's SHA-256, its user, `expires_at`, `used_at`), `import_links` (club, source address, source age group, its copy) and `import_records` (club, source address, source age group, `kind`, source id, copy id). Clubs `V37__age_group_import.sql`, coach `V13__age_group_import.sql`.
+
+**Tests:** `CoachAgeGroupImportTest`, `CoachAgeGroupImportMatchesTest` (a result typed in afterwards keeps its minutes), `CoachGoalkeeperOnGoalsAgainstTest`, `FeatureFlagsTest` (the import refused while its flag is off) and the app's `AgeGroupImportRepositoryImplTest`.

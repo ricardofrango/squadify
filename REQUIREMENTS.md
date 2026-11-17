@@ -34,10 +34,10 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **AgeGroupPlayer**: Links a Player to an Age Group pool (many-to-many; `(ageGroupId, playerId)` unique).
 - **AgeGroupStaff**: Links a User (coach/staff) to an Age Group with a role.
 - **UserPlayer**: Links Parents to Players (supports multiple guardians).
-- **TrainingSession** *(planned, Phase 8)*: One training of an age group on a given date: time, location, duration, status (scheduled or cancelled) and its exercises.
-- **TrainingExercise** *(planned)*: An exercise in the age group's library: name and description (optionally duration and objectives). Reusable across sessions.
-- **TrainingEvaluation** *(planned)*: A player's rating for one session, 0–10 with decimals; 0 means the player didn't take part.
-- **Macrocycle / Mesocycle / Microcycle** *(planned)*: The age group's training plan at three levels: the year (macrocycle), each month (mesocycle) and each week (microcycle).
+- **TrainingSession** *(built, Phase 8)*: One training of an age group on a given date: time, location, duration, status (scheduled or cancelled) and its exercises.
+- **TrainingExercise** *(built, Phase 8)*: An exercise in the age group's library: name and description (optionally duration and objectives). Reusable across sessions.
+- **TrainingEvaluation** *(built, Phase 8)*: A player's rating for one session, 0–10 with decimals; 0 means the player didn't take part.
+- **Macrocycle / Mesocycle / Microcycle** *(built, Phase 8)*: The age group's training plan at three levels: the year (macrocycle), each month (mesocycle) and each week (microcycle).
 
 ## 4. Authentication & Security
 - **Authentication**: JWT (JSON Web Tokens) with Refresh Token flow.
@@ -56,7 +56,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **Live Match**: Real-time event logging by coaches (Goals, Assists, Substitutions, Cards).
 - **MatchStatus**: `SCHEDULED`, `LIVE`, `HALF_TIME`, `FINISHED`, `CANCELLED`.
 
-## 5b. Training & Periodization *(planned -- see Phase 8)*
+## 5b. Training & Periodization *(built -- Phase 8)*
 - **Training sessions** belong to an **age group** (like the player pool and the staff), never to a team.
 - **Creating sessions** (a generator, nothing about it is saved):
   - **Days and times:** the training days and hours, e.g. Monday 18:00–19:00 and Thursday 18:30–20:00. They aren't remembered, so the form starts empty each time.
@@ -101,7 +101,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
   - **Player Details:** shows the player's own attendance and average training rating, and a Training tab lists every ended session with the player's rating, missed ones included.
   - **Visibility:** staff only, like the ratings.
 
-## 5c. Squadify for Coaches *(planned -- see Phase 9)*
+## 5c. Squadify for Coaches *(in progress -- see Phase 9)*
 The developer, 2026-10-27: a lighter, separate product for a coach on their own, outside any club. See `TECHNICAL_DECISIONS.md` §72 for how it's built.
 - **A separate app**, Android and iOS only (no web or desktop), with its own store listing. "Squadify for Clubs" (this app) and "Squadify for Coaches" don't share accounts or data: a coach's personal teams are in the coach app, their club's in the clubs app.
 - **What it has:** everything about games, since stats for the games are the point of the app: the coach's age groups and teams, players, seasons, opponents, the games calendar, call-ups, the live game, the record after the game, the match report and ratings, stats (Full stats included) and the games history, built from the same screens as the clubs app.
@@ -390,6 +390,10 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
             - [x] Account deletion in the app (2026-10-30): from Account, with the password, at once; an owner's space goes with everything in it (`TECHNICAL_DECISIONS.md` §72).
             - [x] An email address for deletion requests from outside the app (2026-11-14): `squadify.support@gmail.com`, in the Play listing and on the deletion page (`legal/coach/`).
             - [/] The privacy policy (English and Portuguese) and the Play Console data-safety answers, drafted (2026-11-07, `legal/coach/`). The publisher, contact and effective date are filled in (2026-11-14), and the policy and the account-deletion page are published at `https://squadify.pages.dev/privacy/` and `https://squadify.pages.dev/delete-account/` (Cloudflare Pages, built by `legal/coach/build.py`, PR #229). Still to do in the Play Console: the data-safety answers, and the two URLs entered as the privacy policy and the account-deletion page.
+        - [x] **Feature flags and the startup gate** (the developer, 2026-11-16 and 2026-11-17; `TECHNICAL_DECISIONS.md` §82): each server's public `GET /v1/feature-flags` carries the age group import switch, the client cache periods, the plans switch and whether the asking build must update. Both apps read it at startup and open nothing, not even Login, until it answers with a 200. Without a connection they show a "No connection" message with Retry, read it again when a connection comes back or the app is in front again, and a network failure never touches the session.
+        - [x] **Client cache of reads, and pull to refresh** (2026-11-16; §83): the apps keep a read for `CLIENT_CACHE_SECONDS` (a game's status and results for `CLIENT_MATCH_CACHE_SECONDS`; 0, the default, is off), any successful write clears the cache, and the main screens pull to refresh from the server while the content stays on screen. Not yet: empty states, and the landscape views of club players and club member details, don't pull.
+        - [x] **Plans off at launch** (2026-11-16 and 2026-11-17; §84): `PLANS_ENABLED` on the coach server, off by default. Every space then counts as Pro with no ads, plans can't be asked for or bought, and the app hides the plan UI. Turned on, each space falls back to its stored plan with the downgrade rules at once.
+        - [x] **Forced update** (2026-11-17; §85): `MIN_ANDROID_BUILD` and `MIN_IOS_BUILD` on each server. A build below its platform's minimum gets 426 on every call and the app shows an update screen; the flags say it too. Only builds that send the headers (from this change on) are covered.
         - [ ] Production: the coach server, its database and the push credentials on Railway production.
         - [x] Emails (the developer, 2026-10-30): in the language of the user's device, not only English, and a designed template with better lettering and the app's logo. Done on both servers (2026-11-06): one layout with the app's mark and name, in English or Portuguese from the app's `Accept-Language` (the user's own for the account emails, the admin's for the club ones; `TECHNICAL_DECISIONS.md` §14).
     - [x] Adding players in the coach app (the developer, 2026-11-09: the club's eligible-players list doesn't fit a coach's own space): an age group's "Add players" opens Create players straight away, the new players go into that age group (`CreatePlayersRequest.addToAgeGroup`, in the same transaction on the server, `PROCESS_FLOWS.md` §5.1), and the birth date can't be before 1 January of the age group's oldest birth year (a 2015 age group takes 2015, 2016, 2017…). The clubs app is unchanged: a coordinator may create players of any age (`sharedScreens(createPlayersInAgeGroup)`, on in the coach app only).

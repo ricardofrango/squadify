@@ -42,13 +42,39 @@ Use the run configurations provided by the run widget in your IDE's toolbar. You
 - iOS app: open the [/app/iosApp](./app/iosApp) directory in Xcode and run it from there.
 - Coach iOS app: open [/app/coachIosApp](./app/coachIosApp) in Xcode and run the `coachIosApp` scheme. Debug talks to the coach server on this machine (port 8090); pick the Staging configuration in the scheme for coach-server on Railway staging.
 
+### Server configuration
+
+Each server reads its settings from environment variables (on Railway: the service's Variables tab; a change needs a restart). Locally every one has a default that works with `docker compose up -d`. The table says where a value is required when the server is deployed: the coach server when `APP_ENV` is `staging` or `production`, the clubs server when it's `production`. The reasons are in `TECHNICAL_DECISIONS.md` (§3, §57, §72, §81 to §85).
+
+| Variable | Servers | What it does |
+|---|---|---|
+| `APP_ENV` | both | `production` (both servers) or `staging` (the coach server only: the clubs server runs as development unless it is `production`); unset is development. |
+| `SERVER_PORT` | both | The port; 8080 (clubs) or 8090 (coach) by default. |
+| `DATABASE_HOST`, `DATABASE_PASSWORD` | both | Required when deployed. Locally `localhost` and `postgres`. |
+| `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_NAME` | both | 5432, `postgres`, and `squadify_dev` / `squadify_production` (clubs) or `squadify_coach_dev` / `squadify_coach_production` (coach). |
+| `JWT_SECRET` | both | Required when deployed. Each server has its own: a token from one is refused by the other. |
+| `RESEND_API_KEY`, `RESEND_FROM_ADDRESS` | both | Emails. Optional: without a key the server logs and skips each email. |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | both | The raw JSON of the service account for pushes (the coach server's own Firebase project). Optional: without it each push is logged and skipped. |
+| `STORAGE_BUCKET`, `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | both | The S3-compatible bucket for images (a Railway Storage Bucket). Without a bucket, images go to `LOCAL_IMAGE_DIR` (`uploads`). |
+| `PUBLIC_BASE_URL` | both | The server's own public address, for a push's picture; else Railway's public domain (`RAILWAY_PUBLIC_DOMAIN`). |
+| `FEATURE_AGE_GROUP_IMPORT` | both | `true` turns on copying an age group between the apps (§81, §82). Off by default. |
+| `IMPORT_SOURCES` | both | The other server's address (origin only, no `/v1`, no port on `https`) that an age group may be imported from. Comma-separated. |
+| `IMPORT_SOURCES_CROSS_ENVIRONMENT` | both | Of those, the ones in another environment (e.g. staging into production): platform admins only. |
+| `CLIENT_CACHE_SECONDS`, `CLIENT_MATCH_CACHE_SECONDS` | both | How long the apps keep a read, and a game's status and results (§83). 0, the default, turns it off. |
+| `MIN_ANDROID_BUILD`, `MIN_IOS_BUILD` | both | The oldest app build each platform may use; older builds get 426 and the update screen (§85). 0, the default, is none. For Android it is the CI run number of the Firebase workflow, which counts separately for each app. |
+| `PLANS_ENABLED` | coach | `true` turns plans and ads on. Off by default: every space is Pro (§84). |
+| `PLATFORM_ADMIN_EMAILS` | coach | Accounts that are platform admins, comma-separated, besides any marked so in the database. |
+| `GOOGLE_PLAY_PACKAGE_NAME`, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `GOOGLE_PLAY_NOTIFICATIONS_TOKEN` | coach | Checking Google Play subscriptions (§72). Without the account, plans change by request or at once locally. |
+| `WEBAPP_BASE_URL` | clubs | The web client's origin, for CORS and the links in emails. |
+| `SEED_ADMIN_ENABLED`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | clubs | A platform-admin account created at startup. On by default whenever `APP_ENV` isn't `production`, with labelled fallback credentials from the code. In production it is off unless `SEED_ADMIN_ENABLED=true`, and then the email and password are required. |
+
 ### Running tests
 
 Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
 
 - Android tests: `./gradlew :app:shared:testAndroidHostTest`
 - Coach app tests: `./gradlew :app:coach:testAndroidHostTest`
-- Clubs app tests: `./gradlew :app:clubs:jvmTest`
+- Clubs app tests: `./gradlew :app:clubs:testAndroidHostTest` (or `:app:clubs:jvmTest`)
 - Desktop tests: `./gradlew :app:shared:jvmTest`
 - Server tests: `./gradlew :server:core:test :server:data:test :server:web:test :server:clubs:test :server:coach:test`
   - The coach server's tests run on their own database, `squadify_coach_test`, dropped when they finish, so `squadify_coach_dev` keeps only what you create.
