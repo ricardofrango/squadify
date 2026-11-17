@@ -2925,7 +2925,7 @@ Per the developer, 2026-10-22: a match notification opens the match, an age grou
   - With the app running, `AppNavigation` watches the inbox together with the current destination and opens the link once the destination isn't Splash or a sign-in screen.
   - A signed-out user's link waits in the inbox and opens right after Login.
   - A push without a club id (one sent from the Firebase console, or from an older server) opens the app as before.
-- **Not covered.** iOS, desktop and web don't receive pushes yet. With club theming (§58), the screens a push opens wear their club's colours: Splash and AppNavigation store the clubs' colours in `ClubThemeStore` from the same club list they already fetch to open the link (the club's screen in the rebuilt stack is never shown, so it wouldn't have).
+- **Not covered.** Nothing is on the stores and there's no production yet, so the minimums matter for the Firebase staging builds only. A staging build made before this change sends no headers, so it can't be forced; only builds from this change on are checked. The iOS App Store page and the iOS minimum wait for the iOS release.
 - **Tests:** `PushLinkTest` (round trip, keys, missing club) and the use case tests check each push's link (`NotifyMatchEventUseCaseTest`, `CreateTeamUseCaseTest`, `CreateTeamsUseCaseTest`, `AddStaffToAgeGroupUseCaseTest`). On the app side, `PushLinksTest` covers the back stack per kind, the single-club root, a push for another club, and the inbox handing a link out once.
 
 ## 57. Logos, Photos and Image Storage
