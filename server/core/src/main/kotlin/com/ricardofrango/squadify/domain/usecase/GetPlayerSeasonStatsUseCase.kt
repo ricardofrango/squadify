@@ -89,6 +89,7 @@ class GetPlayerSeasonStatsUseCase(
                 shots = line.shots,
                 shotsOnGoal = line.shotsOnGoal,
                 fouls = line.fouls,
+                goalsConceded = line.goalsConceded,
                 teamName = team.name,
                 venue = match.venue
             ))

@@ -83,6 +83,11 @@ class CoachGoalkeeperOnGoalsAgainstTest {
         val events = api.get("/v1/matches/${match.id}/events") { bearerAuth(ana) }.body<List<MatchEvent>>()
         assertEquals(rui.id, events.single { it.isOpponent }.goalkeeperPlayerId)
 
+        // Rui's stats line counts it, and so does the Full stats table the apps read (stats are on Basic and Pro).
+        api.setPlan(setup.space.id, PlanLimits.PRO)
+        val full = api.get("/v1/age-groups/${setup.ageGroup.id}/full-stats") { bearerAuth(ana) }.body<com.ricardofrango.squadify.model.FullStatsData>()
+        assertEquals(1, full.lines.single { it.playerId == rui.id }.goalsConceded)
+
         // Copied into Ben's space, the goal keeps its goalkeeper (the copy's own Rui).
         val grant = api.post("/v1/export/grants") { bearerAuth(ana) }.body<ExportGrantResponse>()
         val bundle = api.get("/v1/export/age-groups/${setup.ageGroup.id}/bundle") { header("X-Export-Grant", grant.token) }.body<AgeGroupBundle>()
@@ -97,11 +102,12 @@ class CoachGoalkeeperOnGoalsAgainstTest {
 
         val koin = koinApplication { modules(coachModule) }.koin
         koin.get<ImportAgeGroupUseCase>()(benId, benSpace, "https://ana.example", bundle)
-        val (copiedGoal, copiedRui) = koin.get<TransactionManager>().runInTransaction {
+        val (copiedGoal, copiedLine) = koin.get<TransactionManager>().runInTransaction {
             val copy = koin.get<MatchRepository>().getMatchesByClub(benSpace).single()
             koin.get<MatchEventRepository>().getEventsByMatch(copy.id).single { it.isOpponent } to
-                koin.get<MatchPlayerStatsRepository>().getByMatch(copy.id).single().playerId
+                koin.get<MatchPlayerStatsRepository>().getByMatch(copy.id).single()
         }
-        assertEquals(copiedRui, copiedGoal.goalkeeperPlayerId, "the copied goal lost its goalkeeper")
+        assertEquals(copiedLine.playerId, copiedGoal.goalkeeperPlayerId, "the copied goal lost its goalkeeper")
+        assertEquals(1, copiedLine.goalsConceded, "the copy's stats line lost the goal conceded")
     }
 }

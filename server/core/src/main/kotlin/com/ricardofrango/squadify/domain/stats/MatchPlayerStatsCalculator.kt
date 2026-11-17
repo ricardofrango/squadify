@@ -36,7 +36,9 @@ object MatchPlayerStatsCalculator {
                 redCards = own.count { it.type == EventType.RED_CARD },
                 shots = tallies.shots,
                 shotsOnGoal = tallies.shotsOnGoal,
-                fouls = tallies.fouls
+                fouls = tallies.fouls,
+                // The opponent's goals with this player in goal (§86).
+                goalsConceded = events.count { it.type == EventType.GOAL && it.isOpponent && it.goalkeeperPlayerId == callUp.playerId }
             )
         }
     }

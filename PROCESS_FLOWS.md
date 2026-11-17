@@ -1989,7 +1989,7 @@ graph TD
     D --> E["For each half: walk the player's SUBSTITUTION_IN / SUBSTITUTION_OUT / RED_CARD events, in minute order, clamped into the half"]
     E --> F["IN while off: start counting at that minute. OUT or RED while on: add minute - start, stop counting"]
     F --> G["At the half's end, still on: add end - start. State carries over the break"]
-    G --> H["goals / assists / ownGoals / yellowCards / redCards / fouls = counts of the player's own (non-opponent) events"]
+    G --> H["goals / assists / ownGoals / yellowCards / redCards / fouls = counts of the player's own (non-opponent) events; goalsConceded = the opponent's GOAL events whose goalkeeperPlayerId is the player (§86)"]
     H --> H2["shotsOnGoal = SHOT_ON_GOAL + GOAL; shots = SHOT + shotsOnGoal (playerTallies, as in football)"]
     H2 --> Z(["MatchPlayerStats: started, minutesPlayed, counts; rating = null"])
 ```
@@ -2755,6 +2755,7 @@ erDiagram
         integer shots "default 0 -- goals and shots on goal included"
         integer shots_on_goal "default 0 -- goals included"
         integer fouls "default 0"
+        integer goals_conceded "default 0 -- the opponent's goals with this player as our goalkeeper (V39 clubs, V15 coach)"
     }
     MATCH_LINEUP_CHANGES {
         uuid id PK

@@ -3760,10 +3760,12 @@ server still refuses its actions while someone else manages the game, and it sho
 
 **Record editor (after the game).** On an opponent's goal the event sheet has a Goalkeeper field listing everyone called up, whether or not they played (a goalkeeper may have been sent off and replaced), with "No goalkeeper" first. It is optional. `PUT /matches/{matchId}/record` takes `MatchRecordEvent.goalkeeperPlayerId`: refused unless the event is an opponent's goal and the player was called up. This is also how a goal logged live is corrected afterwards: the editor sends back the goalkeeper the goal has.
 
-**Where it shows.** On the goal in the events list, "Goal · Benfica (goalkeeper Rui Costa)", in the live console and in a finished game's Events tab and record editor. No stat is built from it yet.
+**Where it shows.** On the goal in the events list, "Goal · Benfica (goalkeeper Rui Costa)", in the live console and in a finished game's Events tab and record editor.
+
+**Goals conceded.** Each player's stats line has `goalsConceded` (`match_player_stats.goals_conceded`, V39 clubs, V15 coach): the opponent's goals with them as the goalkeeper, counted by `MatchPlayerStatsCalculator` whenever the line is worked out (full time, every save of the record, and the import), so editing a goalkeeper in the record editor updates it. It is shown as a **Conceded** column in Full stats (age group and team, sortable like the others; only the games the player played count), and as "N goals conceded" in a player's season stats when it isn't 0. Not in a match's own Stats table, which already has many columns, and no per-game average yet. Lines from before this have none.
 
 **Import.** `BundleEvent.goalkeeperPlayerId` travels in the bundle and is mapped to the copy's player; the goalkeeper's player is added to the bundle even if they have no other event (§81). Deleting an age group keeps a player who is still a goalkeeper in another game.
 
 **Not covered.** Goals logged live before this change have none, and can be filled in through the record editor. An old app that saves a record sends no goalkeeper, which clears it, so saving a record from an old build drops the goalkeepers (the forced update, §85, is how old builds are retired).
 
-**Tests.** `GoalkeeperOnPitchTest`, `AddMatchEventUseCaseTest` and `SaveMatchRecordUseCaseTest` (clubs), `CoachGoalkeeperOnGoalsAgainstTest` (coach, end to end with the copy), `MatchRecordEventSheetTest` (app).
+**Tests.** `GoalkeeperOnPitchTest`, `AddMatchEventUseCaseTest`, `SaveMatchRecordUseCaseTest` and `MatchPlayerStatsCalculatorTest` (clubs), `CoachGoalkeeperOnGoalsAgainstTest` (coach, end to end: the stats line, Full stats and the copy), `MatchRecordEventSheetTest` and `GoalsConcededStatsTest` (app).

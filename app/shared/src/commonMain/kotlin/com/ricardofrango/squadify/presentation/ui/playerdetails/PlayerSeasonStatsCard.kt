@@ -186,6 +186,8 @@ private fun TotalsBlock(matches: List<PlayerSeasonMatch>, filter: StatsFilter, s
         if (staff) Text(stringResource(Res.string.stats_minutes_value, t.minutes), style = lineStyle, color = DeepCarbon)
         Text(stringResource(Res.string.stats_cards, t.yellowCards, t.redCards), style = lineStyle, color = DeepCarbon)
         Text(stringResource(Res.string.stats_shots_fouls, t.shots, t.shotsOnGoal, t.fouls), style = lineStyle, color = DeepCarbon)
+        // Only a player who was in goal when the opponent scored has any (§86).
+        if (t.goalsConceded > 0) Text(stringResource(Res.string.stats_goals_conceded, t.goalsConceded), style = lineStyle, color = DeepCarbon)
     }
     if (staff) {
         Spacer(Modifier.height(6.dp))

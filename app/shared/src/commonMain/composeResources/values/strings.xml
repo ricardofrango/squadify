@@ -652,6 +652,7 @@
     <string name="stats_minutes_value">%1$d min</string>
     <string name="stats_cards">%1$d yellow · %2$d red</string>
     <string name="stats_shots_fouls">%1$d shots (%2$d on goal) · %3$d fouls</string>
+    <string name="stats_goals_conceded">%1$d goals conceded</string>
     <string name="stats_matches">Matches</string>
     <string name="stats_empty_friendly">No friendlies this season</string>
     <string name="stats_empty_official">No official matches this season</string>
@@ -1500,6 +1501,8 @@
     <string name="fs_col_minutes">Min</string>
     <string name="fs_col_position">Position</string>
     <string name="fs_col_shots">Shots</string>
+    <string name="fs_col_goals_conceded">Conceded</string>
+    <string name="fs_name_goals_conceded">Goals conceded</string>
     <string name="fs_col_shots_on_goal">On goal</string>
     <string name="fs_col_fouls">Fouls</string>
     <string name="fs_name_shots">Shots</string>

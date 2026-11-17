@@ -1131,7 +1131,9 @@ data class MatchPlayerStats(
     // Counted as in football (MatchTallies.kt): a goal is also a shot on goal, a shot on goal also a shot.
     val shots: Int = 0,
     val shotsOnGoal: Int = 0,
-    val fouls: Int = 0
+    val fouls: Int = 0,
+    // Goals the opponent scored with this player as our goalkeeper (MatchEvent.goalkeeperPlayerId, §86).
+    val goalsConceded: Int = 0
 )
 
 /**

@@ -100,7 +100,8 @@ class GetFullStatsUseCase(
                 rating = s.rating?.takeIf { s.matchId in completedReports },
                 shots = s.shots,
                 shotsOnGoal = s.shotsOnGoal,
-                fouls = s.fouls
+                fouls = s.fouls,
+                goalsConceded = s.goalsConceded
             )
         }
         // Trainings only on a plan with training (Pro on the coach server).

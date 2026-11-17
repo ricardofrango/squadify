@@ -37,7 +37,8 @@ data class FullStatsLine(
     // As in MatchPlayerStats: a goal is also a shot on goal, a shot on goal also a shot.
     val shots: Int = 0,
     val shotsOnGoal: Int = 0,
-    val fouls: Int = 0
+    val fouls: Int = 0,
+    val goalsConceded: Int = 0
 ) {
     val played: Boolean get() = started || minutesPlayed > 0
 }
@@ -83,7 +84,9 @@ enum class FullStatsColumn(val rating: Boolean = false) {
     FINAL_RATING(true), TRAINING_RATING(true), GAMES_RATING(true),
     POSITION,
     WON, DRAWN, LOST,
-    GOALS, ASSISTS, MINUTES, SHOTS, SHOTS_ON_GOAL, FOULS, YELLOW_CARDS, RED_CARDS
+    GOALS, ASSISTS, MINUTES, SHOTS, SHOTS_ON_GOAL, FOULS, YELLOW_CARDS, RED_CARDS,
+    // The goals the opponent scored with him in goal (§86).
+    GOALS_CONCEDED
 }
 
 /**
@@ -117,7 +120,8 @@ data class FullStatsRow(
     val redCards: Int,
     val shots: Int = 0,
     val shotsOnGoal: Int = 0,
-    val fouls: Int = 0
+    val fouls: Int = 0,
+    val goalsConceded: Int = 0
 ) {
     fun value(column: FullStatsColumn): Double? = when (column) {
         // Goalkeeper to striker (PlayerPosition's order); none: no value, so last.
@@ -136,6 +140,7 @@ data class FullStatsRow(
         FullStatsColumn.SHOTS -> shots.toDouble()
         FullStatsColumn.SHOTS_ON_GOAL -> shotsOnGoal.toDouble()
         FullStatsColumn.FOULS -> fouls.toDouble()
+        FullStatsColumn.GOALS_CONCEDED -> goalsConceded.toDouble()
     }
 }
 
@@ -190,7 +195,8 @@ fun FullStatsData.table(query: FullStatsQuery, timeZone: TimeZone = TimeZone.cur
             redCards = played.sumOf { it.redCards },
             shots = played.sumOf { it.shots },
             shotsOnGoal = played.sumOf { it.shotsOnGoal },
-            fouls = played.sumOf { it.fouls }
+            fouls = played.sumOf { it.fouls },
+            goalsConceded = played.sumOf { it.goalsConceded }
         )
     }
     return FullStatsTable(rows, games = matchesInQuery.size, trainings = trainingsInQuery.size)

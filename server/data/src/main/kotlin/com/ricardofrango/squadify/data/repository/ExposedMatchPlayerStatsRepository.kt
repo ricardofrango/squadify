@@ -34,6 +34,7 @@ class ExposedMatchPlayerStatsRepository : MatchPlayerStatsRepository {
             this[MatchPlayerStatsTable.shots] = s.shots
             this[MatchPlayerStatsTable.shotsOnGoal] = s.shotsOnGoal
             this[MatchPlayerStatsTable.fouls] = s.fouls
+            this[MatchPlayerStatsTable.goalsConceded] = s.goalsConceded
         }
     }
 
@@ -79,6 +80,7 @@ class ExposedMatchPlayerStatsRepository : MatchPlayerStatsRepository {
         rating = row[MatchPlayerStatsTable.rating],
         shots = row[MatchPlayerStatsTable.shots],
         shotsOnGoal = row[MatchPlayerStatsTable.shotsOnGoal],
-        fouls = row[MatchPlayerStatsTable.fouls]
+        fouls = row[MatchPlayerStatsTable.fouls],
+        goalsConceded = row[MatchPlayerStatsTable.goalsConceded]
     )
 }
