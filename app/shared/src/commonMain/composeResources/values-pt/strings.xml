@@ -30,6 +30,7 @@
     <string name="title_account">Conta</string>
     <string name="btn_logout">Sair</string>
     <string name="btn_retry">Tentar novamente</string>
+    <string name="btn_update">Atualizar</string>
     <string name="msg_no_clubs">Nenhum clube encontrado</string>
     <string name="msg_failed_to_load_clubs">Não foi possível carregar os seus clubes. Tente novamente.</string>
     <string name="sport_football">Futebol</string>
@@ -1036,6 +1037,8 @@
     <string name="msg_opponents_load_failed">Não foi possível carregar os adversários</string>
     <string name="msg_check_connection">Verifique a sua ligação e tente novamente.</string>
     <string name="startup_needs_connection_title">Sem ligação</string>
+    <string name="startup_update_title">Atualização necessária</string>
+    <string name="startup_update_body">Esta versão da app está desatualizada. Atualize-a para continuar a usar o Squadify.</string>
     <string name="more_opponents">Adversários</string>
     <!-- Create / Edit opponent (design 38e) -->
     <string name="title_create_opponent">Criar adversário</string>

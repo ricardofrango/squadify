@@ -56,8 +56,12 @@ suspend inline fun <reified T> HttpResponse.handleResponse(): T {
 class NetworkException(cause: Throwable) : Exception(cause.message ?: "Network request failed", cause)
 
 /** Rethrows anything a request throws that isn't an [Exception] as a [NetworkException]. */
-fun HttpClientConfig<*>.mapNetworkErrors() {
+fun HttpClientConfig<*>.mapNetworkErrors(onUpdateRequired: () -> Unit = {}) {
     HttpResponseValidator {
+        // The server refuses this build (426, TECHNICAL_DECISIONS §85): the update screen takes over.
+        validateResponse { response ->
+            if (response.status == HttpStatusCode.UpgradeRequired) onUpdateRequired()
+        }
         handleResponseExceptionWithRequest { cause, _ ->
             if (cause !is Exception) throw NetworkException(cause)
         }

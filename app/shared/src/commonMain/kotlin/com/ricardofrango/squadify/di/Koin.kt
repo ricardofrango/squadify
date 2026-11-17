@@ -13,6 +13,8 @@ import com.ricardofrango.squadify.data.local.SessionRepositoryImpl
 import com.ricardofrango.squadify.data.local.UiPreferencesRepositoryImpl
 import com.ricardofrango.squadify.data.remote.*
 import com.ricardofrango.squadify.domain.config.AppConfig
+import com.ricardofrango.squadify.model.APP_BUILD_HEADER
+import com.ricardofrango.squadify.model.APP_PLATFORM_HEADER
 import com.ricardofrango.squadify.domain.repository.*
 import com.ricardofrango.squadify.domain.service.NoOpPushTokenProvider
 import com.ricardofrango.squadify.domain.service.PushTokenProvider
@@ -89,7 +91,8 @@ val dataModule = module {
         }
         // Debug builds only: every request and response, headers and bodies included (the bearer token
         // among them), is printed. A release build logs nothing.
-        val logHttp = get<AppConfig>().isDebug
+        val appConfig = get<AppConfig>()
+        val logHttp = appConfig.isDebug
         HttpClient {
             install(ContentNegotiation) {
                 json(json)
@@ -118,8 +121,11 @@ val dataModule = module {
                 // The app's language ("pt", "en"), read on every request so it follows a change: the
                 // servers write their emails (and the coach server its plans' features) in it.
                 header(HttpHeaders.AcceptLanguage, Locale.current.language)
+                // The app and its build, so the server can refuse an old build (TECHNICAL_DECISIONS §85).
+                appConfig.platform?.let { header(APP_PLATFORM_HEADER, it) }
+                appConfig.buildNumber?.let { header(APP_BUILD_HEADER, it.toString()) }
             }
-            mapNetworkErrors()
+            mapNetworkErrors(onUpdateRequired = { get<FeatureFlagsStore>().reportUpdateRequired() })
             // The authenticated client is derived from this one, so it keeps this too.
             trackServerClock()
         }

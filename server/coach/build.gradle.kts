@@ -65,5 +65,8 @@ tasks.test {
     environment("PLATFORM_ADMIN_EMAILS", "platform-admin@test.com")
     // Plans on, as the end-to-end plan tests need them (PlansSwitchTest covers them off, with no env).
     environment("PLANS_ENABLED", "true")
+    // Minimum app builds on, so the update gate is tested (AppVersionGateTest); no test request sends app headers otherwise.
+    environment("MIN_ANDROID_BUILD", "50")
+    environment("MIN_IOS_BUILD", "50")
     finalizedBy(dropTestDatabase)
 }

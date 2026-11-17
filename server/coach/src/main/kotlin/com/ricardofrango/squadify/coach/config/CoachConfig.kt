@@ -29,6 +29,12 @@ object CoachConfig {
      */
     val plansEnabled: Boolean = System.getenv("PLANS_ENABLED")?.trim()?.lowercase() == "true"
 
+    /** The oldest Android build the app may use (MIN_ANDROID_BUILD, the CI run number; TECHNICAL_DECISIONS §85). 0: no minimum. */
+    val minimumAndroidBuild: Int = System.getenv("MIN_ANDROID_BUILD")?.trim()?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+
+    /** The oldest iOS build the app may use (MIN_IOS_BUILD, CFBundleVersion; §85). 0: no minimum. */
+    val minimumIosBuild: Int = System.getenv("MIN_IOS_BUILD")?.trim()?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+
     /** How long the apps keep general reads, in seconds; 0 (the default, or any invalid value) turns client caching off (§83). */
     val clientCacheSeconds: Int = System.getenv("CLIENT_CACHE_SECONDS")?.trim()?.toIntOrNull()?.coerceAtLeast(0) ?: 0
 

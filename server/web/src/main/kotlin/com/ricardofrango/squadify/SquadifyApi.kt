@@ -35,6 +35,8 @@ import io.ktor.server.response.respond
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.pingPeriod
 import io.ktor.server.websocket.timeout
+import com.ricardofrango.squadify.presentation.AppMinimums
+import com.ricardofrango.squadify.presentation.AppVersionGate
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.seconds
@@ -44,8 +46,9 @@ import kotlin.time.Duration.Companion.seconds
  * JSON bodies, WebSockets for the live game, the status code and [ErrorResponse] for each error, and
  * the server-time header. A server then adds CORS if it has a web client, and its routes.
  */
-fun Application.installSquadifyApi(tokens: JwtTokens, realm: String) {
+fun Application.installSquadifyApi(tokens: JwtTokens, realm: String, minimums: AppMinimums = AppMinimums()) {
     configureServerTime()
+    install(AppVersionGate) { this.minimums = minimums }
 
     install(Authentication) {
         jwt("auth-jwt") {
