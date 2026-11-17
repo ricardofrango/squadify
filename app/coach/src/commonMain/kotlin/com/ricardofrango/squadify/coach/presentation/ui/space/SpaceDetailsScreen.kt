@@ -137,6 +137,7 @@ import squadify.app.shared.generated.resources.ic_edit
 import squadify.app.shared.generated.resources.label_back
 import kotlin.time.Instant
 import squadify.app.shared.generated.resources.Res as SharedRes
+import squadify.app.shared.generated.resources.import_still_running
 
 /**
  * One space's details (the coach app; design "Detalhes do espaço"): the space's crest, name, season and plan,
@@ -179,6 +180,8 @@ fun SpaceDetailsScreen(
     var importedWithoutTraining by remember { mutableIntStateOf(0) }
     // The imports that failed: the dialog closes on a failure (its grant is used up), so the failure is said in a snackbar.
     var importFailures by remember { mutableIntStateOf(0) }
+    // The last one wasn't a failure: no answer in time, the server goes on with the copy (TECHNICAL_DECISIONS §81).
+    var importStillRunning by remember { mutableStateOf(false) }
     fun askRoom(then: () -> Unit) {
         scope.launch {
             try {
@@ -213,7 +216,7 @@ fun SpaceDetailsScreen(
         importedWithoutTraining = importedWithoutTraining,
         trainingSkippedMessage = stringResource(Res.string.space_details_import_training_skipped),
         importFailures = importFailures,
-        importFailedMessage = stringResource(Res.string.space_details_import_failed),
+        importFailedMessage = if (importStillRunning) stringResource(SharedRes.string.import_still_running) else stringResource(Res.string.space_details_import_failed),
         newAgeGroupIds = newAgeGroupIds,
         createdMessage = if (newAgeGroupIds.isEmpty()) null else stringResource(
             if (crestSaved) Res.string.space_details_created else Res.string.space_details_created_no_crest,
@@ -235,6 +238,12 @@ fun SpaceDetailsScreen(
             },
             onFailed = {
                 importing = null
+                importStillRunning = false
+                importFailures++
+            },
+            onStillRunning = {
+                importing = null
+                importStillRunning = true
                 importFailures++
             },
             onDismiss = { importing = null }

@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.besideRail
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import squadify.app.shared.generated.resources.import_dialog_import_failed
+import squadify.app.shared.generated.resources.import_still_running
 import squadify.app.shared.generated.resources.msg_refresh_failed
 import squadify.app.shared.generated.resources.club_details_import_age_groups
 import com.ricardofrango.squadify.presentation.agegroupimport.AgeGroupHandoff
@@ -274,8 +275,11 @@ private fun ClubDetailsTabContent(
     val importSnackbar = remember { SnackbarHostState() }
     val importFailedText = stringResource(Res.string.import_dialog_import_failed)
     var importFailures by remember { mutableIntStateOf(0) }
+    // The last one wasn't a failure: no answer in time, the server goes on with the copy (TECHNICAL_DECISIONS §81).
+    var importStillRunning by remember { mutableStateOf(false) }
+    val importStillRunningText = stringResource(Res.string.import_still_running)
     LaunchedEffect(importFailures) {
-        if (importFailures > 0) importSnackbar.showSnackbar(importFailedText)
+        if (importFailures > 0) importSnackbar.showSnackbar(if (importStillRunning) importStillRunningText else importFailedText)
     }
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -291,6 +295,12 @@ private fun ClubDetailsTabContent(
                     },
                     onFailed = {
                         importing = null
+                        importStillRunning = false
+                        importFailures++
+                    },
+                    onStillRunning = {
+                        importing = null
+                        importStillRunning = true
                         importFailures++
                     },
                     onDismiss = { importing = null }

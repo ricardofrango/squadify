@@ -3,6 +3,8 @@ package com.ricardofrango.squadify.data.remote
 import com.ricardofrango.squadify.model.ErrorResponse
 import com.ricardofrango.squadify.model.PLAN_LIMIT_CODE
 import io.ktor.client.HttpClientConfig
+import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.call.*
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.statement.*
@@ -67,3 +69,9 @@ fun HttpClientConfig<*>.mapNetworkErrors(onUpdateRequired: () -> Unit = {}) {
         }
     }
 }
+
+/**
+ * The request got no answer in time. That says nothing about whether the server did the work: it may well have
+ * finished it (TECHNICAL_DECISIONS §81, a long copy of an age group), so a screen shouldn't say it failed.
+ */
+fun Throwable.isNoAnswerInTime(): Boolean = this is HttpRequestTimeoutException || this is SocketTimeoutException

@@ -1670,6 +1670,7 @@
     <string name="import_dialog_empty">Não há nada para importar daí.</string>
     <string name="import_dialog_failed">Não foi possível carregar os escalões. Verifica a ligação e tenta outra vez.</string>
     <string name="import_dialog_imported">Importado</string>
+    <string name="import_still_running">A importação ainda está a decorrer e pode demorar alguns minutos. Puxa para baixo para atualizar e ver o escalão quando terminar.</string>
     <string name="import_dialog_import_failed">Não foi possível importar. Verifica a ligação e tenta outra vez.</string>
     <string name="import_dialog_other_sport">Um escalão de %1$s. Este clube joga %2$s.</string>
     <string name="import_dialog_other_season">Este escalão é da época %1$s. Só se copia para a época deste clube.</string>

@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ricardofrango.squadify.data.remote.isNoAnswerInTime
 import com.ricardofrango.squadify.domain.repository.AgeGroupImportRepository
 import com.ricardofrango.squadify.model.ImportAgeGroupResult
 import com.ricardofrango.squadify.model.ImportBlock
@@ -61,6 +62,8 @@ import squadify.app.shared.generated.resources.sport_futsal
  * space's plan has no room for another age group, [ownPlan] (the owner's, else null) says so at the top, with See plans.
  * One copy per permission: the grant is used up by it, so after an import the dialog closes ([onImported]). A failed
  * import closes it too ([onFailed]): the grant is used up then as well, so the next try asks the other app for a new one.
+ * A copy that got no answer in time closes it as well, but isn't a failure: the server goes on and finishes it, which can
+ * take a few minutes ([onStillRunning]).
  */
 @Composable
 fun AgeGroupImportDialog(
@@ -70,6 +73,7 @@ fun AgeGroupImportDialog(
     handoff: AgeGroupHandoff,
     onImported: (ImportAgeGroupResult) -> Unit,
     onFailed: () -> Unit,
+    onStillRunning: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val repository: AgeGroupImportRepository = koinInject()
@@ -128,7 +132,8 @@ fun AgeGroupImportDialog(
                                                 onImported(repository.importAgeGroup(clubId, handoff.sourceUrl, ageGroup.id, handoff.grant))
                                             } catch (e: Exception) {
                                                 importing = null
-                                                onFailed()
+                                                // No answer in time isn't a failure: the server goes on with the copy (§81).
+                                                if (e.isNoAnswerInTime()) onStillRunning() else onFailed()
                                             }
                                         }
                                     }

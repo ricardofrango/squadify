@@ -1673,6 +1673,7 @@
     <string name="import_dialog_empty">There's nothing to import from there.</string>
     <string name="import_dialog_failed">Couldn't load the age groups. Check your connection and try again.</string>
     <string name="import_dialog_imported">Imported</string>
+    <string name="import_still_running">The import is still running and may take a few minutes. Pull down to refresh and see the age group when it\'s done.</string>
     <string name="import_dialog_import_failed">Couldn't import it. Check your connection and try again.</string>
     <string name="import_dialog_other_sport">A %1$s age group. This club plays %2$s.</string>
     <string name="import_dialog_other_season">This age group is from %1$s. Only this club's season can be copied in.</string>
