@@ -44,6 +44,6 @@ open class JwtTokens(secret: String, audience: String) {
     fun getRefreshTokenExpiration(): Long = System.currentTimeMillis() + refreshTokenValidityMs
 
     private companion object {
-        const val ISSUER = "com.ricardofrango.squadify"
+        const val ISSUER = "com.sportssoftw.squadify"
     }
 }
