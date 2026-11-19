@@ -16,8 +16,8 @@ const val EXTRA_EXPORT_GRANT = "squadify.extra.EXPORT_GRANT"
 const val EXTRA_EXPORT_SOURCE_URL = "squadify.extra.EXPORT_SOURCE_URL"
 
 /** The clubs app's package names (prod, staging, dev), and the coach app's. */
-val CLUBS_APP_PACKAGES = listOf("com.ricardofrango.squadify", "com.ricardofrango.squadify.stg", "com.ricardofrango.squadify.dev")
-val COACH_APP_PACKAGES = listOf("com.ricardofrango.squadify.coach", "com.ricardofrango.squadify.coach.stg", "com.ricardofrango.squadify.coach.dev")
+val CLUBS_APP_PACKAGES = listOf("com.sportssoftw.squadify.club", "com.sportssoftw.squadify.club.stg", "com.sportssoftw.squadify.club.dev")
+val COACH_APP_PACKAGES = listOf("com.sportssoftw.squadify.coach", "com.sportssoftw.squadify.coach.stg", "com.sportssoftw.squadify.coach.dev")
 
 /** Whether the other app is installed here, and how to ask it for a grant. Off Android, never installed. */
 interface AgeGroupHandoffLauncher {

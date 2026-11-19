@@ -38,7 +38,7 @@ android {
         create("dev") {
             dimension = "environment"
             // The app the generator starts (the clubs app's dev id).
-            testInstrumentationRunnerArguments["targetAppId"] = "com.ricardofrango.squadify.dev"
+            testInstrumentationRunnerArguments["targetAppId"] = "com.sportssoftw.squadify.club.dev"
         }
         create("staging") { dimension = "environment" }
         create("prod") { dimension = "environment" }

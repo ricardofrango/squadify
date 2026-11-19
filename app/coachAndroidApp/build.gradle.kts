@@ -85,7 +85,7 @@ android {
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.ricardofrango.squadify.coach"
+        applicationId = "com.sportssoftw.squadify.coach"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = ciBuildNumber ?: 1

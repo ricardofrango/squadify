@@ -7,9 +7,9 @@
 
     <!-- The other Squadify app, to copy an age group from it (TECHNICAL_DECISIONS §81). -->
     <queries>
-        <package android:name="com.ricardofrango.squadify" />
-        <package android:name="com.ricardofrango.squadify.stg" />
-        <package android:name="com.ricardofrango.squadify.dev" />
+        <package android:name="com.sportssoftw.squadify.club" />
+        <package android:name="com.sportssoftw.squadify.club.stg" />
+        <package android:name="com.sportssoftw.squadify.club.dev" />
     </queries>
 
     <application

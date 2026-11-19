@@ -1,6 +1,6 @@
 # Squadify Coach — Google Play data safety answers
 
-What to fill in Play Console → App content for the coach app (`com.ricardofrango.squadify.coach`), as the app
+What to fill in Play Console → App content for the coach app (`com.sportssoftw.squadify.coach`), as the app
 is built (2026-11-07). Keep it in step with `privacy-policy.en.md`; a change to what the app collects changes
 both.
 
