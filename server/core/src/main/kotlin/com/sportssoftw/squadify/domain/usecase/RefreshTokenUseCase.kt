@@ -1,0 +1,39 @@
+package com.sportssoftw.squadify.domain.usecase
+
+import com.sportssoftw.squadify.domain.repository.UserRepository
+import com.sportssoftw.squadify.domain.service.TransactionManager
+import com.sportssoftw.squadify.exception.UnauthorizedException
+import com.sportssoftw.squadify.model.TokenResponse
+import com.sportssoftw.squadify.security.JwtTokens
+import kotlin.time.Instant
+
+class RefreshTokenUseCase(
+    private val userRepository: UserRepository,
+    private val transactionManager: TransactionManager,
+    private val tokens: JwtTokens
+) {
+    suspend operator fun invoke(refreshToken: String): TokenResponse = transactionManager.runInTransaction {
+        val stored = userRepository.findRefreshToken(refreshToken)
+            ?: throw UnauthorizedException("Invalid refresh token")
+
+        // Business rule: a refresh token is only usable until its stored expiry. An expired token is
+        // dropped and rejected the same way an unknown one is.
+        val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+        if (stored.expiresAt < now) {
+            userRepository.deleteRefreshToken(refreshToken)
+            throw UnauthorizedException("Refresh token expired")
+        }
+
+        // Rotate: drop the presented token and issue a fresh pair.
+        userRepository.deleteRefreshToken(refreshToken)
+        val userId = stored.userId
+
+        val newAccessToken = tokens.generateAccessToken(userId)
+        val newRefreshToken = tokens.generateRefreshToken()
+        val expiresAt = Instant.fromEpochMilliseconds(tokens.getRefreshTokenExpiration())
+        
+        userRepository.saveRefreshToken(userId, newRefreshToken, expiresAt)
+        
+        TokenResponse(newAccessToken, newRefreshToken)
+    }
+}

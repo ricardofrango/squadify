@@ -8,10 +8,10 @@ plugins {
     application
 }
 
-group = "com.ricardofrango.squadify"
+group = "com.sportssoftw.squadify"
 version = (project.findProperty("VERSION_NAME") as? String) ?: "1.1.0"
 application {
-    mainClass = "com.ricardofrango.squadify.coach.ApplicationKt"
+    mainClass = "com.sportssoftw.squadify.coach.ApplicationKt"
 }
 
 dependencies {
@@ -51,7 +51,7 @@ val testDatabase = "squadify_coach_test"
 val dropTestDatabase by tasks.registering(JavaExec::class) {
     description = "Drops the coach tests' database ($testDatabase)."
     classpath = sourceSets.test.get().runtimeClasspath
-    mainClass = "com.ricardofrango.squadify.coach.DropTestDatabaseKt"
+    mainClass = "com.sportssoftw.squadify.coach.DropTestDatabaseKt"
     environment("DATABASE_NAME", testDatabase)
 }
 

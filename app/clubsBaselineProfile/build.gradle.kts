@@ -16,7 +16,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.ricardofrango.squadify.baselineprofile"
+    namespace = "com.sportssoftw.squadify.baselineprofile"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {

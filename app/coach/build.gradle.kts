@@ -25,7 +25,7 @@ kotlin {
     }
 
     android {
-        namespace = "com.ricardofrango.squadify.app.coach"
+        namespace = "com.sportssoftw.squadify.app.coach"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

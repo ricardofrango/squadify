@@ -38,7 +38,7 @@
         </activity>
         <!-- Allows the other app's copy of an age group: asks for consent, then returns a grant (only started explicitly). -->
         <activity
-            android:name="com.ricardofrango.squadify.presentation.agegroupimport.ExportAgeGroupsActivity"
+            android:name="com.sportssoftw.squadify.presentation.agegroupimport.ExportAgeGroupsActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />

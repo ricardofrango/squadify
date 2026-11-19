@@ -1,0 +1,321 @@
+package com.sportssoftw.squadify.presentation.ui.clubdetails
+
+import com.sportssoftw.squadify.presentation.ui.components.ConfirmDialog
+import com.sportssoftw.squadify.presentation.ui.components.ScreenWindowInsets
+import com.sportssoftw.squadify.presentation.ui.components.ErrorScreen
+import com.sportssoftw.squadify.presentation.ui.theme.ScreenBackground
+import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
+import com.sportssoftw.squadify.domain.usecase.ClubDetails
+import com.sportssoftw.squadify.model.ClubStatus
+import com.sportssoftw.squadify.model.Club
+import com.sportssoftw.squadify.presentation.ui.theme.ScreenPadding
+import com.sportssoftw.squadify.presentation.ui.theme.SquadifyTheme
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import com.sportssoftw.squadify.model.Player
+import com.sportssoftw.squadify.presentation.ui.theme.SquadifyClubTheme
+import org.jetbrains.compose.resources.getString
+import squadify.app.shared.generated.resources.btn_disable
+import squadify.app.shared.generated.resources.msg_disable_player
+import squadify.app.shared.generated.resources.msg_player_disabled
+import squadify.app.shared.generated.resources.msg_player_reactivated
+import squadify.app.shared.generated.resources.title_disable_player
+import com.sportssoftw.squadify.presentation.navigation.collectSettledState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.sportssoftw.squadify.model.SportType
+import com.sportssoftw.squadify.presentation.ui.components.SquadifyTopBar
+import com.sportssoftw.squadify.presentation.ui.theme.CarbonGray
+import com.sportssoftw.squadify.presentation.ui.theme.DeepCarbon
+import com.sportssoftw.squadify.presentation.ui.theme.PitchGreen
+import com.sportssoftw.squadify.presentation.ui.theme.screenContentPadding
+import com.sportssoftw.squadify.presentation.ui.components.readableWidth
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.label_all_ages
+import squadify.app.shared.generated.resources.label_all_seasons
+import squadify.app.shared.generated.resources.label_search_players
+import squadify.app.shared.generated.resources.tab_players
+
+/**
+ * The club's players, as its own screen (opened from the More panel) rather than a tab under Club
+ * details' bottom bar: season, age-group and search filters, then the list. The empty states offer the
+ * next step -- create an age group, register players, or add them to an age group's pool.
+ */
+@Composable
+fun ClubPlayersScreen(
+    clubId: String,
+    onNavigateBack: () -> Unit,
+    onOpenPlayer: (playerId: String) -> Unit,
+    onCreateAgeGroups: (clubName: String, sport: SportType, seasonId: String?) -> Unit,
+    onCreatePlayers: (clubName: String) -> Unit,
+    onAddPlayersToAgeGroup: (clubName: String) -> Unit,
+    // True right after returning from a screen that added players: reload, keeping the filters.
+    refresh: Boolean = false,
+    viewModel: ClubPlayersViewModel = koinViewModel()
+) {
+    SquadifyClubTheme {
+        val state = viewModel.state.collectSettledState()
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+        LaunchedEffect(clubId) { viewModel.load(clubId) }
+        LaunchedEffect(refresh) { if (refresh) viewModel.load(clubId, force = true) }
+
+        val snackbarHostState = remember { SnackbarHostState() }
+        val disabledText = Res.string.msg_player_disabled
+        LaunchedEffect(viewModel) {
+            viewModel.disabled.collect { result ->
+                snackbarHostState.showSnackbar(result.fold({ getString(disabledText, it) }, { it.message.orEmpty() }))
+            }
+        }
+        val reactivatedText = Res.string.msg_player_reactivated
+        LaunchedEffect(viewModel) {
+            viewModel.reactivated.collect { result ->
+                snackbarHostState.showSnackbar(result.fold({ getString(reactivatedText, it) }, { it.message.orEmpty() }))
+            }
+        }
+        ClubPlayersContent(
+            state = state,
+            snackbarHostState = snackbarHostState,
+            onNavigateBack = onNavigateBack,
+            onOpenPlayer = onOpenPlayer,
+            onCreateAgeGroups = onCreateAgeGroups,
+            onCreatePlayers = onCreatePlayers,
+            onAddPlayersToAgeGroup = onAddPlayersToAgeGroup,
+            onRetry = { viewModel.load(clubId, force = true) },
+            onSeasonSelected = viewModel::onSeasonSelected,
+            onAgeGroupSelected = viewModel::onAgeGroupSelected,
+            onSearchChanged = viewModel::onSearchChanged,
+            onDisable = viewModel::disable,
+            onReactivate = viewModel::reactivate,
+            onLoadMore = viewModel::loadMore,
+            isRefreshing = isRefreshing,
+            onRefresh = viewModel::refreshContent
+        )
+    }
+}
+
+@Composable
+private fun Filters(
+    state: ClubPlayersUiState.Idle,
+    onSeasonSelected: (String?) -> Unit,
+    onAgeGroupSelected: (String?) -> Unit,
+    onSearchChanged: (String) -> Unit,
+    // Lined up with the list under it, which is centred on a wide screen.
+    modifier: Modifier = Modifier.readableWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 20.dp)
+) {
+    val details = state.details
+    Column(modifier) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            item {
+                FilterSelector(
+                    selectedOption = details.seasons.find { it.id == state.seasonId }?.name ?: stringResource(Res.string.label_all_seasons),
+                    options = listOf(null to stringResource(Res.string.label_all_seasons)) + details.seasons.map { it.id to it.name },
+                    onOptionSelected = onSeasonSelected
+                )
+            }
+            item {
+                FilterSelector(
+                    selectedOption = details.ageGroups.find { it.id == state.ageGroupId }?.name ?: stringResource(Res.string.label_all_ages),
+                    options = listOf(null to stringResource(Res.string.label_all_ages)) + state.availableAgeGroups.map { it.id to it.name },
+                    onOptionSelected = onAgeGroupSelected
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            value = state.query,
+            onValueChange = onSearchChanged,
+            label = { Text(stringResource(Res.string.label_search_players)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
+                focusedTextColor = DeepCarbon, unfocusedTextColor = DeepCarbon,
+                focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
+                focusedLabelColor = PitchGreen, unfocusedLabelColor = CarbonGray
+            )
+        )
+    }
+}
+
+/** Club players' layout, without the ViewModel, so it can be previewed. */
+@Composable
+private fun ClubPlayersContent(
+    state: ClubPlayersUiState,
+    snackbarHostState: SnackbarHostState,
+    onNavigateBack: () -> Unit,
+    onOpenPlayer: (playerId: String) -> Unit,
+    onCreateAgeGroups: (clubName: String, sport: SportType, seasonId: String?) -> Unit,
+    onCreatePlayers: (clubName: String) -> Unit,
+    onAddPlayersToAgeGroup: (clubName: String) -> Unit,
+    onRetry: () -> Unit,
+    onSeasonSelected: (String?) -> Unit,
+    onAgeGroupSelected: (String?) -> Unit,
+    onSearchChanged: (String) -> Unit,
+    onDisable: (playerId: String) -> Unit,
+    onReactivate: (playerId: String) -> Unit,
+    onLoadMore: () -> Unit = {},
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
+) {
+    var confirmDisable by remember { mutableStateOf<Player?>(null) }
+    Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
+        containerColor = ScreenBackground,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            SquadifyTopBar(
+                title = stringResource(Res.string.tab_players),
+                subtitle = (state as? ClubPlayersUiState.Idle)?.details?.club?.name,
+                onNavigateBack = onNavigateBack
+            )
+        }
+    ) { padding ->
+        val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
+        when (val s = state) {
+            ClubPlayersUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
+            is ClubPlayersUiState.Error -> ErrorScreen(title = s.message, body = null, onRetry = onRetry, modifier = modifier)
+            is ClubPlayersUiState.Idle -> BoxWithConstraints(modifier) {
+                val clubName = s.details.club.name
+                // The state under the filters when there's no list to show, or null for the list.
+                val notList: (@Composable () -> Unit)? = when {
+                    s.seasonId != null && s.availableAgeGroups.isEmpty() -> {
+                        {
+                            NoAgeGroupsState(
+                                canEditClub = s.details.canEditClub,
+                                onCreateAgeGroupClick = { onCreateAgeGroups(clubName, s.details.club.sport, s.seasonId) }
+                            )
+                        }
+                    }
+                    !s.loaded -> {
+                        {
+                            Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = PitchGreen)
+                            }
+                        }
+                    }
+                    s.players.isEmpty() -> {
+                        {
+                            NoPlayersState(
+                                canEditClub = s.details.canEditClub,
+                                hasClubPlayers = s.anyPlayers,
+                                onAddPlayersToClub = { onCreatePlayers(clubName) },
+                                onAddPlayersToAgeGroup = { onAddPlayersToAgeGroup(clubName) }
+                            )
+                        }
+                    }
+                    else -> null
+                }
+                // Disabling and reactivating follow the club's MANAGE_PLAYER_STATUS setting, like the server.
+                // Reactivating needs no confirmation: it only lets the player be added to a pool again.
+                val list: @Composable (header: (LazyListScope.() -> Unit)?) -> Unit = { header ->
+                    PlayerList(
+                        if (notList == null) s.players else emptyList(),
+                        onOpenPlayer,
+                        onDisable = if (s.details.canManagePlayerStatus) { player -> confirmDisable = player } else null,
+                        onReactivate = if (s.details.canManagePlayerStatus) { player -> onReactivate(player.id) } else null,
+                        hasMore = s.hasMore && notList == null,
+                        loadingMore = s.loadingMore && notList == null,
+                        onLoadMore = onLoadMore,
+                        header = header
+                    )
+                }
+                if (maxHeight < 480.dp) {
+                    // A phone lying down: fixed filters would leave room for one player, so they scroll
+                    // with the list. The empty states sit under them in the same list, so the search
+                    // field keeps its place (and focus) while a search empties it.
+                    list {
+                        item(key = "filters") { Filters(s, onSeasonSelected, onAgeGroupSelected, onSearchChanged, Modifier.padding(bottom = 4.dp)) }
+                        notList?.let { item(key = "state") { it() } }
+                    }
+                } else {
+                    Column(Modifier.fillMaxSize()) {
+                        Filters(s, onSeasonSelected, onAgeGroupSelected, onSearchChanged)
+                        if (notList != null) {
+                            notList()
+                        } else {
+                            // Pull down to read the club's players again (the server, not the cache).
+                            PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.weight(1f)) { list(null) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    confirmDisable?.let { player ->
+        ConfirmDialog(
+            title = stringResource(Res.string.title_disable_player, "${player.firstName} ${player.lastName}"),
+            body = stringResource(Res.string.msg_disable_player),
+            onConfirm = { confirmDisable = null; onDisable(player.id) },
+            onDismiss = { confirmDisable = null },
+            confirmLabel = stringResource(Res.string.btn_disable)
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun ClubPlayersPreview() {
+    val club = Club("c1", "CD Ribamar", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
+    val players = listOf(
+        Player("p1", "c1", "Tomás", "Bragança", LocalDate(2012, 3, 1), shirtNumber = 10, active = true),
+        Player("p2", "c1", "Rui", "Perestrelo", LocalDate(2012, 5, 9), active = true),
+        Player("p3", "c1", "Duarte", "Nabais", LocalDate(2012, 8, 21), shirtNumber = 7, active = false)
+    )
+    val details = ClubDetails(club, emptyList(), emptyList(), emptyList(), canEditClub = true, canManagePlayerStatus = true)
+    SquadifyTheme {
+        ClubPlayersContent(
+            ClubPlayersUiState.Idle(details, players = players, loaded = true, hasMore = true, loadingMore = true, anyPlayers = true),
+            remember { SnackbarHostState() },
+            {}, {}, { _, _, _ -> }, {}, {}, {}, {}, {}, {}, {}, {}
+        )
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun ClubPlayersLandscapePreview() {
+    ClubPlayersPreview()
+}
+
+@Preview
+@Composable
+private fun ClubPlayersErrorPreview() {
+    SquadifyTheme {
+        ClubPlayersContent(
+            ClubPlayersUiState.Error("Couldn't load the players"), remember { SnackbarHostState() },
+            {}, {}, { _, _, _ -> }, {}, {}, {}, {}, {}, {}, {}, {}
+        )
+    }
+}

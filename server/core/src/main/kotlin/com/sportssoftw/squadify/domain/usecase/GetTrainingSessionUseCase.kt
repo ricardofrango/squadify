@@ -1,0 +1,66 @@
+package com.sportssoftw.squadify.domain.usecase
+
+import com.sportssoftw.squadify.domain.access.AccessPolicy
+import com.sportssoftw.squadify.domain.access.allowed
+import com.sportssoftw.squadify.domain.repository.AgeGroupRepository
+import com.sportssoftw.squadify.domain.repository.ClubRepository
+import com.sportssoftw.squadify.domain.repository.PlayerRepository
+import com.sportssoftw.squadify.domain.repository.SeasonRepository
+import com.sportssoftw.squadify.domain.repository.TrainingExerciseRepository
+import com.sportssoftw.squadify.domain.repository.TrainingPlanRepository
+import com.sportssoftw.squadify.domain.repository.TrainingRatingRepository
+import com.sportssoftw.squadify.domain.repository.TrainingSessionRepository
+import com.sportssoftw.squadify.domain.repository.UserRepository
+import com.sportssoftw.squadify.domain.service.TransactionManager
+import com.sportssoftw.squadify.exception.NotFoundException
+import com.sportssoftw.squadify.model.TrainingPlanLevel
+import com.sportssoftw.squadify.model.TrainingSessionDetails
+import com.sportssoftw.squadify.model.monthStartOf
+import com.sportssoftw.squadify.model.mondayOf
+import com.sportssoftw.squadify.model.planFor
+
+/**
+ * One training session (design 39f), readable like the Training tab (players and parents too). The week
+ * and month plans it falls in come along for the strip at the top (design 40f), only for those who rate.
+ */
+class GetTrainingSessionUseCase(
+    private val trainingSessionRepository: TrainingSessionRepository,
+    private val ageGroupRepository: AgeGroupRepository,
+    private val clubRepository: ClubRepository,
+    private val seasonRepository: SeasonRepository,
+    private val playerRepository: PlayerRepository,
+    private val trainingPlanRepository: TrainingPlanRepository,
+    private val trainingExerciseRepository: TrainingExerciseRepository,
+    private val trainingRatingRepository: TrainingRatingRepository,
+    private val userRepository: UserRepository,
+    private val accessPolicy: AccessPolicy,
+    private val transactionManager: TransactionManager
+) {
+    suspend operator fun invoke(userId: String, sessionId: String): TrainingSessionDetails = transactionManager.runInTransaction {
+        val stored = trainingSessionRepository.getById(sessionId) ?: throw NotFoundException("Training session not found")
+        val ageGroup = ageGroupRepository.getAgeGroupById(stored.session.ageGroupId) ?: throw NotFoundException("Age group not found")
+        accessPolicy.requireViewTraining(userId, ageGroup.scope)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
+        val canEdit = allowed { accessPolicy.requireManageTraining(userId, ageGroup.scope) }
+        val canRate = allowed { accessPolicy.requireRateTraining(userId, ageGroup.scope) }
+        val plans = if (canRate) trainingPlanRepository.getByAgeGroup(ageGroup.id) else emptyList()
+        val date = stored.session.date
+        val counts = trainingSessionRepository.contentCounts(listOf(sessionId))[sessionId]
+
+        TrainingSessionDetails(
+            session = stored.session.copy(
+                cancelledByName = stored.cancelledBy?.let { id -> userRepository.findById(id)?.let { "${it.firstName} ${it.lastName}" } },
+                exerciseCount = counts?.exercises ?: 0
+            ).withRatings(canRate, if (canRate) trainingRatingRepository.getForSession(sessionId) else emptyList()),
+            ageGroup = ageGroup,
+            clubName = clubRepository.getClubById(ageGroup.clubId)?.name ?: throw NotFoundException("Club not found"),
+            season = seasonRepository.getSeasonById(ageGroup.seasonId) ?: throw NotFoundException("Season not found"),
+            poolSize = playerRepository.getPlayersByAgeGroup(ageGroup.id).size,
+            weekPlan = plans.planFor(TrainingPlanLevel.WEEK, mondayOf(date)),
+            monthPlan = plans.planFor(TrainingPlanLevel.MONTH, monthStartOf(date)),
+            exercises = trainingExerciseRepository.getForSession(sessionId),
+            canEdit = canEdit,
+            canRate = canRate
+        )
+    }
+}
