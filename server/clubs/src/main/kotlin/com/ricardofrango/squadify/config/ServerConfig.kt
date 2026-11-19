@@ -50,6 +50,13 @@ object ServerConfig {
     }
 
     /**
+     * Deployed on Railway (staging or production): the seed account's fallback credentials are never used here. A
+     * staging server is deployed, though it runs with the development settings above (the coach server's
+     * `CoachConfig.deployed` is the same rule).
+     */
+    val deployed: Boolean = System.getenv("APP_ENV")?.trim()?.lowercase() in setOf("staging", "production", "prod")
+
+    /**
      * PostgreSQL connection details -- the only database engine now (H2 is gone). `databaseHost` and
      * `databasePassword` follow the same require-in-production pattern as [jwtSecret]: a sensible
      * "localhost" / dev credential default keeps `./gradlew run` working locally (against the Postgres
@@ -107,23 +114,23 @@ object ServerConfig {
      * clean build. The seeding itself is idempotent (see `SeedPlatformAdminUseCase`): it only creates
      * the account when no user with [seedAdminEmail] exists yet.
      *
-     * - `DEV`: enabled by default, with clearly-labelled fallback credentials so `./gradlew run` works
-     *   out of the box. Override with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`.
-     * - `PRODUCTION`: disabled unless `SEED_ADMIN_ENABLED=true` is set explicitly, and then both
-     *   `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` are required -- there is never a password
-     *   fallback in production.
+     * - Local development (not [deployed]): enabled by default, with clearly-labelled fallback credentials so
+     *   `./gradlew run` works out of the box. Override with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`.
+     * - Deployed (staging or production): disabled unless `SEED_ADMIN_ENABLED=true` is set explicitly, and then both
+     *   `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` are required -- there is never a fallback on Railway. (Before this,
+     *   a staging server seeded the fallback account, 2026-11-19.)
      */
     val seedAdminEnabled: Boolean = when (System.getenv("SEED_ADMIN_ENABLED")?.trim()?.lowercase()) {
         "true", "1", "yes" -> true
         "false", "0", "no" -> false
-        else -> environment == AppEnvironment.DEV
+        else -> !deployed
     }
 
     val seedAdminEmail: String = System.getenv("SEED_ADMIN_EMAIL")?.takeIf { it.isNotBlank() }
-        ?: if (environment == AppEnvironment.PRODUCTION) {
+        ?: if (deployed) {
             if (seedAdminEnabled) {
                 throw IllegalStateException(
-                    "SEED_ADMIN_EMAIL environment variable must be set when SEED_ADMIN_ENABLED=true in production."
+                    "SEED_ADMIN_EMAIL environment variable must be set when SEED_ADMIN_ENABLED=true on a deployed server."
                 )
             } else {
                 ""
@@ -133,10 +140,10 @@ object ServerConfig {
         }
 
     val seedAdminPassword: String = System.getenv("SEED_ADMIN_PASSWORD")?.takeIf { it.isNotBlank() }
-        ?: if (environment == AppEnvironment.PRODUCTION) {
+        ?: if (deployed) {
             if (seedAdminEnabled) {
                 throw IllegalStateException(
-                    "SEED_ADMIN_PASSWORD environment variable must be set when SEED_ADMIN_ENABLED=true in production."
+                    "SEED_ADMIN_PASSWORD environment variable must be set when SEED_ADMIN_ENABLED=true on a deployed server."
                 )
             } else {
                 ""

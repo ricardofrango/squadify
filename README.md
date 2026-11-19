@@ -48,7 +48,7 @@ Each server reads its settings from environment variables (on Railway: the servi
 
 | Variable | Servers | What it does |
 |---|---|---|
-| `APP_ENV` | both | `production` (both servers) or `staging` (the coach server only: the clubs server runs as development unless it is `production`); unset is development. |
+| `APP_ENV` | both | `production` or `staging`, on Railway; unset is local development. The clubs server runs with the development settings unless it is `production`, but `staging` counts as deployed for the seed account. |
 | `SERVER_PORT` | both | The port; 8080 (clubs) or 8090 (coach) by default. |
 | `DATABASE_HOST`, `DATABASE_PASSWORD` | both | Required when deployed. Locally `localhost` and `postgres`. |
 | `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_NAME` | both | 5432, `postgres`, and `squadify_dev` / `squadify_production` (clubs) or `squadify_coach_dev` / `squadify_coach_production` (coach). |
@@ -66,7 +66,7 @@ Each server reads its settings from environment variables (on Railway: the servi
 | `PLATFORM_ADMIN_EMAILS` | coach | Accounts that are platform admins, comma-separated, besides any marked so in the database. |
 | `GOOGLE_PLAY_PACKAGE_NAME`, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `GOOGLE_PLAY_NOTIFICATIONS_TOKEN` | coach | Checking Google Play subscriptions (§72). Without the account, plans change by request or at once locally. |
 | `WEBAPP_BASE_URL` | clubs | The web client's origin, for CORS and the links in emails. |
-| `SEED_ADMIN_ENABLED`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | clubs | A platform-admin account created at startup. On by default whenever `APP_ENV` isn't `production`, with labelled fallback credentials from the code. In production it is off unless `SEED_ADMIN_ENABLED=true`, and then the email and password are required. |
+| `SEED_ADMIN_ENABLED`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | clubs | A platform-admin account created at startup. On by default for local development only, with labelled fallback credentials from the code. On a deployed server (`APP_ENV` `staging` or `production`) it is off unless `SEED_ADMIN_ENABLED=true`, and then the email and password are required. |
 
 ### Running tests
 
