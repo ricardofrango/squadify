@@ -81,11 +81,11 @@ val versionNameProp = (project.findProperty("VERSION_NAME") as? String) ?: "1.1.
 val ciBuildNumber = (project.findProperty("versionCode") as? String)?.toIntOrNull()
 
 android {
-    namespace = "com.ricardofrango.squadify.coach.android"
+    namespace = "com.sportssoftw.squadify.coach.android"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.ricardofrango.squadify.coach"
+        applicationId = "com.sportssoftw.squadify.coach"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = ciBuildNumber ?: 1

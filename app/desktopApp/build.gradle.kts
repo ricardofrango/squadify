@@ -17,11 +17,11 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "com.ricardofrango.squadify.MainKt"
+        mainClass = "com.sportssoftw.squadify.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.ricardofrango.squadify"
+            packageName = "com.sportssoftw.squadify"
             packageVersion = "1.1.0"
         }
     }
@@ -50,7 +50,7 @@ val generateSquadifyConfig = tasks.register("generateSquadifyConfig") {
         file.parentFile.mkdirs()
         file.writeText(
             """
-            package com.ricardofrango.squadify
+            package com.sportssoftw.squadify
 
             internal object SquadifyBuildConfig {
                 const val BASE_URL = "$baseUrl"

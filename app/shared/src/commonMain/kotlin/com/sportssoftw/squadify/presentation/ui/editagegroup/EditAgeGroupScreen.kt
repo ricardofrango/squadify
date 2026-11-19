@@ -1,0 +1,336 @@
+package com.sportssoftw.squadify.presentation.ui.editagegroup
+
+import squadify.app.shared.generated.resources.msg_cannot_be_undone
+import squadify.app.shared.generated.resources.msg_delete_age_group_players
+import squadify.app.shared.generated.resources.msg_delete_age_group
+import squadify.app.shared.generated.resources.title_delete_age_group
+import squadify.app.shared.generated.resources.btn_delete_age_group
+import squadify.app.shared.generated.resources.btn_delete
+import com.sportssoftw.squadify.presentation.ui.components.PinnedBottomBar
+import com.sportssoftw.squadify.presentation.ui.components.DestructiveButton
+import com.sportssoftw.squadify.presentation.ui.components.ConfirmDialog
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import com.sportssoftw.squadify.presentation.ui.components.ScreenWindowInsets
+import com.sportssoftw.squadify.presentation.ui.components.ErrorScreen
+import com.sportssoftw.squadify.presentation.ui.theme.ScreenBackground
+import com.sportssoftw.squadify.presentation.ui.components.SectionCard
+import com.sportssoftw.squadify.presentation.ui.theme.ChromeAccent
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
+import com.sportssoftw.squadify.presentation.ui.components.submitKeyboardActions
+import com.sportssoftw.squadify.presentation.navigation.collectSettledState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import com.sportssoftw.squadify.presentation.ui.components.readableWidth
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.sportssoftw.squadify.domain.AgeGroupDefaults
+import com.sportssoftw.squadify.presentation.ui.components.SquadifyTopBar
+import com.sportssoftw.squadify.presentation.ui.createagegroups.AgeGroupSpanType
+import com.sportssoftw.squadify.presentation.ui.createagegroups.AgeGroupSpanTypeField
+import com.sportssoftw.squadify.presentation.ui.createagegroups.TeamSizeField
+import com.sportssoftw.squadify.presentation.ui.createagegroups.YearOfBirthField
+import com.sportssoftw.squadify.presentation.ui.theme.AmberText
+import com.sportssoftw.squadify.presentation.ui.theme.CarbonGray
+import com.sportssoftw.squadify.presentation.ui.theme.DeepCarbon
+import com.sportssoftw.squadify.presentation.ui.theme.PitchGreen
+import com.sportssoftw.squadify.presentation.ui.theme.SquadifyClubTheme
+import com.sportssoftw.squadify.presentation.ui.theme.SquadifyTheme
+import com.sportssoftw.squadify.presentation.ui.theme.screenContentPadding
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.btn_retry
+import squadify.app.shared.generated.resources.btn_save_changes
+import squadify.app.shared.generated.resources.edit_age_group
+import squadify.app.shared.generated.resources.edit_age_group_shut_out
+import squadify.app.shared.generated.resources.edit_age_group_size_helper
+import squadify.app.shared.generated.resources.ic_check
+import squadify.app.shared.generated.resources.label_age_group_name_field
+import squadify.app.shared.generated.resources.label_age_group_span_type
+import squadify.app.shared.generated.resources.label_team_size
+import squadify.app.shared.generated.resources.label_year_of_birth
+import squadify.app.shared.generated.resources.label_year_of_birth_end
+import squadify.app.shared.generated.resources.label_year_of_birth_start
+import squadify.app.shared.generated.resources.msg_age_group_conflict
+import squadify.app.shared.generated.resources.msg_age_group_range_inverted
+import kotlin.time.Clock
+
+/**
+ * Edit age group, from Age Group Details' ⋮ (coordinators+): name, birth-year span (one year or two)
+ * and the default team size for new teams -- the same fields as Create age groups. The season is fixed
+ * (shown as the subtitle). Years used by the season's other age groups are left out of the pickers (and an overlap, e.g. after
+ * switching to two years, is flagged and blocks saving), and
+ * a span that would leave players already in the pool ineligible is explained in amber and can't be
+ * saved (the server enforces both too).
+ */
+@Composable
+fun EditAgeGroupScreen(
+    ageGroupId: String,
+    onNavigateBack: () -> Unit,
+    onAgeGroupUpdated: () -> Unit,
+    onAgeGroupDeleted: () -> Unit = {},
+    viewModel: EditAgeGroupViewModel = koinViewModel()
+) {
+    SquadifyClubTheme {
+        val state = viewModel.state.collectSettledState()
+        LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
+        LaunchedEffect(Unit) { viewModel.saved.collect { onAgeGroupUpdated() } }
+        LaunchedEffect(Unit) { viewModel.deleted.collect { onAgeGroupDeleted() } }
+
+        EditAgeGroupContent(
+            state = state,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(ageGroupId) },
+            onChange = { transform -> viewModel.updateForm(transform) },
+            onSave = { viewModel.save(ageGroupId) },
+            onDelete = { viewModel.delete(ageGroupId) }
+        )
+    }
+}
+
+@Composable
+private fun EditAgeGroupContent(
+    state: EditAgeGroupUiState,
+    onNavigateBack: () -> Unit,
+    onRetry: () -> Unit,
+    onChange: ((AgeGroupFormFields) -> AgeGroupFormFields) -> Unit,
+    onSave: () -> Unit,
+    onDelete: () -> Unit = {}
+) {
+    val idle = state as? EditAgeGroupUiState.Idle
+    var confirmDelete by remember { mutableStateOf(false) }
+    Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
+        containerColor = ScreenBackground,
+        topBar = {
+            SquadifyTopBar(
+                title = stringResource(Res.string.edit_age_group),
+                subtitle = idle?.seasonName,
+                onNavigateBack = onNavigateBack,
+                actions = {
+                    if (idle?.isSubmitting == true) {
+                        CircularProgressIndicator(color = ChromeAccent, strokeWidth = 2.dp, modifier = Modifier.padding(end = 16.dp).size(20.dp))
+                    } else {
+                        IconButton(onClick = onSave, enabled = idle?.canSave == true) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_check),
+                                contentDescription = stringResource(Res.string.btn_save_changes),
+                                tint = if (idle?.canSave == true) ChromeAccent else Color.White.copy(alpha = 0.3f)
+                            )
+                        }
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            // Pinned, as Edit team's Delete; it only asks first (the dialog below).
+            if (idle?.canDelete == true) {
+                PinnedBottomBar {
+                    DestructiveButton(stringResource(Res.string.btn_delete_age_group), onClick = { confirmDelete = true }, enabled = !idle.isDeleting && !idle.isSubmitting)
+                }
+            }
+        }
+    ) { padding ->
+        val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
+        when (state) {
+            EditAgeGroupUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
+            is EditAgeGroupUiState.Error -> ErrorScreen(title = state.message, body = null, onRetry = onRetry, modifier = modifier)
+            is EditAgeGroupUiState.Idle -> EditAgeGroupForm(state, modifier, onChange, onSave)
+        }
+    }
+    if (confirmDelete && idle != null) {
+        ConfirmDialog(
+            title = stringResource(Res.string.title_delete_age_group, idle.original.name),
+            body = pluralStringResource(Res.plurals.msg_delete_age_group, idle.teamCount, idle.teamCount) + " " +
+                (if (idle.deletesPlayers && idle.playerCount > 0) pluralStringResource(Res.plurals.msg_delete_age_group_players, idle.playerCount, idle.playerCount) + " " else "") +
+                stringResource(Res.string.msg_cannot_be_undone),
+            onConfirm = { confirmDelete = false; onDelete() },
+            onDismiss = { confirmDelete = false },
+            confirmLabel = stringResource(Res.string.btn_delete)
+        )
+    }
+}
+
+@Composable
+private fun EditAgeGroupForm(
+    state: EditAgeGroupUiState.Idle,
+    modifier: Modifier,
+    onChange: ((AgeGroupFormFields) -> AgeGroupFormFields) -> Unit,
+    onSave: () -> Unit
+) {
+    val form = state.form
+    val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    // The usual birth-year range, plus this group's own years in case they fall outside it.
+    val allYears = remember(today, state.original) {
+        (AgeGroupDefaults.birthYearOptions(today) + state.original.startYear + state.original.endYear).distinct().sortedDescending()
+    }
+    val freeYears = allYears - state.usedByOthers
+
+    Column(
+        modifier.verticalScroll(rememberScrollState()).readableWidth().screenContentPadding(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        SectionCard(spacing = 16.dp) {
+            AgeGroupSpanTypeField(
+                label = stringResource(Res.string.label_age_group_span_type),
+                selectedType = if (form.twoYears) AgeGroupSpanType.TWO_YEAR else AgeGroupSpanType.SINGLE_YEAR,
+                onTypeSelected = { type ->
+                    onChange {
+                        val two = type == AgeGroupSpanType.TWO_YEAR
+                        // Going to one year keeps the oldest year; going to two adds the next (younger) one.
+                        it.copy(twoYears = two, startYear = if (two) it.endYear + 1 else it.endYear)
+                    }
+                }
+            )
+            if (!form.twoYears) {
+                YearOfBirthField(
+                    label = stringResource(Res.string.label_year_of_birth),
+                    selectedYear = form.endYear,
+                    availableYears = freeYears,
+                    onYearSelected = { year -> onChange { it.copy(startYear = year, endYear = year) } }
+                )
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.weight(1f)) {
+                        YearOfBirthField(
+                            label = stringResource(Res.string.label_year_of_birth_start),
+                            selectedYear = form.startYear,
+                            availableYears = freeYears,
+                            onYearSelected = { year -> onChange { it.copy(startYear = year) } }
+                        )
+                    }
+                    Box(Modifier.weight(1f)) {
+                        YearOfBirthField(
+                            label = stringResource(Res.string.label_year_of_birth_end),
+                            selectedYear = form.endYear,
+                            availableYears = freeYears,
+                            onYearSelected = { year -> onChange { it.copy(endYear = year) } }
+                        )
+                    }
+                }
+                if (state.inverted) {
+                    Text(stringResource(Res.string.msg_age_group_range_inverted), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+            if (state.collides) {
+                Text(stringResource(Res.string.msg_age_group_conflict), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+            if (state.shutOut > 0) {
+                Text(
+                    pluralStringResource(Res.plurals.edit_age_group_shut_out, state.shutOut, state.shutOut, form.endYear),
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                    color = AmberText
+                )
+            }
+
+            OutlinedTextField(
+                value = form.name,
+                onValueChange = { value -> onChange { it.copy(name = value) } },
+                label = { Text(stringResource(Res.string.label_age_group_name_field)) },
+                isError = form.name.isBlank(),
+                singleLine = true,
+                // The only text field: the keyboard key saves, like the top bar's check.
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = submitKeyboardActions { if (state.canSave) onSave() },
+                enabled = !state.isSubmitting,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
+                    focusedTextColor = DeepCarbon, unfocusedTextColor = DeepCarbon,
+                    focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
+                    focusedLabelColor = PitchGreen, unfocusedLabelColor = CarbonGray
+                )
+            )
+
+            Column {
+                TeamSizeField(
+                    label = stringResource(Res.string.label_team_size),
+                    selectedTeamSize = form.teamSize,
+                    options = state.teamSizeOptions,
+                    onTeamSizeSelected = { size -> onChange { it.copy(teamSize = size) } }
+                )
+                Text(
+                    stringResource(Res.string.edit_age_group_size_helper),
+                    Modifier.padding(top = 6.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DeepCarbon.copy(alpha = 0.5f)
+                )
+            }
+        }
+        if (state.submitError != null) {
+            Text(state.submitError, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun EditAgeGroupPreview() {
+    SquadifyTheme {
+        val fields = AgeGroupFormFields("Sub-15", twoYears = false, startYear = 2011, endYear = 2011, teamSize = 11)
+        EditAgeGroupContent(
+            state = EditAgeGroupUiState.Idle("2025/26", listOf(4, 5, 7, 9, 11), setOf(2012, 2013), listOf(2011, 2011, 2012), fields, fields),
+            onNavigateBack = {}, onRetry = {}, onChange = {}, onSave = {}
+        )
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun EditAgeGroupLandscapePreview() {
+    SquadifyTheme {
+        val fields = AgeGroupFormFields("Sub-15", twoYears = false, startYear = 2011, endYear = 2011, teamSize = 11)
+        EditAgeGroupContent(
+            state = EditAgeGroupUiState.Idle("2025/26", listOf(4, 5, 7, 9, 11), setOf(2012, 2013), listOf(2011, 2011, 2012), fields, fields),
+            onNavigateBack = {}, onRetry = {}, onChange = {}, onSave = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EditAgeGroupShutOutPreview() {
+    SquadifyTheme {
+        val fields = AgeGroupFormFields("Sub-15", twoYears = true, startYear = 2011, endYear = 2010, teamSize = 11)
+        EditAgeGroupContent(
+            state = EditAgeGroupUiState.Idle("2025/26", listOf(4, 5, 7, 9, 11), setOf(2012), listOf(2010, 2011, 2011), fields, fields.copy(twoYears = false, endYear = 2011)),
+            onNavigateBack = {}, onRetry = {}, onChange = {}, onSave = {}
+        )
+    }
+}

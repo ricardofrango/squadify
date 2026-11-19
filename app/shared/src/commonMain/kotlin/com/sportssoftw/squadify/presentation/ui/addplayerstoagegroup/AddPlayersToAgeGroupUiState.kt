@@ -1,0 +1,41 @@
+package com.sportssoftw.squadify.presentation.ui.addplayerstoagegroup
+
+import com.sportssoftw.squadify.model.AgeGroup
+import com.sportssoftw.squadify.model.Player
+import com.sportssoftw.squadify.model.Season
+
+sealed class AddPlayersToAgeGroupUiState {
+    data object Loading : AddPlayersToAgeGroupUiState()
+
+    data class Idle(
+        val ageGroups: List<AgeGroup> = emptyList(),
+        val seasons: List<Season> = emptyList(),
+        val selectedAgeGroupId: String? = null,
+        // The pages loaded so far of the club players eligible for the selected age group (old enough,
+        // active, not already in it) whose name matches [query], by name. Refetched whenever the
+        // age-group picker or the search changes; the search runs on the server.
+        val eligiblePlayers: List<Player> = emptyList(),
+        val loadingEligible: Boolean = false,
+        val query: String = "",
+        val hasMore: Boolean = false,
+        val loadingMore: Boolean = false,
+        // Whether the age group has any eligible player at all, whatever the search: which empty state.
+        val anyEligible: Boolean = false,
+        // Kept across searches and pages, so a player picked before searching again stays picked.
+        val selectedPlayerIds: Set<String> = emptySet(),
+        val isSubmitting: Boolean = false,
+        // Generic failure -- localized copy only, never a raw exception message. See AI_GUIDELINES.md
+        // "No Raw Exception Messages in UI".
+        val error: String? = null
+    ) : AddPlayersToAgeGroupUiState() {
+
+        val selectedAgeGroup: AgeGroup? get() = ageGroups.find { it.id == selectedAgeGroupId }
+
+        fun seasonNameFor(ageGroup: AgeGroup): String? =
+            seasons.find { it.id == ageGroup.seasonId }?.name
+    }
+}
+
+sealed class AddPlayersToAgeGroupNavigationEvent {
+    data object NavigateBackWithPlayersAdded : AddPlayersToAgeGroupNavigationEvent()
+}

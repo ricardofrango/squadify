@@ -1,0 +1,51 @@
+package com.sportssoftw.squadify.domain.usecase
+
+import com.sportssoftw.squadify.domain.access.AccessPolicy
+import com.sportssoftw.squadify.domain.access.GameScope
+import com.sportssoftw.squadify.domain.repository.AgeGroupRepository
+import com.sportssoftw.squadify.domain.repository.PlayerListFilter
+import com.sportssoftw.squadify.domain.repository.PlayerRepository
+import com.sportssoftw.squadify.domain.service.TransactionManager
+import com.sportssoftw.squadify.exception.NotFoundException
+import com.sportssoftw.squadify.model.Player
+import com.sportssoftw.squadify.model.PlayersPage
+import com.sportssoftw.squadify.model.SearchText
+
+/**
+ * The players a coordinator or an age-group coach may pick from when adding to this age group: every
+ * club player old enough for it (`birthDate.year >= ageGroup.endYear`) who isn't already in it.
+ * [invoke] returns them all (older app builds); [page] one page by name, searched on the server.
+ */
+class GetEligiblePlayersForAgeGroupUseCase(
+    private val playerRepository: PlayerRepository,
+    private val ageGroupRepository: AgeGroupRepository,
+    private val accessPolicy: AccessPolicy,
+    private val transactionManager: TransactionManager
+) {
+    suspend operator fun invoke(userId: String, ageGroupId: String): List<Player> = transactionManager.runInTransaction {
+        val ageGroup = authorizedAgeGroup(userId, ageGroupId)
+        val alreadyIn = playerRepository.getPlayersByAgeGroup(ageGroupId).map { it.id }.toSet()
+        playerRepository.getPlayersByClub(ageGroup.clubId)
+            .filter { it.active && it.birthDate.year >= ageGroup.endYear && it.id !in alreadyIn }
+    }
+
+    suspend fun page(userId: String, ageGroupId: String, search: String?, limit: Int, offset: Int): PlayersPage =
+        transactionManager.runInTransaction {
+            val ageGroup = authorizedAgeGroup(userId, ageGroupId)
+            val eligible = PlayerListFilter(notInAgeGroupId = ageGroupId, bornFromYear = ageGroup.endYear, activeOnly = true)
+            val key = search?.trim()?.let(SearchText::key)?.takeIf { it.isNotEmpty() }
+            // One extra row says whether another page follows.
+            val rows = playerRepository.getPlayersPage(ageGroup.clubId, eligible.copy(search = key), limit + 1, offset)
+            PlayersPage(
+                players = rows.take(limit),
+                hasMore = rows.size > limit,
+                // An unsearched row already answers it.
+                anyPlayers = (key == null && rows.isNotEmpty()) || playerRepository.hasPlayers(ageGroup.clubId, eligible)
+            )
+        }
+
+    private suspend fun authorizedAgeGroup(userId: String, ageGroupId: String) =
+        (ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")).also {
+            accessPolicy.requireStaff(userId, GameScope(it.clubId, ageGroupId = ageGroupId))
+        }
+}

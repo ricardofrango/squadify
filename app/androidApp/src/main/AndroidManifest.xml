@@ -8,9 +8,9 @@
 
     <!-- The other Squadify app, to copy an age group from it (TECHNICAL_DECISIONS §81). -->
     <queries>
-        <package android:name="com.ricardofrango.squadify.coach" />
-        <package android:name="com.ricardofrango.squadify.coach.stg" />
-        <package android:name="com.ricardofrango.squadify.coach.dev" />
+        <package android:name="com.sportssoftw.squadify.coach" />
+        <package android:name="com.sportssoftw.squadify.coach.stg" />
+        <package android:name="com.sportssoftw.squadify.coach.dev" />
     </queries>
 
     <application
@@ -35,7 +35,7 @@
         <!-- The push service (SquadifyMessagingService) comes from app/shared's manifest. -->
         <!-- Allows the other app's copy of an age group: asks for consent, then returns a grant (only started explicitly). -->
         <activity
-            android:name="com.ricardofrango.squadify.presentation.agegroupimport.ExportAgeGroupsActivity"
+            android:name="com.sportssoftw.squadify.presentation.agegroupimport.ExportAgeGroupsActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />

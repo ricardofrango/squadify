@@ -192,7 +192,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.ricardofrango.squadify.coach.dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.sportssoftw.squadify.coach.dev";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -347,7 +347,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.ricardofrango.squadify.coach";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.sportssoftw.squadify.coach";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -439,7 +439,7 @@
 				);
 				KOTLIN_FRAMEWORK_BUILD_TYPE = release;
 				MARKETING_VERSION = 1.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.ricardofrango.squadify.coach.stg";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.sportssoftw.squadify.coach.stg";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

@@ -1,0 +1,124 @@
+package com.sportssoftw.squadify.presentation.routes
+
+import com.sportssoftw.squadify.domain.usecase.*
+import com.sportssoftw.squadify.model.*
+import com.sportssoftw.squadify.security.userId
+import io.ktor.http.*
+import io.ktor.server.auth.authenticate
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
+import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
+
+fun Route.playerRoutes() {
+    val getPlayerUseCase by inject<GetPlayerUseCase>()
+    val getPlayersUseCase by inject<GetPlayersUseCase>()
+    val getAgeGroupPlayersByClubUseCase by inject<GetAgeGroupPlayersByClubUseCase>()
+    val createPlayersUseCase by inject<CreatePlayersUseCase>()
+    val updatePlayerUseCase by inject<UpdatePlayerUseCase>()
+    val disablePlayerUseCase by inject<DisablePlayerUseCase>()
+    val reactivatePlayerUseCase by inject<ReactivatePlayerUseCase>()
+
+    authenticate("auth-jwt") {
+        route("/players") {
+            // 1. Specific paths first to avoid UUID collision or matching ambiguity
+            get("/associations/age-group") {
+                val clubId = call.request.queryParameters["clubId"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    ErrorResponse("clubId is required", "VAL_001")
+                )
+                val currentUserId =
+                    call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+
+                val ageGroupPlayers = getAgeGroupPlayersByClubUseCase(currentUserId, clubId)
+                call.respond(ageGroupPlayers)
+            }
+
+            // 2. Generic base paths
+            get {
+                val clubId = call.request.queryParameters["clubId"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    ErrorResponse("clubId is required", "VAL_001")
+                )
+                val teamId = call.request.queryParameters["teamId"]
+                val currentUserId =
+                    call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val params = call.request.queryParameters
+                // With `limit`: one page of the Players screen, filtered here. Without it: the whole
+                // list, for app builds from before paging.
+                val limit = Paging.limitOf(params["limit"])
+                if (limit != null) {
+                    return@get call.respond(
+                        getPlayersUseCase.page(
+                            currentUserId, clubId,
+                            seasonId = params["seasonId"],
+                            ageGroupId = params["ageGroupId"],
+                            search = params["q"],
+                            limit = limit,
+                            offset = Paging.offsetOf(params["offset"])
+                        )
+                    )
+                }
+                val players = getPlayersUseCase(currentUserId, clubId, teamId)
+                call.respond(players)
+            }
+
+            post {
+                val currentUserId =
+                    call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val playerRequest = call.receive<CreatePlayersRequest>()
+                val player = createPlayersUseCase(currentUserId, playerRequest)
+                call.respond(HttpStatusCode.Created, player)
+            }
+
+            // 3. ID-based paths last
+            route("/{playerId}") {
+                // The season stats are a shared game route (gameRoutes, :server:web).
+
+                get {
+                    val playerId =
+                        call.parameters["playerId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    val player = getPlayerUseCase(currentUserId, playerId)
+                    call.respond(player)
+                }
+
+                patch {
+                    val playerId = call.parameters["playerId"] ?: return@patch call.respond(
+                        HttpStatusCode.BadRequest
+                    )
+                    val currentUserId =
+                        call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                    val request = call.receive<UpdatePlayerRequest>()
+
+                    val success = updatePlayerUseCase(currentUserId, playerId, request)
+                    if (success) {
+                        call.respond(HttpStatusCode.NoContent)
+                    } else {
+                        call.respond(
+                            HttpStatusCode.InternalServerError,
+                            ErrorResponse("Failed to update player")
+                        )
+                    }
+                }
+
+                // Disabled, and out of every age group; the data stays (DisablePlayerUseCase).
+                post("/disable") {
+                    val playerId = call.parameters["playerId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    disablePlayerUseCase(currentUserId, playerId)
+                    call.respond(HttpStatusCode.NoContent)
+                }
+
+                // Active again, so they can be added to a pool; the old pools aren't restored (ReactivatePlayerUseCase).
+                post("/reactivate") {
+                    val playerId = call.parameters["playerId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    reactivatePlayerUseCase(currentUserId, playerId)
+                    call.respond(HttpStatusCode.NoContent)
+                }
+            }
+        }
+    }
+}

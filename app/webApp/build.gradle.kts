@@ -28,7 +28,7 @@ val generateSquadifyConfig = tasks.register("generateSquadifyConfig") {
         file.parentFile.mkdirs()
         file.writeText(
             """
-            package com.ricardofrango.squadify
+            package com.sportssoftw.squadify
 
             internal object SquadifyBuildConfig {
                 const val BASE_URL = "$baseUrl"

@@ -5,13 +5,13 @@ plugins {
     application
 }
 
-group = "com.ricardofrango.squadify"
+group = "com.sportssoftw.squadify"
 // Same source of truth as app/androidApp's versionName (root gradle.properties' VERSION_NAME) -- see
 // TECHNICAL_DECISIONS.md's versioning section. Only used for the Gradle module/artifact version today
 // (e.g. the fat-jar's filename); not yet exposed at runtime (no /version endpoint).
 version = (project.findProperty("VERSION_NAME") as? String) ?: "1.1.0"
 application {
-    mainClass = "com.ricardofrango.squadify.ApplicationKt"
+    mainClass = "com.sportssoftw.squadify.ApplicationKt"
 }
 
 // Local runs only (not the deployed jar): Ktor's development mode, so the server reloads its code when
