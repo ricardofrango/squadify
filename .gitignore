@@ -30,3 +30,6 @@ keystore/squadify-keystore.jks
 # Images stored on disk by the coach server in development (LocalImageStorage)
 server/coach/uploads/
 legal/coach/dist/
+
+# Play Store screenshots and graphics (local only, not in the repo)
+/play-screens/
