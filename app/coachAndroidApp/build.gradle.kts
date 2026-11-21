@@ -122,9 +122,8 @@ android {
         }
         create("prod") {
             dimension = "environment"
-            // TODO placeholder: the coach server has no production service yet (it comes with the
-            // coach app's launch).
-            buildConfigField("String", "BASE_URL", "\"https://coach-api.squadify.pt/v1\"")
+            // The coach server's production service on Railway (its public domain).
+            buildConfigField("String", "BASE_URL", "\"https://squadify-production.up.railway.app/v1\"")
             resValue("string", "app_name", "Squadify Coach")
         }
     }
