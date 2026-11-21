@@ -1,0 +1,69 @@
+name: Release coach Android
+
+# Squadify for Coaches on Google Play: builds app/coachAndroidApp's `prod` flavor as a signed App Bundle
+# (com.sportssoftw.squadify.coach) and releases it to the Play production track. It runs on every merge
+# of develop into main (the production release); merges to develop only build and distribute through
+# Firebase (deploy-staging-coach.yml), as before.
+#
+# Play only accepts a bundle for an app it already knows, so the very first bundle is uploaded by hand in
+# Play Console. After that, this workflow does every upload.
+#
+# Secrets: ANDROID_KEYSTORE_PROPERTIES and ANDROID_KEYSTORE_BASE64 (the same release keystore as the other
+# workflows) and PLAY_SERVICE_ACCOUNT_JSON (a Play Console service account with release permissions on
+# this app, its JSON).
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: android-actions/setup-android@v4
+      - run: ./gradlew :app:shared:testAndroidHostTest :app:coach:testAndroidHostTest --no-daemon
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: android-actions/setup-android@v4
+
+      - name: Write release keystore
+        env:
+          ANDROID_KEYSTORE_PROPERTIES: ${{ secrets.ANDROID_KEYSTORE_PROPERTIES }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p keystore
+          printf '%s' "$ANDROID_KEYSTORE_PROPERTIES" > keystore/keystore.properties
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > keystore/squadify-keystore.jks
+          if [ ! -s keystore/keystore.properties ] || [ ! -s keystore/squadify-keystore.jks ]; then
+            echo "::error::ANDROID_KEYSTORE_PROPERTIES or ANDROID_KEYSTORE_BASE64 secret is empty or not set"
+            exit 1
+          fi
+
+      # The run number is the versionCode: it only grows, so every upload is newer than the last one
+      # (the same counter the forced update uses for MIN_ANDROID_BUILD).
+      - name: Build the signed bundle
+        run: ./gradlew :app:coachAndroidApp:bundleProdRelease --no-daemon -PversionCode=${{ github.run_number }}
+
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.sportssoftw.squadify.coach
+          releaseFiles: app/coachAndroidApp/build/outputs/bundle/prodRelease/*.aab
+          track: production
+          status: completed
