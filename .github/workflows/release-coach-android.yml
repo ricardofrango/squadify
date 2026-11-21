@@ -1,8 +1,9 @@
 name: Release coach Android
 
 # Squadify for Coaches on Google Play: builds app/coachAndroidApp's `prod` flavor as a signed App Bundle
-# (com.sportssoftw.squadify.coach) and uploads it to a Play track. Manual only (workflow_dispatch), like
-# deploy-production.yml: nothing reaches the store until someone runs it.
+# (com.sportssoftw.squadify.coach) and releases it to the Play production track. It runs on every merge
+# of develop into main (the production release); merges to develop only build and distribute through
+# Firebase (deploy-staging-coach.yml), as before.
 #
 # Play only accepts a bundle for an app it already knows, so the very first bundle is uploaded by hand in
 # Play Console. After that, this workflow does every upload.
@@ -12,18 +13,8 @@ name: Release coach Android
 # this app, its JSON).
 
 on:
-  workflow_dispatch:
-    inputs:
-      track:
-        description: "Play track to upload to"
-        type: choice
-        options: [internal, alpha, beta, production]
-        default: internal
-      status:
-        description: "Release status on that track"
-        type: choice
-        options: [draft, completed]
-        default: draft
+  push:
+    branches: [main]
 
 jobs:
   test:
@@ -74,5 +65,5 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.sportssoftw.squadify.coach
           releaseFiles: app/coachAndroidApp/build/outputs/bundle/prodRelease/*.aab
-          track: ${{ inputs.track }}
-          status: ${{ inputs.status }}
+          track: production
+          status: completed
