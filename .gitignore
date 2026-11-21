@@ -21,6 +21,7 @@ kotlin-js-store/
 firebase-service-account.json
 # The coach server's Firebase key (squadify-for-coach), for local runs. Never committed.
 firebase-coach-service-account.json
+squadify-coach-release-service-account.json
 # Club logos stored on disk in development (LocalImageStorage)
 server/clubs/uploads/
 keystore/keystore.properties
