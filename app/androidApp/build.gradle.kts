@@ -91,7 +91,7 @@ baselineProfile {
 // merges to develop -- see TECHNICAL_DECISIONS.md's versioning section for the original problem this
 // solves (every staging redeploy looked identical). Falls back to a fixed placeholder for local builds,
 // where uniqueness doesn't matter.
-val versionNameProp = (project.findProperty("VERSION_NAME") as? String) ?: "1.1.0"
+val versionNameProp = (project.findProperty("VERSION_NAME") as? String) ?: "1.0.0"
 val ciBuildNumber = (project.findProperty("versionCode") as? String)?.toIntOrNull()
 
 android {
