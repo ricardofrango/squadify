@@ -54,10 +54,15 @@ jobs:
             exit 1
           fi
 
-      # The run number is the versionCode: it only grows, so every upload is newer than the last one
-      # (the same counter the forced update uses for MIN_ANDROID_BUILD).
+      # The version code is the run number plus 1, so it only grows and every upload is newer than the last
+      # one. The +1 keeps the first automatic upload above version code 1, the 1.0.0 build in review (the
+      # developer, 2026-11-23: the first automatic upload is 1.0.1, version code 2). The forced update's
+      # MIN_ANDROID_BUILD is set by hand on the coach server when a release needs it.
       - name: Build the signed bundle
-        run: ./gradlew :app:coachAndroidApp:bundleProdRelease --no-daemon -PversionCode=${{ github.run_number }}
+        run: |
+          VERSION_CODE=$((GITHUB_RUN_NUMBER + 1))
+          echo "Version code $VERSION_CODE"
+          ./gradlew :app:coachAndroidApp:bundleProdRelease --no-daemon -PversionCode=$VERSION_CODE
 
       - name: Upload to Google Play
         uses: r0adkll/upload-google-play@v1
