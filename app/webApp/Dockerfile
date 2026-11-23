@@ -1,6 +1,10 @@
 # Builds and serves the Squadify web client -- Compose Multiplatform for Web, built as a Wasm-with-JS-
 # fallback bundle (composeCompatibilityBrowserDistribution) so it runs in any modern browser.
 #
+# Railway no longer runs this: its build ran out of time there. Deploys build the bundle in GitHub
+# Actions and upload it with app/webApp/prebuilt/Dockerfile instead (.github/workflows/deploy-web.yml,
+# TECHNICAL_DECISIONS §13). This stays for a self-contained `docker build` of the web client.
+#
 # Build context is the REPO ROOT (docker build -f app/webApp/Dockerfile .) -- settings.gradle.kts's
 # `include(...)` requires every listed project directory to physically exist even with
 # --configure-on-demand (verified: omitting `server` fails with "Configuring project ':server'
@@ -30,7 +34,7 @@ RUN mkdir -p $ANDROID_SDK_ROOT/cmdline-tools && \
 
 ENV PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
 
-# Versions must match gradle/libs.versions.toml's android-compileSdk -- see server/Dockerfile's note
+# Versions must match gradle/libs.versions.toml's android-compileSdk -- see server/clubs/Dockerfile's note
 # on the "platforms;android-37.0" (not "android-37") package-naming gotcha.
 RUN yes | sdkmanager --licenses > /dev/null && \
     sdkmanager "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"

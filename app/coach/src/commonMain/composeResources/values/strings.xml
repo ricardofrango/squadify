@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Squadify for Coaches: the coach app's own text. Shared screens use app/shared's strings. -->
+
+    <!-- First setup -->
+    <string name="space_setup_title">Set up your team</string>
+    <string name="space_setup_intro">Tell us about the team you coach. You can add more age groups and teams later.</string>
+    <string name="space_setup_section_space">Club or team</string>
+    <string name="space_setup_name">Name *</string>
+    <string name="space_setup_name_supporting">Your club's or your team's name, as you want to see it.</string>
+    <string name="space_setup_sport">Sport</string>
+    <string name="space_setup_season">Season %1$s. It changes on its own every July.</string>
+    <string name="space_setup_section_team">First team</string>
+    <string name="space_setup_team_name">Team name</string>
+    <string name="space_setup_team_name_supporting">Left empty, it's the age group's name.</string>
+    <string name="btn_space_setup_create">Create</string>
+    <string name="btn_space_setup_creating">Creating…</string>
+    <string name="msg_space_setup_failed">Couldn't set it up. Check your connection and try again.</string>
+
+    <string name="coach_app_name">Squadify Coach</string>
+
+    <!-- The home: every age group the coach has -->
+    <string name="coach_home_title">My spaces</string>
+    <string name="cd_coach_menu">Menu</string>
+    <string name="coach_home_join">Join with a code</string>
+    <string name="coach_home_locked">Locked on the %1$s plan, kept until the plan allows it</string>
+    <string name="coach_menu_account">Account</string>
+    <string name="coach_menu_privacy_options">Privacy options</string>
+    <string name="msg_coach_home_failed">Couldn't load your age groups. Check your connection and try again.</string>
+
+    <!-- Joining with a code -->
+    <string name="join_title">Join with a code</string>
+    <string name="join_intro">Enter the code you were sent. You join that age group as staff.</string>
+    <string name="join_code_label">Code</string>
+    <string name="join_code_placeholder">K7Q-4MZ</string>
+    <string name="btn_join">Join</string>
+    <string name="btn_joining">Joining…</string>
+    <string name="msg_join_not_found">There's no such code. Check it and try again.</string>
+    <string name="msg_join_expired">This code has expired. Ask for a new one.</string>
+    <string name="msg_join_used">This code was already used, or you're already on its age group.</string>
+    <string name="msg_join_no_room">This age group has no room for you on its plan. Ask its owner.</string>
+    <string name="msg_join_failed">Couldn't join. Check your connection and try again.</string>
+
+    <!-- Inviting staff to an age group -->
+    <string name="invite_intro">Create a code and send it to the person you want on %1$s. They sign up in Squadify Coach and enter it. Each code works once, for 7 days.</string>
+    <string name="invite_waiting">Codes waiting (%1$d)</string>
+    <string name="invite_none">No codes waiting.</string>
+    <string name="invite_valid_until">Valid until %1$s</string>
+    <string name="invite_share_text">You're invited to join %1$s (%2$s) as staff on Squadify Coach. Install the app, sign up and enter the code %3$s. It works once, until %4$s.</string>
+    <string name="btn_invite_create">Create a code</string>
+    <string name="btn_invite_creating">Creating…</string>
+    <string name="btn_invite_share">Share</string>
+    <string name="btn_invite_copy">Copy</string>
+    <string name="btn_invite_withdraw">Withdraw</string>
+    <string name="title_invite_withdraw">Withdraw %1$s?</string>
+    <string name="msg_invite_withdraw">Nobody will be able to use it. You can create another one.</string>
+    <string name="msg_invite_copied">Code copied</string>
+    <string name="msg_invite_withdrawn">Code withdrawn</string>
+    <string name="msg_invite_create_failed">Couldn't create a code. Try again.</string>
+    <string name="msg_invite_no_room">Your plan has no room for more staff on this age group.</string>
+    <string name="msg_invite_withdraw_failed">Couldn't withdraw the code. Try again.</string>
+    <string name="msg_invites_failed">Couldn't load the codes.</string>
+    <string name="invite_email_title">Send a code by email</string>
+    <string name="label_invite_email">Email address</string>
+    <string name="invite_email_hint">They get a new code and how to join with it.</string>
+    <string name="btn_invite_send">Send</string>
+    <string name="btn_invite_sending">Sending…</string>
+    <string name="error_invite_email_invalid">That email address isn't valid.</string>
+    <string name="invite_sent_to">Sent to %1$s</string>
+    <string name="msg_invite_email_sent">Code sent by email</string>
+    <string name="msg_invite_email_not_sent">Couldn't send the email. Try again later, or create a code and share it.</string>
+    <string name="msg_invite_send_failed">Couldn't send the invite. Try again.</string>
+
+    <!-- Deleting the account -->
+    <string name="delete_account_title">Delete account</string>
+    <string name="delete_account_space">Your team "%1$s" is deleted with everything in it: %2$s, %3$s and %4$s, with all their stats and reports.</string>
+    <plurals name="delete_account_age_groups">
+        <item quantity="one">%1$d age group</item>
+        <item quantity="other">%1$d age groups</item>
+    </plurals>
+    <plurals name="delete_account_players">
+        <item quantity="one">%1$d player</item>
+        <item quantity="other">%1$d players</item>
+    </plurals>
+    <plurals name="delete_account_games">
+        <item quantity="one">%1$d game</item>
+        <item quantity="other">%1$d games</item>
+    </plurals>
+    <plurals name="delete_account_staff">
+        <item quantity="one">%1$d person you invited loses access to it.</item>
+        <item quantity="other">%1$d people you invited lose access to it.</item>
+    </plurals>
+    <string name="delete_account_staff_spaces">You also leave the age groups you joined with a code. The reports you wrote there stay, under their owner's name.</string>
+    <string name="delete_account_final">This can't be undone.</string>
+    <string name="delete_account_password">Your password</string>
+    <string name="btn_delete_account_confirm">Delete my account</string>
+    <string name="btn_delete_account_deleting">Deleting…</string>
+    <string name="title_delete_account_confirm">Delete your account?</string>
+    <string name="msg_delete_account_wrong_password">Wrong password.</string>
+    <string name="msg_delete_account_failed">Couldn't delete your account. Check your connection and try again.</string>
+    <string name="btn_delete_space">Delete space</string>
+    <string name="delete_space_title">Delete this space?</string>
+    <string name="delete_space_body">The space goes for good, with everything in it: its age groups, players, games, training and staff access. Your account stays.</string>
+    <string name="delete_space_plan">Its plan doesn't stop when you delete it: cancel the subscription in Google Play first.</string>
+    <string name="msg_delete_space_wrong_password">Wrong password.</string>
+    <string name="msg_delete_space_failed">Couldn't delete the space. Check your connection and try again.</string>
+    <string name="btn_leave_space">Leave space</string>
+    <string name="leave_space_title">Leave this space?</string>
+    <string name="leave_space_body">You lose access to its age groups. Your account stays, and so do the reports and ratings you wrote, under the owner's name.</string>
+    <string name="msg_leave_space_wrong_password">Wrong password.</string>
+    <string name="msg_leave_space_failed">Couldn't leave the space. Check your connection and try again.</string>
+    <string name="msg_delete_account_load_failed">Couldn't load your account.</string>
+
+    <!-- My club or team: the owner's own space, its logo -->
+    <string name="my_space_title">My club or team</string>
+    <string name="msg_my_space_failed">Couldn't load your club or team. Check your connection and try again.</string>
+    <!-- Plans: My Space's Plan card and the Plans screen (REQUIREMENTS §5c) -->
+    <string name="plan_card_title">Plan</string>
+    <string name="plan_card_this_season">This season</string>
+    <string name="plan_age_groups_of">Age groups: %1$d of %2$d</string>
+    <string name="plan_age_groups_no_limit">Age groups: %1$d</string>
+    <string name="plan_people_just_you">People per age group: just you</string>
+    <string name="plan_people_up_to">People per age group: up to %1$d, you included</string>
+    <string name="plan_people_no_limit">People per age group: no limit</string>
+    <string name="btn_see_plans_row">See plans</string>
+    <string name="plans_title">Plans</string>
+    <string name="plans_your_plan">Your plan</string>
+    <string name="plans_intro_first">Included in every space</string>
+    <string name="plans_intro_more">Everything in %1$s, plus:</string>
+    <string name="plans_age_groups_one">1 age group a season</string>
+    <string name="plans_age_groups_up_to">%1$d age groups a season</string>
+    <string name="plans_age_groups_no_limit">No limit on age groups</string>
+    <string name="plans_people_only_you">Only you</string>
+    <string name="plans_people_up_to">Up to %1$d people per age group, you included</string>
+    <string name="plans_people_no_limit">No limit on people per age group</string>
+    <string name="plans_load_failed">Couldn't load the plans.</string>
+    <string name="btn_plans_subscribe">Subscribe</string>
+    <string name="btn_plans_subscribe_to">Subscribe to %1$s</string>
+    <string name="btn_plans_subscribing">Sending…</string>
+    <string name="plans_request_failed">Couldn't send your request. Try again.</string>
+    <string name="plans_requested">You asked for %1$s. We'll be in touch to set it up.</string>
+    <string name="plans_monthly">Monthly</string>
+    <string name="plans_yearly">Yearly</string>
+    <string name="plans_price_month">%1$s / month</string>
+    <string name="plans_price_year">%1$s / year</string>
+    <string name="plans_pending">%1$s until %2$s, then %3$s.</string>
+    <string name="plans_purchase_failed">The purchase didn't go through. Try again.</string>
+    <!-- Space details (the coach app): a space's age groups and opponents. -->
+    <string name="space_details_tab_age_groups">Age groups</string>
+    <string name="space_details_tab_opponents">Opponents</string>
+    <string name="space_details_edit">Edit space</string>
+    <string name="space_details_staff">Staff</string>
+    <string name="space_details_owned_by">by %1$s</string>
+    <string name="space_details_staff_note">You only see the age groups you're staff in.</string>
+    <plurals name="space_details_count">
+        <item quantity="one">%1$d age group · sorted by club and age</item>
+        <item quantity="other">%1$d age groups · sorted by club and age</item>
+    </plurals>
+    <string name="space_details_born">Born in %1$s</string>
+    <plurals name="space_details_teams">
+        <item quantity="one">Team %1$s</item>
+        <item quantity="other">Teams %1$s</item>
+    </plurals>
+    <string name="space_details_no_teams">No teams yet</string>
+    <string name="space_details_next_game">Next game · %1$s · vs %2$s</string>
+    <string name="space_details_add_age_groups">Add age groups</string>
+    <string name="space_details_new_opponent">New opponent</string>
+    <string name="space_details_empty_title">No age groups yet</string>
+    <string name="space_details_empty_body">Add this space's age groups. Each one has the name and crest of the club it plays for, for example "Povoense - Sub 11".</string>
+    <string name="msg_space_details_failed">Couldn't load this space.</string>
+    <!-- Home: the coach's spaces. -->
+    <string name="coach_home_my_space">My space</string>
+    <string name="coach_home_shared_spaces">Spaces I help in</string>
+    <string name="coach_home_default_space_name">%1$s's space</string>
+    <plurals name="coach_home_age_groups">
+        <item quantity="one">%1$d age group</item>
+        <item quantity="other">%1$d age groups</item>
+    </plurals>
+    <plurals name="coach_home_opponents">
+        <item quantity="one">%1$d opponent</item>
+        <item quantity="other">%1$d opponents</item>
+    </plurals>
+    <string name="coach_home_no_age_groups">No age groups yet</string>
+    <string name="coach_home_first_age_groups">Create your first age groups to start recording games.</string>
+    <string name="coach_home_create_age_groups">Create age groups</string>
+    <string name="coach_home_got_code">Got a code from another coach?</string>
+    <!-- The age-group wizard (the coach app). -->
+    <string name="wizard_title">Add age groups</string>
+    <string name="wizard_step_club">Club</string>
+    <string name="wizard_step_age_groups">Age groups</string>
+    <string name="wizard_step_teams">Teams</string>
+    <string name="wizard_step_of">%1$d of %2$d</string>
+    <string name="wizard_club_question">Which club do these age groups play for?</string>
+    <string name="wizard_club_intro">The club's name and crest go into each age group's name and its teams.</string>
+    <string name="wizard_crest_choose">Choose crest</string>
+    <string name="wizard_crest_optional">Optional · without an image, we use the initials</string>
+    <string name="wizard_club_name">Club name *</string>
+    <string name="wizard_club_name_placeholder">E.g. Povoense</string>
+    <string name="wizard_club_hint">Shown as "Club - Sub 11".</string>
+    <string name="wizard_club_name_required">The club's name is required.</string>
+    <string name="wizard_club_name_dash">The name can't have " - " in it.</string>
+    <string name="wizard_used_clubs">Used in this space</string>
+    <string name="wizard_club_hint_used">Tap a club to fill in its name and crest.</string>
+    <string name="wizard_pick_by_year">Type each age group's birth year</string>
+    <string name="wizard_season">Season %1$s</string>
+    <string name="wizard_football">Football</string>
+    <string name="wizard_futsal">Futsal</string>
+    <string name="wizard_age_group_n">AGE GROUP %1$d</string>
+    <string name="wizard_remove">Remove</string>
+    <string name="wizard_birth_year">Birth year *</string>
+    <string name="wizard_birth_year_placeholder">E.g. 2016</string>
+    <string name="wizard_year_missing">Type the birth year (4 digits).</string>
+    <string name="wizard_year_range">A year from %1$d to %2$d.</string>
+    <string name="wizard_year_repeated">This year is already in an age group above.</string>
+    <string name="wizard_year_taken_error">This club already has an age group for this year this season.</string>
+    <string name="wizard_size_missing">Pick how many players on the pitch.</string>
+    <string name="wizard_add_age_group">Add another age group</string>
+    <string name="wizard_team_size">Players on the pitch</string>
+    <string name="wizard_join_younger">Join with %1$d (two years)</string>
+    <string name="wizard_teams_question">How many teams in each age group?</string>
+    <string name="wizard_teams_born">Born in %1$s · %2$d-a-side</string>
+    <plurals name="wizard_summary_age_groups">
+        <item quantity="one">%1$d age group</item>
+        <item quantity="other">%1$d age groups</item>
+    </plurals>
+    <plurals name="wizard_summary_teams">
+        <item quantity="one">%1$d team</item>
+        <item quantity="other">%1$d teams</item>
+    </plurals>
+    <string name="wizard_back">Back</string>
+    <string name="wizard_next">Next</string>
+    <string name="wizard_creating">Creating…</string>
+    <string name="wizard_create">Create</string>
+    <string name="wizard_problem_plan">Your plan has no room for these age groups this season.</string>
+    <string name="wizard_problem_years">This club already has age groups for the years marked, this season.</string>
+    <string name="wizard_problem_crest_too_big">That image is too big (5 MB at most).</string>
+    <string name="wizard_problem_failed">Couldn't create the age groups. Try again.</string>
+    <string name="msg_wizard_failed_to_load">Couldn't load your space.</string>
+    <string name="space_details_new">New</string>
+    <string name="space_details_created">%1$s and %2$s created</string>
+    <string name="space_details_created_no_crest">%1$s and %2$s created, but the crest wasn't saved on all of them</string>
+    <string name="space_details_ok">OK</string>
+    <string name="space_details_import_training_skipped">Imported. Training isn't on this space's plan, so the training wasn't imported.</string>
+    <string name="space_details_import_failed">Couldn't import the age group. Start the import again to try once more.</string>
+    <string name="space_details_import_age_groups">Import an age group from the clubs app</string>
+</resources>

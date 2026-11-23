@@ -1,0 +1,132 @@
+name: Deploy web
+
+# Builds the web client here and hands Railway only the result. Railway used to compile it itself
+# from app/webApp/Dockerfile (the Wasm + JS bundle, plus the Android SDK just to configure :core), which
+# grew past its build time limit ("DeadlineExceeded: context deadline exceeded"). Now Railway's build is
+# an nginx image copying the files in (app/webApp/prebuilt/Dockerfile). See TECHNICAL_DECISIONS §13/§17.
+#
+# - Staging: on every push to develop that touches what the web client is built from.
+# - Production: from deploy-production.yml (which calls this after its test gate), or by hand here
+#   ("Run workflow", environment = production).
+#
+# Needs a Railway project token per environment, as repo secrets: RAILWAY_STAGING_TOKEN (scoped to
+# staging) and RAILWAY_TOKEN (scoped to production, the one deploy-production.yml already uses). The
+# Railway webApp service must no longer deploy from GitHub itself (Settings -> Source -> disconnect),
+# or it would still run the long build on every push.
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "app/webApp/**"
+      - "app/shared/**"
+      - "app/clubs/**"
+      - "core/**"
+      - "common/**"
+      - "gradle/libs.versions.toml"
+      - "gradle/wrapper/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Railway environment to deploy to"
+        type: choice
+        options: [staging, production]
+        default: staging
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+
+# A newer push replaces a staging deploy still building; a production run is never cancelled.
+concurrency:
+  group: deploy-web-${{ inputs.environment || 'staging' }}
+  cancel-in-progress: ${{ (inputs.environment || 'staging') == 'staging' }}
+
+env:
+  SQUADIFY_ENV: ${{ inputs.environment || 'staging' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      # Only so Gradle can configure :app:shared -> :core's Android target; nothing Android is built.
+      - uses: android-actions/setup-android@v4
+      # The runner of a private repo has 7 GB of memory. The Kotlin compile (a few GB of Gradle heap)
+      # and webpack's minifier (about 4 GB of Node) don't fit at the same time, and the runner was shut
+      # down when they overlapped. So the build runs in two Gradle invocations: the first compiles, and
+      # its JVM exits; the second, with a small heap, only links, optimises and bundles what's compiled.
+      # One task at a time in each, and some swap as a margin. No --configure-on-demand: the js/wasmJs
+      # targets don't support it.
+      - name: Add swap
+        run: |
+          sudo fallocate -l 4G /swapfile-build
+          sudo chmod 600 /swapfile-build
+          sudo mkswap /swapfile-build
+          sudo swapon /swapfile-build
+          free -h
+      - name: Compile
+        run: >-
+          ./gradlew :app:webApp:compileProductionExecutableKotlinJs :app:webApp:compileProductionExecutableKotlinWasmJs
+          -PsquadifyEnv="$SQUADIFY_ENV" --no-daemon --max-workers=1
+          -Pkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs="-Xmx5g -Dfile.encoding=UTF-8"
+      - name: Bundle
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: >-
+          ./gradlew :app:webApp:composeCompatibilityBrowserDistribution
+          -PsquadifyEnv="$SQUADIFY_ENV" --no-daemon --max-workers=1
+          -Pkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs="-Xmx1g -Dfile.encoding=UTF-8"
+      - name: Assemble the upload
+        run: |
+          mkdir -p web-deploy/app/webApp
+          cp -r app/webApp/build/dist/composeWebCompatibility/productionExecutable web-deploy/dist
+          cp app/webApp/nginx.conf web-deploy/nginx.conf
+          cp app/webApp/prebuilt/Dockerfile web-deploy/Dockerfile
+          cp app/webApp/prebuilt/Dockerfile web-deploy/app/webApp/Dockerfile
+          test -f web-deploy/dist/index.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-deploy
+          path: web-deploy
+          retention-days: 3
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ (inputs.environment || 'staging') == 'production' && secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING_TOKEN }}
+      # The web service's Railway ID (from its dashboard URL), a repository variable per environment,
+      # since a production in its own Railway project would have different IDs.
+      RAILWAY_WEB_SERVICE: ${{ (inputs.environment || 'staging') == 'production' && vars.RAILWAY_WEB_SERVICE_PRODUCTION || vars.RAILWAY_WEB_SERVICE_STAGING }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-deploy
+          path: web-deploy
+      - name: Check the token and service
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::error::The Railway token for $SQUADIFY_ENV isn't set (RAILWAY_STAGING_TOKEN / RAILWAY_TOKEN)"
+            exit 1
+          fi
+          if [ -z "$RAILWAY_WEB_SERVICE" ]; then
+            echo "::error::The web service's Railway ID for $SQUADIFY_ENV isn't set (variable RAILWAY_WEB_SERVICE_STAGING / RAILWAY_WEB_SERVICE_PRODUCTION)"
+            exit 1
+          fi
+      # --path-as-root: the upload's root is web-deploy/, not the repo. --service takes the service's
+      # ID rather than its name, which can be renamed in Railway.
+      - run: railway up web-deploy --path-as-root --service "$RAILWAY_WEB_SERVICE" --ci

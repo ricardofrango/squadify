@@ -2,26 +2,43 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- A short vibration when a player is picked up to drag on the pitch (PickUpHaptic.android.kt). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- The other Squadify app, to copy an age group from it (TECHNICAL_DECISIONS §81). -->
+    <queries>
+        <package android:name="com.sportssoftw.squadify.coach" />
+        <package android:name="com.sportssoftw.squadify.coach.stg" />
+        <package android:name="com.sportssoftw.squadify.coach.dev" />
+    </queries>
 
     <application
         android:name=".SquadifyApplication"
         android:networkSecurityConfig="@xml/network_security_config"
         android:allowBackup="true"
-        android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Squadify">
+        android:theme="@style/Theme.Squadify.Starting">
         <activity
             android:exported="true"
-            android:name=".MainActivity">
+            android:launchMode="singleTop"
+            android:name=".MainActivity"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- The push service (SquadifyMessagingService) comes from app/shared's manifest. -->
+        <!-- Allows the other app's copy of an age group: asks for consent, then returns a grant (only started explicitly). -->
+        <activity
+            android:name="com.sportssoftw.squadify.presentation.agegroupimport.ExportAgeGroupsActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
     </application>
 
 </manifest>

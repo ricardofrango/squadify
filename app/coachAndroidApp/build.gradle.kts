@@ -1,0 +1,177 @@
+import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.net.Inet4Address
+import java.net.NetworkInterface
+import java.util.Properties
+
+// Squadify for Coaches on Android (TECHNICAL_DECISIONS §72): starts :app:coach against the coach server.
+// Its own app id, so it installs next to the clubs app. Its own Firebase project, squadify-for-coach
+// (google-services.json): Crashlytics, pushes from the coach server (app/shared's push code), and
+// staging builds to testers through App Distribution (deploy-staging-coach.yml).
+plugins {
+    alias(libs.plugins.androidApplication)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.googleServices)
+    alias(libs.plugins.firebaseCrashlytics)
+    alias(libs.plugins.firebaseAppDistribution)
+    alias(libs.plugins.baselineProfile)
+}
+
+// Local-only, gitignored, as in the clubs app: the release keystore, else the debug one.
+val keystorePropertiesFile = rootProject.file("keystore/keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+// The dev flavor talks to the coach server on this machine (port 8090), at this machine's LAN address,
+// resolved as in the clubs app: `squadify.devHost` in local.properties, else the first site-local IPv4
+// address, else the emulator's host loopback.
+val devHost: String = run {
+    val localProps = Properties().apply {
+        rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    }
+    localProps.getProperty("squadify.devHost")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: NetworkInterface.getNetworkInterfaces().asSequence()
+            .filter { it.isUp && !it.isLoopback && !it.isVirtual }
+            .flatMap { it.inetAddresses.asSequence() }
+            .filterIsInstance<Inet4Address>()
+            .firstOrNull { it.isSiteLocalAddress }
+            ?.hostAddress
+        ?: "10.0.2.2"
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_11
+    }
+}
+dependencies {
+    implementation(project(":app:coach"))
+
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.compose.foundation)
+    implementation(libs.koin.android)
+
+    // Firebase: Crashlytics, and Cloud Messaging for the device's push token (the BoM pins versions).
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.messaging)
+
+    // Installs the Baseline Profile on devices whose store doesn't (sideloads, older Android).
+    implementation(libs.androidx.profileinstaller)
+}
+
+// One profile for every flavor: the code a cold start runs is the same, only the server differs. It's
+// recorded with the dev build only: the staging and production apps on the phone are store installs
+// the recording would otherwise replace.
+baselineProfile {
+    mergeIntoMain = true
+    variants {
+        create("dev") { from(project(":app:coachBaselineProfile")) }
+    }
+}
+
+// The coach app's own version name, not the clubs app's VERSION_NAME, so the coach app can be bumped on
+// its own. CI passes -PversionCode.
+val versionNameProp = "1.0.1"
+val ciBuildNumber = (project.findProperty("versionCode") as? String)?.toIntOrNull()
+
+android {
+    namespace = "com.sportssoftw.squadify.coach.android"
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
+
+    defaultConfig {
+        applicationId = "com.sportssoftw.squadify.coach"
+        minSdk = libs.versions.android.minSdk.get().toInt()
+        targetSdk = libs.versions.android.targetSdk.get().toInt()
+        versionCode = ciBuildNumber ?: 1
+        versionName = versionNameProp
+        // AdMob (ads on the Free plan, REQUIREMENTS §5c): the app id goes in the manifest, the banner's unit
+        // in BuildConfig. Google's test ids here, for dev and staging: test ads only, never real ones (and no
+        // clicks of ours that could get an account banned). The prod flavor sets the developer's own below.
+        manifestPlaceholders["adMobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+        buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3940256099942544/9214589741\"")
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+
+    // As in the clubs app: dev and staging have a suffix, so all three install side by side. Staging is its own
+    // app in Play Console (the developer, 2026-11-04), never published, for Google Play's test purchases.
+    flavorDimensions += "environment"
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            buildConfigField("String", "BASE_URL", "\"http://$devHost:8090/v1\"")
+            resValue("string", "app_name", "Squadify Coach Dev")
+        }
+        create("staging") {
+            dimension = "environment"
+            applicationIdSuffix = ".stg"
+            // The coach-server service's Railway domain on staging.
+            buildConfigField("String", "BASE_URL", "\"https://squadify-for-coach-staging.up.railway.app/v1\"")
+            resValue("string", "app_name", "Squadify Coach Stg")
+            versionNameSuffix = "-stg.${ciBuildNumber ?: "local"}"
+        }
+        create("prod") {
+            dimension = "environment"
+            // The coach server's production service on Railway (its public domain).
+            buildConfigField("String", "BASE_URL", "\"https://squadify-production.up.railway.app/v1\"")
+            resValue("string", "app_name", "Squadify Coach")
+            // The developer's AdMob app and its Free-plan banner (the only build that serves real ads).
+            manifestPlaceholders["adMobAppId"] = "ca-app-pub-3440435107955103~9995919178"
+            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3440435107955103/1056910189\"")
+        }
+    }
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file("keystore/squadify-keystore.jks")
+                storePassword = keystoreProperties.getProperty("password")
+                keyAlias = keystoreProperties.getProperty("alias")
+                keyPassword = keystoreProperties.getProperty("alias-password")
+            }
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+            // R8: shrinks, optimises and obfuscates the code, and drops unused resources (§11.7). The
+            // rules R8 starts from are Android's optimised defaults plus the app's own.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // The native debug symbols go into the bundle, so Play Console can read native crashes and
+            // ANRs ("you've not uploaded debug symbols" otherwise).
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
+            firebaseAppDistribution {
+                // The squadify-for-coach service account, gitignored at the repo root; CI writes it
+                // from the FIREBASE_COACH_SERVICE_ACCOUNT_JSON secret.
+                serviceCredentialsFile = rootProject.file("firebase-coach-service-account.json").path
+                groups = "squadify-coach-testers"
+            }
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+        resValues = true
+    }
+}

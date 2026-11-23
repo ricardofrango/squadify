@@ -1,0 +1,166 @@
+package com.sportssoftw.squadify.domain.usecase
+
+import com.sportssoftw.squadify.domain.access.ClubAccessPolicy
+import com.sportssoftw.squadify.domain.repository.AgeGroupRepository
+import com.sportssoftw.squadify.domain.repository.ClubRepository
+import com.sportssoftw.squadify.domain.repository.MatchEventRepository
+import com.sportssoftw.squadify.domain.repository.MatchRepository
+import com.sportssoftw.squadify.domain.repository.OpponentRepository
+import com.sportssoftw.squadify.domain.repository.PlayerRepository
+import com.sportssoftw.squadify.domain.repository.SeasonRepository
+import com.sportssoftw.squadify.domain.repository.TeamRepository
+import com.sportssoftw.squadify.domain.repository.UserRepository
+import com.sportssoftw.squadify.domain.repository.ClubPermissionRepository
+import com.sportssoftw.squadify.domain.service.TransactionManager
+import com.sportssoftw.squadify.exception.ForbiddenException
+import com.sportssoftw.squadify.exception.NotFoundException
+import com.sportssoftw.squadify.model.AgeGroup
+import com.sportssoftw.squadify.model.ClubRole
+import com.sportssoftw.squadify.model.Player
+import com.sportssoftw.squadify.model.Season
+import com.sportssoftw.squadify.model.SeasonType
+import com.sportssoftw.squadify.model.Team
+import com.sportssoftw.squadify.model.AgeGroupRole
+import com.sportssoftw.squadify.model.User
+import com.sportssoftw.squadify.model.UserStatus
+import io.mockk.coEvery
+import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
+import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.time.Instant
+
+class GetAgeGroupDetailsUseCaseTest {
+
+    private val ageGroupRepository = mockk<AgeGroupRepository>()
+    private val clubRepository = mockk<ClubRepository>()
+    private val seasonRepository = mockk<SeasonRepository>()
+    private val playerRepository = mockk<PlayerRepository>()
+    private val teamRepository = mockk<TeamRepository>()
+    private val matchRepository = mockk<MatchRepository>()
+    private val matchEventRepository = mockk<MatchEventRepository>()
+    private val opponentRepository = mockk<OpponentRepository>()
+    private val userRepository = mockk<UserRepository>()
+    private val transactionManager = object : TransactionManager {
+        override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
+    }
+    private val clubPermissionRepository = mockk<ClubPermissionRepository>(relaxed = true)
+    init { coEvery { clubPermissionRepository.getOverride(any(), any()) } returns null }
+    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
+        userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
+    )
+    private val useCase = GetAgeGroupDetailsUseCase(
+        ageGroupRepository, clubRepository, seasonRepository, playerRepository, teamRepository,
+        matchRepository, matchEventRepository, opponentRepository, ClubAccessPolicy(checkUserPermissionUseCase), transactionManager
+    )
+
+    private val clubIdA = "club-a"
+    private val ageGroupId = "ag-1"
+    private val ageGroup = AgeGroup(id = ageGroupId, clubId = clubIdA, name = "Sub 2015", seasonId = "s1", startYear = 2015, endYear = 2015)
+    private val season = Season(
+        id = "s1", clubId = clubIdA, name = "26/27", type = SeasonType.EUROPEAN_YEAR,
+        startDate = LocalDate(2026, 7, 1), endDate = LocalDate(2027, 6, 30), active = true
+    )
+    private val teamInAg = Team(id = "t1", clubId = clubIdA, ageGroupId = ageGroupId, seasonId = "s1", name = "Sub 2015 A", code = null, active = true)
+    private val teamOtherAg = Team(id = "t2", clubId = clubIdA, ageGroupId = "ag-other", seasonId = "s1", name = "Sub 2016 A", code = null, active = true)
+
+    private fun user(id: String) = User(
+        id = id, email = "$id@test.com", firstName = "Test", lastName = "User",
+        status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0)
+    )
+
+    private fun stubReads() {
+        coEvery { ageGroupRepository.getAgeGroupById(ageGroupId) } returns ageGroup
+        coEvery { clubRepository.getClubById(clubIdA) } returns mockk(relaxed = true)
+        coEvery { seasonRepository.getSeasonById("s1") } returns season
+        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(teamInAg, teamOtherAg)
+        coEvery { matchRepository.getMatchesByTeam("t1") } returns emptyList()
+        coEvery { playerRepository.getPlayersByAgeGroup(ageGroupId) } returns listOf(
+            Player(id = "p1", clubId = clubIdA, firstName = "A", lastName = "B", birthDate = LocalDate(2016, 1, 1), active = true)
+        )
+        coEvery { ageGroupRepository.getAgeGroupStaff(ageGroupId) } returns emptyList()
+        coEvery { opponentRepository.getOpponentsByClub(clubIdA) } returns emptyList()
+    }
+
+    @Test
+    fun coordinatorGetsTheAggregateWithAllFourManageFlagsTrueAndOnlyThisAgeGroupsTeams() = runBlocking {
+        val coord = user("p3-coordinator")
+        coEvery { userRepository.findById(coord.id) } returns coord
+        coEvery { userRepository.getUserRoleInClub(coord.id, clubIdA) } returns ClubRole.COORDINATOR
+        stubReads()
+
+        val result = useCase(coord.id, ageGroupId)
+
+        assertEquals(listOf("t1"), result.teams.map { it.id })
+        assertEquals("26/27", result.season.name)
+        assertEquals(true, result.canAddStaff)
+        assertEquals(true, result.canCreateTeam)
+        assertEquals(true, result.canManageMatch)
+        assertEquals(true, result.canAssignPlayersToAgeGroup)
+        Unit
+    }
+
+    @Test
+    fun ageGroupStaffCanReadButNoneOfTheManageFlagsAreTrue() = runBlocking {
+        // STAFF passes the read gate (minAgeGroupRole = STAFF) but clears none of the four manage
+        // thresholds: canAddStaff is permanently coordinator-only, and the three configurable ones
+        // (CREATE_TEAM/MANAGE_MATCH/ASSIGN_PLAYERS_TO_AGE_GROUP) default to Coach.
+        val staff = user("p6-staff")
+        coEvery { userRepository.findById(staff.id) } returns staff
+        coEvery { userRepository.getUserRoleInClub(staff.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ageGroupId) } returns AgeGroupRole.STAFF
+        stubReads()
+
+        val result = useCase(staff.id, ageGroupId)
+
+        assertEquals(false, result.canAddStaff)
+        assertEquals(false, result.canCreateTeam)
+        assertEquals(false, result.canManageMatch)
+        assertEquals(false, result.canAssignPlayersToAgeGroup)
+        Unit
+    }
+
+    @Test
+    fun ageGroupCoachCanCreateTeamsManageMatchesAndAssignPlayersButNotAddStaff() = runBlocking {
+        // A coach clears the three club-configurable thresholds (all default to Coach, including the
+        // newly-split-out CREATE_TEAM -- §37: a coach who'd just set up an age group had no way to add
+        // a second team to it themselves before this) but adding staff stays permanently
+        // coordinator/admin-only -- this is exactly the mismatch that used to be missed when
+        // create-team and add-staff were bundled into one literal COACH-excluding probe.
+        val coach = user("p7-coach")
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ageGroupId) } returns AgeGroupRole.COACH
+        stubReads()
+
+        val result = useCase(coach.id, ageGroupId)
+
+        assertEquals(false, result.canAddStaff)
+        assertEquals(true, result.canCreateTeam)
+        assertEquals(true, result.canManageMatch)
+        assertEquals(true, result.canAssignPlayersToAgeGroup)
+        Unit
+    }
+
+    @Test
+    fun aPlainMemberWithNoAgeGroupRoleOrLinkIsDenied() = runBlocking {
+        val member = user("p4-plain-member")
+        coEvery { ageGroupRepository.getAgeGroupById(ageGroupId) } returns ageGroup
+        coEvery { userRepository.findById(member.id) } returns member
+        coEvery { userRepository.getUserRoleInClub(member.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(member.id, ageGroupId) } returns null
+        coEvery { playerRepository.getPlayersByUser(member.id) } returns emptyList()
+
+        assertFailsWith<ForbiddenException> { useCase(member.id, ageGroupId) }
+        Unit
+    }
+
+    @Test
+    fun aMissingAgeGroupIs404() = runBlocking {
+        coEvery { ageGroupRepository.getAgeGroupById("nope") } returns null
+        assertFailsWith<NotFoundException> { useCase("anyone", "nope") }
+        Unit
+    }
+}

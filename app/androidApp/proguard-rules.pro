@@ -1,21 +1,10 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
+# R8 rules for Squadify's (clubs) release build (TECHNICAL_DECISIONS.md §11.7).
 #
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# The libraries the app uses ship their own consumer rules (kotlinx.serialization for the @Serializable
+# models and the Navigation 3 screens, Ktor, Koin, Firebase, Play Billing, Compose), so nothing of ours
+# needs keeping by name. Add a rule here only for something R8 removed that a test build showed missing.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
-
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Readable crash reports: Crashlytics maps the obfuscated names back with the mapping file the
+# Crashlytics Gradle plugin uploads; it still needs the line numbers and source file to point at.
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

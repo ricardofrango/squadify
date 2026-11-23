@@ -10,15 +10,9 @@ plugins {
 }
 
 kotlin {
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "Shared"
-            isStatic = true
-        }
-    }
+    // The iOS framework is built by each app's module (:app:clubs today), not by this shared one.
+    iosArm64()
+    iosSimulatorArm64()
     
     jvm()
     
@@ -32,7 +26,7 @@ kotlin {
     }
     
     android {
-       namespace = "com.ricardofrango.squadify.app.shared"
+       namespace = "com.sportssoftw.squadify.app.shared"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
        minSdk = libs.versions.android.minSdk.get().toInt()
     
@@ -63,6 +57,15 @@ kotlin {
             // checkServerTrusted(X509Certificate[], String, String) is used". OkHttp's SSLSocket-based
             // stack handles this correctly; this is Ktor's own documented workaround for Android.
             implementation(libs.ktor.client.okhttp)
+            // Credential Manager: the system's "save password?" sheet and saved-account sign-in
+            // (CredentialStore.android.kt). play-services-auth is what serves it on Android 13 and below.
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.playServicesAuth)
+            // Push notifications for both apps (com.sportssoftw.squadify.push): receiving them, the
+            // device's token, and asking for the permission.
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.messaging)
+            implementation(libs.androidx.activity.compose)
         }
         iosMain.dependencies {
             // Ktor's HttpClient() picks its engine at runtime from whatever engine artifacts are
@@ -77,6 +80,7 @@ kotlin {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
+            implementation(libs.compose.material3.adaptive)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
@@ -85,7 +89,9 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             
             // Navigation
-            implementation(libs.navigation)
+            implementation(libs.navigation3.ui)
+            implementation(libs.androidx.lifecycle.viewmodelNavigation3)
+            implementation(libs.navigationevent.compose)
 
             // Koin -- koin-core is `api`, not `implementation`: initKoin()'s return type (KoinApplication)
             // is part of this module's public surface, so consumers need it on their own compile
@@ -100,12 +106,21 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.websockets)
+            implementation(libs.ktor.client.auth)
 
             // Settings
             implementation(libs.multiplatform.settings.no.arg)
+
+            // Images: Coil loads the club logo through the app's authenticated Ktor client; FileKit
+            // opens the platform's image picker for uploading one.
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
+            implementation(libs.filekit.dialogs.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.ktor.client.mock)
+            implementation(libs.kotlinx.coroutines.test)
         }
         jsMain.dependencies {
             implementation(libs.wrappers.browser)
@@ -115,4 +130,11 @@ kotlin {
 
 dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
+}
+
+// The apps' modules (:app:clubs, later :app:coach) use these strings and images too, so the generated
+// Res class is public; its package stays the one every import already uses.
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "squadify.app.shared.generated.resources"
 }

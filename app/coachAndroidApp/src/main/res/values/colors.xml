@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window behind the splash screen, as in the clubs app. -->
+    <color name="window_background">#121212</color>
+    <!-- The coach app's icon: the mark on white (the clubs app's is on carbon). -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- The white disc behind the mark on the launch splash (Theme.SquadifyCoach.Starting), as on the icon. -->
+    <color name="splash_icon_background">#FFFFFF</color>
+</resources>

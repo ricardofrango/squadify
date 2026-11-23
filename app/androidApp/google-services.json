@@ -7,9 +7,47 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:435522049821:android:e8ee71f3f4e691fed6b3f4",
+        "mobilesdk_app_id": "1:435522049821:android:fca9f5b6a1c2f8c9d6b3f4",
         "android_client_info": {
-          "package_name": "com.ricardofrango.squadify"
+          "package_name": "com.sportssoftw.squadify.club"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV47oB07nSpLqoVT3IqUfKC2qbbXCnZOw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:435522049821:android:4d1a7c4c0b7072e6d6b3f4",
+        "android_client_info": {
+          "package_name": "com.sportssoftw.squadify.club.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV47oB07nSpLqoVT3IqUfKC2qbbXCnZOw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:435522049821:android:3fa4017302185f5dd6b3f4",
+        "android_client_info": {
+          "package_name": "com.sportssoftw.squadify.club.stg"
         }
       },
       "oauth_client": [],

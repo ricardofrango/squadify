@@ -1,9 +1,9 @@
 name: Deploy production
 
-# Manual only (workflow_dispatch) -- deliberately not on push, per the developer. Deploys the server and
-# web client services to Railway's production environment via the Railway CLI, using the current state
-# of whichever branch is selected when the workflow is run (defaults to main). Android/iOS store
-# publishing is out of scope here -- see ISSUES TO FIX.md.
+# Runs on every push to main, which is a merge of develop into main (the production release). Deploys the
+# clubs server, the coach server and the web client to Railway's production environment via the Railway
+# CLI (the web client built here first, by deploy-web.yml). Merges to develop deploy to staging, as before.
+# The coach Android app goes to Google Play from release-coach-android.yml on the same push.
 #
 # Requires a Railway PROJECT TOKEN (Railway dashboard -> Project Settings -> Tokens), scoped to the
 # production environment, stored as the RAILWAY_TOKEN repo secret. See
@@ -11,7 +11,8 @@ name: Deploy production
 # (ghcr.io/railwayapp/cli container + `railway up --ci`).
 
 on:
-  workflow_dispatch: {}
+  push:
+    branches: [main]
 
 jobs:
   test:
@@ -40,7 +41,7 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew :server:test --no-daemon
+      - run: ./gradlew :server:core:test :server:data:test :server:web:test :server:clubs:test :server:coach:test --no-daemon
 
   deploy-railway-production:
     needs: test
@@ -50,7 +51,17 @@ jobs:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy server
+      - name: Deploy clubs server
         run: railway up --service server --ci
-      - name: Deploy web client
-        run: railway up --service webApp --ci
+
+      - name: Deploy coach server
+        run: railway up --service "Squadify Coach BE" --ci
+
+  # The web client is built here in Actions and Railway only serves it (deploy-web.yml), since
+  # Railway's own build of it ran out of time.
+  deploy-web-production:
+    needs: test
+    uses: ./.github/workflows/deploy-web.yml
+    with:
+      environment: production
+    secrets: inherit

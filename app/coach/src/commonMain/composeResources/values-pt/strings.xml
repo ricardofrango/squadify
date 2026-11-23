@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Squadify for Coaches: the coach app's own text. Shared screens use app/shared's strings. -->
+
+    <!-- First setup -->
+    <string name="space_setup_title">Configura a tua equipa</string>
+    <string name="space_setup_intro">Fala-nos da equipa que treinas. Podes juntar mais escalões e equipas depois.</string>
+    <string name="space_setup_section_space">Clube ou equipa</string>
+    <string name="space_setup_name">Nome *</string>
+    <string name="space_setup_name_supporting">O nome do teu clube ou da tua equipa, como o queres ver.</string>
+    <string name="space_setup_sport">Modalidade</string>
+    <string name="space_setup_season">Época %1$s. Muda sozinha todos os anos em julho.</string>
+    <string name="space_setup_section_team">Primeira equipa</string>
+    <string name="space_setup_team_name">Nome da equipa</string>
+    <string name="space_setup_team_name_supporting">Se ficar vazio, é o nome do escalão.</string>
+    <string name="btn_space_setup_create">Criar</string>
+    <string name="btn_space_setup_creating">A criar…</string>
+    <string name="msg_space_setup_failed">Não foi possível configurar. Verifica a ligação e tenta outra vez.</string>
+
+    <string name="coach_app_name">Squadify Coach</string>
+
+    <!-- The home: every age group the coach has -->
+    <string name="coach_home_title">Os meus espaços</string>
+    <string name="cd_coach_menu">Menu</string>
+    <string name="coach_home_join">Entrar com um código</string>
+    <string name="coach_home_locked">Bloqueado no plano %1$s, guardado até o plano o permitir</string>
+    <string name="coach_menu_account">Conta</string>
+    <string name="coach_menu_privacy_options">Opções de privacidade</string>
+    <string name="msg_coach_home_failed">Não foi possível carregar os teus escalões. Verifica a ligação e tenta outra vez.</string>
+
+    <!-- Joining with a code -->
+    <string name="join_title">Entrar com um código</string>
+    <string name="join_intro">Escreve o código que te enviaram. Entras nesse escalão como staff.</string>
+    <string name="join_code_label">Código</string>
+    <string name="join_code_placeholder">K7Q-4MZ</string>
+    <string name="btn_join">Entrar</string>
+    <string name="btn_joining">A entrar…</string>
+    <string name="msg_join_not_found">Esse código não existe. Confirma-o e tenta outra vez.</string>
+    <string name="msg_join_expired">Este código expirou. Pede um novo.</string>
+    <string name="msg_join_used">Este código já foi usado, ou já estás no escalão dele.</string>
+    <string name="msg_join_no_room">Este escalão não tem lugar para ti no plano. Fala com o dono.</string>
+    <string name="msg_join_failed">Não foi possível entrar. Verifica a ligação e tenta outra vez.</string>
+
+    <!-- Inviting staff to an age group -->
+    <string name="invite_intro">Cria um código e envia-o a quem queres em %1$s. Essa pessoa regista-se no Squadify Coach e escreve-o. Cada código funciona uma vez, durante 7 dias.</string>
+    <string name="invite_waiting">Códigos por usar (%1$d)</string>
+    <string name="invite_none">Não há códigos por usar.</string>
+    <string name="invite_valid_until">Válido até %1$s</string>
+    <string name="invite_share_text">Foste convidado para o staff de %1$s (%2$s) no Squadify Coach. Instala a app, regista-te e escreve o código %3$s. Funciona uma vez, até %4$s.</string>
+    <string name="btn_invite_create">Criar código</string>
+    <string name="btn_invite_creating">A criar…</string>
+    <string name="btn_invite_share">Partilhar</string>
+    <string name="btn_invite_copy">Copiar</string>
+    <string name="btn_invite_withdraw">Retirar</string>
+    <string name="title_invite_withdraw">Retirar %1$s?</string>
+    <string name="msg_invite_withdraw">Ninguém o vai poder usar. Podes criar outro.</string>
+    <string name="msg_invite_copied">Código copiado</string>
+    <string name="msg_invite_withdrawn">Código retirado</string>
+    <string name="msg_invite_create_failed">Não foi possível criar um código. Tenta outra vez.</string>
+    <string name="msg_invite_no_room">O teu plano não tem lugar para mais staff neste escalão.</string>
+    <string name="msg_invite_withdraw_failed">Não foi possível retirar o código. Tenta outra vez.</string>
+    <string name="msg_invites_failed">Não foi possível carregar os códigos.</string>
+    <string name="invite_email_title">Enviar um código por email</string>
+    <string name="label_invite_email">Endereço de email</string>
+    <string name="invite_email_hint">Recebe um código novo e como entrar com ele.</string>
+    <string name="btn_invite_send">Enviar</string>
+    <string name="btn_invite_sending">A enviar…</string>
+    <string name="error_invite_email_invalid">Este endereço de email não é válido.</string>
+    <string name="invite_sent_to">Enviado para %1$s</string>
+    <string name="msg_invite_email_sent">Código enviado por email</string>
+    <string name="msg_invite_email_not_sent">Não foi possível enviar o email. Tenta mais tarde, ou cria um código e partilha-o.</string>
+    <string name="msg_invite_send_failed">Não foi possível enviar o convite. Tenta outra vez.</string>
+
+    <!-- Deleting the account -->
+    <string name="delete_account_title">Eliminar conta</string>
+    <string name="delete_account_space">A tua equipa "%1$s" é eliminada com tudo o que tem: %2$s, %3$s e %4$s, com todas as estatísticas e relatórios.</string>
+    <plurals name="delete_account_age_groups">
+        <item quantity="one">%1$d escalão</item>
+        <item quantity="other">%1$d escalões</item>
+    </plurals>
+    <plurals name="delete_account_players">
+        <item quantity="one">%1$d jogador</item>
+        <item quantity="other">%1$d jogadores</item>
+    </plurals>
+    <plurals name="delete_account_games">
+        <item quantity="one">%1$d jogo</item>
+        <item quantity="other">%1$d jogos</item>
+    </plurals>
+    <plurals name="delete_account_staff">
+        <item quantity="one">%1$d pessoa que convidaste perde o acesso.</item>
+        <item quantity="other">%1$d pessoas que convidaste perdem o acesso.</item>
+    </plurals>
+    <string name="delete_account_staff_spaces">Também sais dos escalões em que entraste com um código. Os relatórios que lá escreveste ficam, em nome do dono.</string>
+    <string name="delete_account_final">Isto não pode ser desfeito.</string>
+    <string name="delete_account_password">A tua palavra-passe</string>
+    <string name="btn_delete_account_confirm">Eliminar a minha conta</string>
+    <string name="btn_delete_account_deleting">A eliminar…</string>
+    <string name="title_delete_account_confirm">Eliminar a tua conta?</string>
+    <string name="msg_delete_account_wrong_password">Palavra-passe errada.</string>
+    <string name="msg_delete_account_failed">Não foi possível eliminar a tua conta. Verifica a ligação e tenta outra vez.</string>
+    <string name="btn_delete_space">Eliminar espaço</string>
+    <string name="delete_space_title">Eliminar este espaço?</string>
+    <string name="delete_space_body">O espaço é eliminado para sempre, com tudo o que tem: os escalões, jogadores, jogos, treinos e o acesso da equipa técnica. A tua conta fica.</string>
+    <string name="delete_space_plan">O plano não termina ao eliminar o espaço: cancela primeiro a subscrição na Google Play.</string>
+    <string name="msg_delete_space_wrong_password">Palavra-passe errada.</string>
+    <string name="msg_delete_space_failed">Não foi possível eliminar o espaço. Verifica a ligação e tenta outra vez.</string>
+    <string name="btn_leave_space">Sair do espaço</string>
+    <string name="leave_space_title">Sair deste espaço?</string>
+    <string name="leave_space_body">Perdes o acesso aos seus escalões. A tua conta fica, e também os relatórios e avaliações que escreveste, em nome do dono.</string>
+    <string name="msg_leave_space_wrong_password">Palavra-passe errada.</string>
+    <string name="msg_leave_space_failed">Não foi possível sair do espaço. Verifica a ligação e tenta outra vez.</string>
+    <string name="msg_delete_account_load_failed">Não foi possível carregar a tua conta.</string>
+
+    <!-- O meu clube ou equipa: o espaço do dono, o seu logótipo -->
+    <string name="my_space_title">O meu clube ou equipa</string>
+    <string name="msg_my_space_failed">Não foi possível carregar o teu clube ou equipa. Verifica a ligação e tenta outra vez.</string>
+    <!-- Plans: My Space's Plan card and the Plans screen (REQUIREMENTS §5c) -->
+    <string name="plan_card_title">Plano</string>
+    <string name="plan_card_this_season">Esta época</string>
+    <string name="plan_age_groups_of">Escalões: %1$d de %2$d</string>
+    <string name="plan_age_groups_no_limit">Escalões: %1$d</string>
+    <string name="plan_people_just_you">Pessoas por escalão: só tu</string>
+    <string name="plan_people_up_to">Pessoas por escalão: até %1$d, incluindo tu</string>
+    <string name="plan_people_no_limit">Pessoas por escalão: sem limite</string>
+    <string name="btn_see_plans_row">Ver planos</string>
+    <string name="plans_title">Planos</string>
+    <string name="plans_your_plan">O teu plano</string>
+    <string name="plans_intro_first">Incluído em todos os espaços</string>
+    <string name="plans_intro_more">Tudo o que está no %1$s, mais:</string>
+    <string name="plans_age_groups_one">1 escalão por época</string>
+    <string name="plans_age_groups_up_to">%1$d escalões por época</string>
+    <string name="plans_age_groups_no_limit">Sem limite de escalões</string>
+    <string name="plans_people_only_you">Só tu</string>
+    <string name="plans_people_up_to">Até %1$d pessoas por escalão, incluindo tu</string>
+    <string name="plans_people_no_limit">Sem limite de pessoas por escalão</string>
+    <string name="plans_load_failed">Não foi possível carregar os planos.</string>
+    <string name="btn_plans_subscribe">Subscrever</string>
+    <string name="btn_plans_subscribe_to">Subscrever o %1$s</string>
+    <string name="btn_plans_subscribing">A enviar…</string>
+    <string name="plans_request_failed">Não foi possível enviar o pedido. Tenta novamente.</string>
+    <string name="plans_requested">Pediste o %1$s. Vamos entrar em contacto para o ativar.</string>
+    <string name="plans_monthly">Mensal</string>
+    <string name="plans_yearly">Anual</string>
+    <string name="plans_price_month">%1$s / mês</string>
+    <string name="plans_price_year">%1$s / ano</string>
+    <string name="plans_pending">%1$s até %2$s, depois %3$s.</string>
+    <string name="plans_purchase_failed">A compra não foi concluída. Tenta novamente.</string>
+    <!-- Detalhes do espaço (a app de treinadores): os escalões e os adversários de um espaço. -->
+    <string name="space_details_tab_age_groups">Escalões</string>
+    <string name="space_details_tab_opponents">Adversários</string>
+    <string name="space_details_edit">Editar espaço</string>
+    <string name="space_details_staff">Staff</string>
+    <string name="space_details_owned_by">de %1$s</string>
+    <string name="space_details_staff_note">Só vês os escalões em que és staff.</string>
+    <plurals name="space_details_count">
+        <item quantity="one">%1$d escalão · ordenados por clube e idade</item>
+        <item quantity="other">%1$d escalões · ordenados por clube e idade</item>
+    </plurals>
+    <string name="space_details_born">Nascidos em %1$s</string>
+    <plurals name="space_details_teams">
+        <item quantity="one">Equipa %1$s</item>
+        <item quantity="other">Equipas %1$s</item>
+    </plurals>
+    <string name="space_details_no_teams">Ainda sem equipas</string>
+    <string name="space_details_next_game">Próximo jogo · %1$s · vs %2$s</string>
+    <string name="space_details_add_age_groups">Adicionar escalões</string>
+    <string name="space_details_new_opponent">Novo adversário</string>
+    <string name="space_details_empty_title">Ainda não há escalões</string>
+    <string name="space_details_empty_body">Adiciona os escalões deste espaço. Cada um tem o nome e o emblema do clube por que joga, por exemplo "Povoense - Sub 11".</string>
+    <string name="msg_space_details_failed">Não foi possível carregar este espaço.</string>
+    <!-- Início: os espaços do treinador. -->
+    <string name="coach_home_my_space">O meu espaço</string>
+    <string name="coach_home_shared_spaces">Espaços onde colaboro</string>
+    <string name="coach_home_default_space_name">Espaço de %1$s</string>
+    <plurals name="coach_home_age_groups">
+        <item quantity="one">%1$d escalão</item>
+        <item quantity="other">%1$d escalões</item>
+    </plurals>
+    <plurals name="coach_home_opponents">
+        <item quantity="one">%1$d adversário</item>
+        <item quantity="other">%1$d adversários</item>
+    </plurals>
+    <string name="coach_home_no_age_groups">Sem escalões ainda</string>
+    <string name="coach_home_first_age_groups">Cria os teus primeiros escalões para começares a gravar jogos.</string>
+    <string name="coach_home_create_age_groups">Criar escalões</string>
+    <string name="coach_home_got_code">Recebeste um código de outro treinador?</string>
+    <!-- O assistente de escalões (a app de treinadores). -->
+    <string name="wizard_title">Adicionar escalões</string>
+    <string name="wizard_step_club">Clube</string>
+    <string name="wizard_step_age_groups">Escalões</string>
+    <string name="wizard_step_teams">Equipas</string>
+    <string name="wizard_step_of">%1$d de %2$d</string>
+    <string name="wizard_club_question">Por que clube jogam estes escalões?</string>
+    <string name="wizard_club_intro">O nome e o emblema do clube vão para o nome de cada escalão e equipa.</string>
+    <string name="wizard_crest_choose">Escolher emblema</string>
+    <string name="wizard_crest_optional">Opcional · sem imagem, usamos as iniciais</string>
+    <string name="wizard_club_name">Nome do clube *</string>
+    <string name="wizard_club_name_placeholder">Ex.: Povoense</string>
+    <string name="wizard_club_hint">Aparece em "Clube - Sub 11".</string>
+    <string name="wizard_club_name_required">O nome do clube é obrigatório.</string>
+    <string name="wizard_club_name_dash">O nome não pode ter " - ".</string>
+    <string name="wizard_used_clubs">Usados neste espaço</string>
+    <string name="wizard_club_hint_used">Toca num clube para preencher o nome e o emblema.</string>
+    <string name="wizard_pick_by_year">Escreve o ano de nascimento de cada escalão</string>
+    <string name="wizard_season">Época %1$s</string>
+    <string name="wizard_football">Futebol</string>
+    <string name="wizard_futsal">Futsal</string>
+    <string name="wizard_age_group_n">ESCALÃO %1$d</string>
+    <string name="wizard_remove">Remover</string>
+    <string name="wizard_birth_year">Ano de nascimento *</string>
+    <string name="wizard_birth_year_placeholder">Ex.: 2016</string>
+    <string name="wizard_year_missing">Escreve o ano de nascimento (4 dígitos).</string>
+    <string name="wizard_year_range">Um ano entre %1$d e %2$d.</string>
+    <string name="wizard_year_repeated">Este ano já está num escalão acima.</string>
+    <string name="wizard_year_taken_error">Este clube já tem um escalão deste ano nesta época.</string>
+    <string name="wizard_size_missing">Escolhe quantos jogadores em campo.</string>
+    <string name="wizard_add_age_group">Adicionar outro escalão</string>
+    <string name="wizard_team_size">Jogadores em campo</string>
+    <string name="wizard_join_younger">Juntar com %1$d (dois anos)</string>
+    <string name="wizard_teams_question">Quantas equipas em cada escalão?</string>
+    <string name="wizard_teams_born">Nascidos em %1$s · %2$d em campo</string>
+    <plurals name="wizard_summary_age_groups">
+        <item quantity="one">%1$d escalão</item>
+        <item quantity="other">%1$d escalões</item>
+    </plurals>
+    <plurals name="wizard_summary_teams">
+        <item quantity="one">%1$d equipa</item>
+        <item quantity="other">%1$d equipas</item>
+    </plurals>
+    <string name="wizard_back">Anterior</string>
+    <string name="wizard_next">Seguinte</string>
+    <string name="wizard_creating">A criar…</string>
+    <string name="wizard_create">Criar</string>
+    <string name="wizard_problem_plan">O teu plano não tem lugar para estes escalões esta época.</string>
+    <string name="wizard_problem_years">Este clube já tem escalões para os anos marcados, nesta época.</string>
+    <string name="wizard_problem_crest_too_big">Essa imagem é demasiado grande (5 MB no máximo).</string>
+    <string name="wizard_problem_failed">Não foi possível criar os escalões. Tenta outra vez.</string>
+    <string name="msg_wizard_failed_to_load">Não foi possível carregar o teu espaço.</string>
+    <string name="space_details_new">Novo</string>
+    <string name="space_details_created">%1$s e %2$s criados</string>
+    <string name="space_details_created_no_crest">%1$s e %2$s criados, mas o emblema não ficou em todos</string>
+    <string name="space_details_ok">OK</string>
+    <string name="space_details_import_training_skipped">Importado. O treino não está no plano deste espaço, por isso o treino não foi importado.</string>
+    <string name="space_details_import_failed">Não foi possível importar o escalão. Começa a importação outra vez.</string>
+    <string name="space_details_import_age_groups">Importar um escalão da app de clubes</string>
+</resources>

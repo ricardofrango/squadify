@@ -1,5 +1,7 @@
 import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.net.Inet4Address
+import java.net.NetworkInterface
 import java.util.Properties
 
 plugins {
@@ -8,6 +10,7 @@ plugins {
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
     alias(libs.plugins.firebaseAppDistribution)
+    alias(libs.plugins.baselineProfile)
 }
 
 // Local-only, gitignored -- never committed (same pattern as firebase-service-account.json). Falls back
@@ -20,38 +23,87 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+// The dev flavor talks to a server on this machine, so it needs this machine's LAN address -- which
+// DHCP changes from time to time (a hardcoded 192.168.1.84 silently stopped working when it did).
+// Resolved at build time: `squadify.devHost` in local.properties wins (e.g. a different network
+// interface, or a server on another machine); otherwise the first site-local IPv4 address of an up,
+// non-loopback interface; otherwise the emulator's host loopback, 10.0.2.2.
+val devHost: String = run {
+    val localProps = Properties().apply {
+        rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    }
+    localProps.getProperty("squadify.devHost")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: NetworkInterface.getNetworkInterfaces().asSequence()
+            .filter { it.isUp && !it.isLoopback && !it.isVirtual }
+            .flatMap { it.inetAddresses.asSequence() }
+            .filterIsInstance<Inet4Address>()
+            .firstOrNull { it.isSiteLocalAddress }
+            ?.hostAddress
+        ?: "10.0.2.2"
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_11
     }
 }
 dependencies {
-    implementation(project(":app:shared"))
+    implementation(project(":app:clubs"))
 
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
 
+    // The root keyboard padding in MainActivity (WindowInsets, windowInsetsPadding).
+    implementation(libs.compose.foundation)
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
     
     // Koin
     implementation(libs.koin.android)
 
-    // Firebase -- Crashlytics only for now (see ISSUES TO FIX.md); the BoM pins compatible versions
-    // for every Firebase artifact so individual ones never need their own version.ref.
+    // Firebase -- Crashlytics + Cloud Messaging (push notifications, see TECHNICAL_DECISIONS.md);
+    // the BoM pins compatible versions for every Firebase artifact so individual ones never need
+    // their own version.ref.
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.messaging)
+
+    // Installs the Baseline Profile on devices whose store doesn't (sideloads, older Android).
+    implementation(libs.androidx.profileinstaller)
 }
 
+// One profile for every flavor: the code a cold start runs is the same, only the server differs. It's
+// recorded with the dev build only: the staging and production apps on the phone are store installs
+// the recording would otherwise replace.
+baselineProfile {
+    mergeIntoMain = true
+    variants {
+        create("dev") { from(project(":app:clubsBaselineProfile")) }
+    }
+}
+
+// Single source of truth for the human-facing semantic version lives in root gradle.properties
+// (VERSION_NAME) -- shared with server/clubs/build.gradle.kts so the two can't drift by hand-editing one and
+// forgetting the other. versionCode is computed separately: CI passes -PversionCode=<n>
+// (deploy-staging.yml uses ${{ github.run_number }}, which auto-increments every workflow run) so every
+// uploaded build has a unique, strictly-increasing code even when VERSION_NAME doesn't change between
+// merges to develop -- see TECHNICAL_DECISIONS.md's versioning section for the original problem this
+// solves (every staging redeploy looked identical). Falls back to a fixed placeholder for local builds,
+// where uniqueness doesn't matter.
+val versionNameProp = (project.findProperty("VERSION_NAME") as? String) ?: "1.0.0"
+val ciBuildNumber = (project.findProperty("versionCode") as? String)?.toIntOrNull()
+
 android {
-    namespace = "com.ricardofrango.squadify"
+    namespace = "com.sportssoftw.squadify"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.ricardofrango.squadify"
+        applicationId = "com.sportssoftw.squadify.club"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = ciBuildNumber ?: 1
+        versionName = versionNameProp
     }
     packaging {
         resources {
@@ -59,27 +111,43 @@ android {
         }
     }
 
-    // Environment (not applicationId-suffixed -- google-services.json is registered for the bare
-    // com.ricardofrango.squadify package only; a suffix would break Crashlytics/App Distribution for
-    // every flavor but "dev"). See TECHNICAL_DECISIONS.md's "Environment-Based App Config" section.
+    // Environment. dev/staging carry an applicationIdSuffix (prod stays bare, for the real Play Store
+    // listing) so each is a genuinely distinct app to Firebase -- otherwise a device that's ever run
+    // more than one flavor could get handed the *same* FCM registration token across them (Firebase
+    // scopes a token by package name + project + signing cert, not by build variant), letting a push
+    // triggered on one environment's server land on a device someone only meant to test another
+    // environment on. google-services.json is registered for all three resulting package names under
+    // the one Firebase project (squadify-958d3) -- see TECHNICAL_DECISIONS.md's push-notifications
+    // section and "Environment-Based App Config" section. resValue app_name distinguishes the three on
+    // a device's launcher/recents now that all three can be installed side by side.
     // dev = LAN address for physical-device testing against a local server. staging = what Firebase App
     // Distribution builds should target (appDistributionUploadStagingRelease). prod = the store release.
     flavorDimensions += "environment"
     productFlavors {
         create("dev") {
             dimension = "environment"
-            buildConfigField("String", "BASE_URL", "\"http://192.168.1.84:8080/v1\"")
+            applicationIdSuffix = ".dev"
+            buildConfigField("String", "BASE_URL", "\"http://$devHost:8080/v1\"")
+            resValue("string", "app_name", "Squadify Dev")
         }
         create("staging") {
             dimension = "environment"
+            applicationIdSuffix = ".stg"
             // Railway-generated domain for the staging server -- swap for stg-api.squadify.pt once that
             // custom domain is set up (see ISSUES TO FIX.md).
             buildConfigField("String", "BASE_URL", "\"https://squadify-staging.up.railway.app/v1\"")
+            resValue("string", "app_name", "Squadify Stg")
+            // This is the flavor redeployed on every merge to develop (deploy-staging.yml) -- without a
+            // per-build suffix, every install shows the identical versionName no matter how many times
+            // it's been redeployed, which was the whole original problem (see TECHNICAL_DECISIONS.md's
+            // versioning section). "local" when built outside CI (versionCode wasn't passed in).
+            versionNameSuffix = "-stg.${ciBuildNumber ?: "local"}"
         }
         create("prod") {
             dimension = "environment"
             // TODO placeholder -- swap once Railway production is rebuilt (see ISSUES TO FIX.md).
             buildConfigField("String", "BASE_URL", "\"https://api.squadify.pt/v1\"")
+            resValue("string", "app_name", "Squadify")
         }
     }
     signingConfigs {
@@ -103,7 +171,9 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
-            isMinifyEnabled = false
+            // R8: shrinks, optimises and obfuscates the code, and drops unused resources (§11.7).
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -123,5 +193,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        resValues = true
     }
 }

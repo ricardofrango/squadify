@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Staging/prod talk HTTPS only. The dev flavor overrides this file (src/dev/res/xml) to allow
+     cleartext to the local server. -->
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">192.168.1.84</domain>
         <domain includeSubdomains="true">10.0.2.2</domain> <!-- Android Emulator Loopback -->
     </domain-config>
 </network-security-config>

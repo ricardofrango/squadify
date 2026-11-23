@@ -1,0 +1,79 @@
+name: Deploy coach staging
+
+# Squadify for Coaches on Android: builds app/coachAndroidApp's `staging` flavor (against the coach-server
+# staging service on Railway) and sends it to the squadify-coach-testers group through Firebase App
+# Distribution, in the coach's own Firebase project (squadify-for-coach). The clubs app has its own
+# workflow, deploy-staging.yml; Railway deploys both servers on its own.
+
+on:
+  push:
+    branches: [develop]
+    # Only what the coach Android app is built from: app/coachAndroidApp, app/coach, app/shared and core,
+    # the version catalog/wrapper/root build files, and this file (so an edit here runs on the same push).
+    paths:
+      - "app/coachAndroidApp/**"
+      - "app/coach/**"
+      - "app/shared/**"
+      - "core/**"
+      - "gradle/libs.versions.toml"
+      - "gradle/wrapper/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/deploy-staging-coach.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: android-actions/setup-android@v4
+      - run: ./gradlew :app:shared:testAndroidHostTest :app:coach:testAndroidHostTest --no-daemon
+
+  firebase-distribute-coach-android-staging:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: android-actions/setup-android@v4
+
+      # The squadify-for-coach service account (gitignored), written where
+      # app/coachAndroidApp/build.gradle.kts expects it, as in deploy-staging.yml.
+      - name: Write Firebase service account
+        env:
+          FIREBASE_COACH_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_COACH_SERVICE_ACCOUNT_JSON }}
+        run: |
+          printf '%s' "$FIREBASE_COACH_SERVICE_ACCOUNT_JSON" > firebase-coach-service-account.json
+          if [ ! -s firebase-coach-service-account.json ]; then
+            echo "::error::FIREBASE_COACH_SERVICE_ACCOUNT_JSON secret is empty or not set"
+            exit 1
+          fi
+
+      # The same release keystore as the clubs app (deploy-staging.yml).
+      - name: Write release keystore
+        env:
+          ANDROID_KEYSTORE_PROPERTIES: ${{ secrets.ANDROID_KEYSTORE_PROPERTIES }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p keystore
+          printf '%s' "$ANDROID_KEYSTORE_PROPERTIES" > keystore/keystore.properties
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > keystore/squadify-keystore.jks
+          if [ ! -s keystore/keystore.properties ] || [ ! -s keystore/squadify-keystore.jks ]; then
+            echo "::error::ANDROID_KEYSTORE_PROPERTIES or ANDROID_KEYSTORE_BASE64 secret is empty or not set"
+            exit 1
+          fi
+
+      # Build and upload in one invocation (the upload task doesn't build the APK). This workflow's own
+      # run number is the versionCode and the "-stg.<n>" suffix, so every coach staging build is newer
+      # than the last.
+      - run: ./gradlew :app:coachAndroidApp:assembleStagingRelease :app:coachAndroidApp:appDistributionUploadStagingRelease --no-daemon -PversionCode=${{ github.run_number }}
