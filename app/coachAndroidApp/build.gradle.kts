@@ -149,6 +149,11 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // The native debug symbols go into the bundle, so Play Console can read native crashes and
+            // ANRs ("you've not uploaded debug symbols" otherwise).
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
             firebaseAppDistribution {
                 // The squadify-for-coach service account, gitignored at the repo root; CI writes it
                 // from the FIREBASE_COACH_SERVICE_ACCOUNT_JSON secret.

@@ -48,7 +48,7 @@ firebaseAppDistributionGradle = "5.3.0"
 
 [libraries]
 # Google Play Billing, for the coach app's subscriptions on Android.
-android-billing = { module = "com.android.billingclient:billing-ktx", version = "7.1.1" }
+android-billing = { module = "com.android.billingclient:billing-ktx", version = "8.3.0" }
 # Ads on the coach app's Free plan (AdMob) and the consent form before them (UMP).
 google-ads = { module = "com.google.android.gms:play-services-ads", version = "25.5.0" }
 google-ump = { module = "com.google.android.ump:user-messaging-platform", version = "4.0.0" }
