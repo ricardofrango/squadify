@@ -75,9 +75,9 @@ baselineProfile {
     }
 }
 
-// The same version as the clubs app (root gradle.properties' VERSION_NAME) until the coach app has
-// releases of its own; CI passes -PversionCode.
-val versionNameProp = (project.findProperty("VERSION_NAME") as? String) ?: "1.0.0"
+// The coach app's own version name, not the clubs app's VERSION_NAME, so the coach app can be bumped on
+// its own. CI passes -PversionCode.
+val versionNameProp = "1.0.0"
 val ciBuildNumber = (project.findProperty("versionCode") as? String)?.toIntOrNull()
 
 android {
