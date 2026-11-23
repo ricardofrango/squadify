@@ -75,9 +75,9 @@ baselineProfile {
     }
 }
 
-// The same version as the clubs app (root gradle.properties' VERSION_NAME) until the coach app has
-// releases of its own; CI passes -PversionCode.
-val versionNameProp = (project.findProperty("VERSION_NAME") as? String) ?: "1.0.0"
+// The coach app's own version name, not the clubs app's VERSION_NAME, so the coach app can be bumped on
+// its own. CI passes -PversionCode.
+val versionNameProp = "1.0.0"
 val ciBuildNumber = (project.findProperty("versionCode") as? String)?.toIntOrNull()
 
 android {
@@ -91,8 +91,8 @@ android {
         versionCode = ciBuildNumber ?: 1
         versionName = versionNameProp
         // AdMob (ads on the Free plan, REQUIREMENTS §5c): the app id goes in the manifest, the banner's unit
-        // in BuildConfig. Google's test ids until the developer's AdMob account has its own: test ads only,
-        // never real ones (and no clicks of ours that could get an account banned).
+        // in BuildConfig. Google's test ids here, for dev and staging: test ads only, never real ones (and no
+        // clicks of ours that could get an account banned). The prod flavor sets the developer's own below.
         manifestPlaceholders["adMobAppId"] = "ca-app-pub-3940256099942544~3347511713"
         buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3940256099942544/9214589741\"")
     }
@@ -125,6 +125,9 @@ android {
             // The coach server's production service on Railway (its public domain).
             buildConfigField("String", "BASE_URL", "\"https://squadify-production.up.railway.app/v1\"")
             resValue("string", "app_name", "Squadify Coach")
+            // The developer's AdMob app and its Free-plan banner (the only build that serves real ads).
+            manifestPlaceholders["adMobAppId"] = "ca-app-pub-3440435107955103~9995919178"
+            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3440435107955103/1056910189\"")
         }
     }
     signingConfigs {

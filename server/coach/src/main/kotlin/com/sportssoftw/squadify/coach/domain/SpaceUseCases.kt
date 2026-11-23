@@ -228,7 +228,7 @@ class GetSpacesUseCase(
                 SpaceAgeGroups(
                     space, isOwner, ageGroups, plan, locked.map { it.id }, thisSeason, left,
                     canAddAgeGroups = isOwner && (left == null || left > 0),
-                    showsAds = PlanLimits.showsAds(plan),
+                    showsAds = plans.showsAds(plan),
                     ownerName = ownerName(clubRepository, space.id),
                     opponents = opponentRepository.getOpponentsByClub(space.id).size
                 )
@@ -298,7 +298,7 @@ class GetSpaceDetailsUseCase(
             },
             ageGroupsLeft = left,
             canAddAgeGroups = isOwner && (left == null || left > 0),
-            showsAds = PlanLimits.showsAds(plan)
+            showsAds = plans.showsAds(plan)
         )
     }
 
