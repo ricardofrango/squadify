@@ -77,7 +77,7 @@ baselineProfile {
 
 // The coach app's own version name, not the clubs app's VERSION_NAME, so the coach app can be bumped on
 // its own. CI passes -PversionCode.
-val versionNameProp = "1.0.0"
+val versionNameProp = "1.0.1"
 val ciBuildNumber = (project.findProperty("versionCode") as? String)?.toIntOrNull()
 
 android {
