@@ -108,6 +108,12 @@ class CoachPlans(private val plans: SpacePlanRepository, private val plansEnable
     /** The space's plan, as it counts now: its stored plan when plans are on, Pro while they're off (PLANS_ENABLED). */
     suspend fun planOf(clubId: String): SpacePlan = if (plansEnabled) plans.planOf(clubId) else PlanLimits.PRO
 
+    /**
+     * Whether a space on [plan] shows ads. While plans are off (PLANS_ENABLED) every space shows them, so the
+     * ads run before plans are sold; once on, only the Free plan does.
+     */
+    fun showsAds(plan: SpacePlan): Boolean = !plansEnabled || PlanLimits.showsAds(plan)
+
     /** The plan the space's owner asked for and hasn't got yet; null: none. */
     suspend fun requestedPlan(clubId: String): SpacePlan? = plans.requestedPlan(clubId)
 

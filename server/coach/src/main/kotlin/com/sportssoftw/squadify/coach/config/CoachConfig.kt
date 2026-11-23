@@ -23,7 +23,7 @@ object CoachConfig {
     val featureAgeGroupImport: Boolean = System.getenv("FEATURE_AGE_GROUP_IMPORT")?.trim()?.lowercase() == "true"
 
     /**
-     * Plans and ads (REQUIREMENTS §5c). Off by default: every space is Pro with no ads, plan requests and store
+     * Plans and ads (REQUIREMENTS §5c). Off by default: every space is Pro and shows ads, plan requests and store
      * purchases are refused, and the app hides the plan UI. Only PLANS_ENABLED=true turns them on; the stored plans
      * are kept meanwhile, so a space falls back to its stored plan then.
      */

@@ -14,8 +14,9 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
-// PLANS_ENABLED (REQUIREMENTS §5c): while plans are off every space counts as Pro with no ads, and a plan
+// PLANS_ENABLED (REQUIREMENTS §5c): while plans are off every space counts as Pro and shows ads, and a plan
 // can't be asked for or bought; the stored plans are kept, so turning them on falls back to them.
 class PlansSwitchTest {
     private val repository = mockk<SpacePlanRepository>()
@@ -24,12 +25,12 @@ class PlansSwitchTest {
     }
 
     @Test
-    fun whileOffEverySpaceIsPro() = runBlocking {
+    fun whileOffEverySpaceIsProAndShowsAds() = runBlocking {
         coEvery { repository.planOf("s") } returns PlanLimits.FREE
         val plans = CoachPlans(repository, plansEnabled = false)
 
         assertEquals(PlanLimits.PRO, plans.planOf("s"))
-        assertFalse(PlanLimits.showsAds(plans.planOf("s")))
+        assertTrue(plans.showsAds(plans.planOf("s")))
         assertEquals(emptySet(), plans.lockedAgeGroups("s", plans.planOf("s")))
     }
 
@@ -39,6 +40,15 @@ class PlansSwitchTest {
         val plans = CoachPlans(repository, plansEnabled = true)
 
         assertEquals(PlanLimits.BASIC, plans.planOf("s"))
+    }
+
+    @Test
+    fun whenOnOnlyFreeShowsAds() {
+        val plans = CoachPlans(repository, plansEnabled = true)
+
+        assertTrue(plans.showsAds(PlanLimits.FREE))
+        assertFalse(plans.showsAds(PlanLimits.BASIC))
+        assertFalse(plans.showsAds(PlanLimits.PRO))
     }
 
     @Test
