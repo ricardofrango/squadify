@@ -3787,3 +3787,11 @@ server still refuses its actions while someone else manages the game, and it sho
 **Servers.** The start command is the Dockerfile's `ENTRYPOINT ["java", "-jar", "app.jar"]`; the main class is in the jar's manifest, from `mainClass` in each server's `build.gradle.kts`. Railway has no start command field set, so nothing changes there. `GOOGLE_PLAY_PACKAGE_NAME` is not set on Railway: the coach server defaults it from `APP_ENV` (`.stg` on staging, the production id otherwise, `CoachConfig`).
 
 **Tests.** `:server:clubs:test` and `:server:coach:test` pass; the Android apps compile with the new `google-services.json` files.
+
+## 88. Release Pipeline and Tags
+
+**Why.** A release has to be traceable to a commit and a store build. The release workflow runs on every merge of `develop` into `main` (the production release), and each build it ships needs a version code that only goes up.
+
+**The coach Play release** (`.github/workflows/release-coach-android.yml`, 2026-11-23). The version code is the workflow's run number plus 1 (`GITHUB_RUN_NUMBER`), computed in its first step, so the first automatic upload is code 2 (the 1.0.1 build, after the 1.0.0 build in review as code 1). The version name is the coach app's `versionNameProp` (`app/coachAndroidApp/build.gradle.kts`), which the developer bumps on `develop` before the merge to `main`. The bundle is uploaded to Play's production track; only after that succeeds does the workflow create an annotated tag `coach-android-<version name>-<version code>` (for example `coach-android-1.0.1-2`) and push it. A re-run whose tag already exists does nothing. The job has `contents: write` for the push.
+
+**Not automatic.** `MIN_ANDROID_BUILD` on the coach server (§85) is set by hand in Railway, only when a release needs a forced update: not every server release does.
