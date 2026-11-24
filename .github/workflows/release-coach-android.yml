@@ -1,7 +1,8 @@
 name: Release coach Android
 
 # Squadify for Coaches on Google Play: builds app/coachAndroidApp's `prod` flavor as a signed App Bundle
-# (com.sportssoftw.squadify.coach) and releases it to the Play production track. It runs on every merge
+# (com.sportssoftw.squadify.coach) and releases it to the Play internal testing track (production is held until
+# Play allows it). It runs on every merge
 # of develop into main (the production release); merges to develop only build and distribute through
 # Firebase (deploy-staging-coach.yml), as before.
 #
@@ -79,7 +80,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.sportssoftw.squadify.coach
           releaseFiles: app/coachAndroidApp/build/outputs/bundle/prodRelease/*.aab
-          track: production
+          track: internal
           status: completed
 
       # One tag per shipped build, named by version name and code (coach-android-1.0.1-2). Tagged only after the
@@ -93,5 +94,5 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" -m "Coach app $VERSION_NAME (version code $VERSION_CODE), released to Google Play production"
+          git tag -a "$TAG" -m "Coach app $VERSION_NAME (version code $VERSION_CODE), released to Google Play internal testing"
           git push origin "$TAG"
