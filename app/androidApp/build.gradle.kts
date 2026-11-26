@@ -133,8 +133,8 @@ android {
         create("staging") {
             dimension = "environment"
             applicationIdSuffix = ".stg"
-            // Staging clubs server (stg-club-api.squadcallapp.com).
-            buildConfigField("String", "BASE_URL", "\"https://stg-club-api.squadcallapp.com/v1\"")
+            // Staging clubs server: its Railway domain, until stg-club-api.squadcallapp.com is live.
+            buildConfigField("String", "BASE_URL", "\"https://squadcall-club-staging.up.railway.app/v1\"")
             resValue("string", "app_name", "Squadcall Stg")
             // This is the flavor redeployed on every merge to develop (deploy-staging.yml) -- without a
             // per-build suffix, every install shows the identical versionName no matter how many times

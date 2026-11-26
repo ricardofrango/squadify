@@ -116,7 +116,7 @@ android {
             dimension = "environment"
             applicationIdSuffix = ".stg"
             // The coach-server service's Railway domain on staging.
-            buildConfigField("String", "BASE_URL", "\"https://stg-coach-api.squadcallapp.com/v1\"")
+            buildConfigField("String", "BASE_URL", "\"https://squadcall-coach-staging.up.railway.app/v1\"")
             resValue("string", "app_name", "Squadcall Coach Stg")
             versionNameSuffix = "-stg.${ciBuildNumber ?: "local"}"
         }
