@@ -101,7 +101,7 @@ object CoachConfig {
     val acceptsRealPurchases: Boolean = !deployed || production
 
     /**
-     * The coach's own Firebase project's service account (`squadcall-for-coach`), as raw JSON, for its
+     * The coach's own Firebase project's service account (the coach's own Firebase project), as raw JSON, for its
      * pushes. Not required: without it each push is logged and skipped, as on the clubs server. Locally,
      * `firebase-coach-service-account.json` (gitignored) in the repo root or any folder above the server's.
      */

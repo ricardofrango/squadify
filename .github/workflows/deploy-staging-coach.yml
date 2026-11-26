@@ -2,7 +2,7 @@ name: Deploy coach staging
 
 # Squadcall for Coaches on Android: builds app/coachAndroidApp's `staging` flavor (against the coach-server
 # staging service on Railway) and sends it to the squadcall-coach-testers group through Firebase App
-# Distribution, in the coach's own Firebase project (squadcall-for-coach). The clubs app has its own
+# Distribution, in the coach's own Firebase project. The clubs app has its own
 # workflow, deploy-staging.yml; Railway deploys both servers on its own.
 
 on:
@@ -47,7 +47,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - uses: android-actions/setup-android@v4
 
-      # The squadcall-for-coach service account (gitignored), written where
+      # The coach Firebase service account (gitignored), written where
       # app/coachAndroidApp/build.gradle.kts expects it, as in deploy-staging.yml.
       - name: Write Firebase service account
         env:

@@ -133,9 +133,8 @@ android {
         create("staging") {
             dimension = "environment"
             applicationIdSuffix = ".stg"
-            // Railway-generated domain for the staging server -- swap for stg-api.squadcall.pt once that
-            // custom domain is set up (see ISSUES TO FIX.md).
-            buildConfigField("String", "BASE_URL", "\"https://squadcall-staging.up.railway.app/v1\"")
+            // Staging clubs server (stg-club-api.squadcallapp.com).
+            buildConfigField("String", "BASE_URL", "\"https://stg-club-api.squadcallapp.com/v1\"")
             resValue("string", "app_name", "Squadcall Stg")
             // This is the flavor redeployed on every merge to develop (deploy-staging.yml) -- without a
             // per-build suffix, every install shows the identical versionName no matter how many times
@@ -146,7 +145,7 @@ android {
         create("prod") {
             dimension = "environment"
             // TODO placeholder -- swap once Railway production is rebuilt (see ISSUES TO FIX.md).
-            buildConfigField("String", "BASE_URL", "\"https://api.squadcall.pt/v1\"")
+            buildConfigField("String", "BASE_URL", "\"https://club-api.squadcallapp.com/v1\"")
             resValue("string", "app_name", "Squadcall")
         }
     }

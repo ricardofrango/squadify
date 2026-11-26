@@ -5,7 +5,7 @@ import java.net.NetworkInterface
 import java.util.Properties
 
 // Squadcall for Coaches on Android (TECHNICAL_DECISIONS §72): starts :app:coach against the coach server.
-// Its own app id, so it installs next to the clubs app. Its own Firebase project, squadcall-for-coach
+// Its own app id, so it installs next to the clubs app. Its own Firebase project, coach Firebase project
 // (google-services.json): Crashlytics, pushes from the coach server (app/shared's push code), and
 // staging builds to testers through App Distribution (deploy-staging-coach.yml).
 plugins {
@@ -116,14 +116,14 @@ android {
             dimension = "environment"
             applicationIdSuffix = ".stg"
             // The coach-server service's Railway domain on staging.
-            buildConfigField("String", "BASE_URL", "\"https://squadcall-for-coach-staging.up.railway.app/v1\"")
+            buildConfigField("String", "BASE_URL", "\"https://stg-coach-api.squadcallapp.com/v1\"")
             resValue("string", "app_name", "Squadcall Coach Stg")
             versionNameSuffix = "-stg.${ciBuildNumber ?: "local"}"
         }
         create("prod") {
             dimension = "environment"
             // The coach server's production service on Railway (its public domain).
-            buildConfigField("String", "BASE_URL", "\"https://squadcall-production.up.railway.app/v1\"")
+            buildConfigField("String", "BASE_URL", "\"https://coach-api.squadcallapp.com/v1\"")
             resValue("string", "app_name", "Squadcall Coach")
             // The developer's AdMob app and its Free-plan banner (the only build that serves real ads).
             manifestPlaceholders["adMobAppId"] = "ca-app-pub-3440435107955103~9995919178"
@@ -158,7 +158,7 @@ android {
                 debugSymbolLevel = "FULL"
             }
             firebaseAppDistribution {
-                // The squadcall-for-coach service account, gitignored at the repo root; CI writes it
+                // The coach Firebase service account, gitignored at the repo root; CI writes it
                 // from the FIREBASE_COACH_SERVICE_ACCOUNT_JSON secret.
                 serviceCredentialsFile = rootProject.file("firebase-coach-service-account.json").path
                 groups = "squadcall-coach-testers"

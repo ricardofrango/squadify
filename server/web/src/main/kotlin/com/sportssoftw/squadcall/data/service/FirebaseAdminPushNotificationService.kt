@@ -19,7 +19,7 @@ import java.io.ByteArrayInputStream
 /**
  * Sends via the Firebase Admin SDK, for both servers (TECHNICAL_DECISIONS §72), each with its own
  * Firebase project's service account ([serviceAccountJson]): the clubs server's `squadcall-958d3`, the
- * coach server's `squadcall-for-coach`. [FirebaseApp] is process-wide singleton state, so initialization
+ * coach server's the coach's own Firebase project. [FirebaseApp] is process-wide singleton state, so initialization
  * is guarded by [FirebaseApp.getApps] rather than relying solely on this class's own single-instance
  * Koin registration.
  *

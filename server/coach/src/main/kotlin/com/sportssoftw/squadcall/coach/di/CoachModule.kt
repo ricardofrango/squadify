@@ -174,7 +174,7 @@ val coachModule = module {
     // The live game's updates, to every device following a match or the space's matches.
     single<LiveMatchBus> { KotlinFlowMatchBus() }
     single<ClubMatchesBus> { KotlinFlowClubMatchesBus() }
-    // Pushes, through the coach's own Firebase project (squadcall-for-coach), to the space's owner and the
+    // Pushes, through the coach's own Firebase project, to the space's owner and the
     // age group's staff. Its devices' tokens come through the shared fcmTokenRoutes.
     // Its picture is the space's logo, as on the clubs server.
     single<PushNotificationService> {

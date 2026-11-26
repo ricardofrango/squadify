@@ -12,8 +12,8 @@ plugins {
 // TECHNICAL_DECISIONS.md's "Environment-Based App Config" section.
 val squadcallEnv = (findProperty("squadcallEnv") as String?) ?: "dev"
 val squadcallBaseUrl = when (squadcallEnv) {
-    "staging" -> "https://squadcall-staging.up.railway.app/v1" // Railway-generated domain -- swap for stg-api.squadcall.pt once that custom domain is set up
-    "production" -> "https://api.squadcall.pt/v1" // TODO placeholder -- see ISSUES TO FIX.md
+    "staging" -> "https://stg-club-api.squadcallapp.com/v1"
+    "production" -> "https://club-api.squadcallapp.com/v1" 
     else -> "http://localhost:8080/v1"
 }
 

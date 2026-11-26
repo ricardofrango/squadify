@@ -19,7 +19,7 @@ captures
 node_modules/
 kotlin-js-store/
 firebase-service-account.json
-# The coach server's Firebase key (squadcall-for-coach), for local runs. Never committed.
+# The coach server's Firebase key, for local runs. Never committed.
 firebase-coach-service-account.json
 squadcall-coach-release-service-account.json
 # Club logos stored on disk in development (LocalImageStorage)
