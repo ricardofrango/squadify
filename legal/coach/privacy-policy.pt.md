@@ -1,16 +1,16 @@
-# Squadify Coach — Política de Privacidade
+# Squadcall Coach — Política de Privacidade
 
 _Última atualização: 14 de novembro de 2026_
 
-A Squadify Coach ("a app") é publicada por **Squadify Team** (Portugal, 2890) ("nós"). Esta política explica que dados a
+A Squadcall Coach ("a app") é publicada por **Squadcall Team** (Portugal, 2890) ("nós"). Esta política explica que dados a
 app recolhe, para quê, com quem são partilhados, durante quanto tempo são guardados e que direitos tens sobre
 eles.
 
-Para qualquer questão sobre esta política ou sobre os teus dados, escreve para **squadify.support@gmail.com**.
+Para qualquer questão sobre esta política ou sobre os teus dados, escreve para **support@squadcallapp.com**.
 
 ## 1. A quem se destina a app
 
-A Squadify Coach destina-se a adultos que treinam equipas de formação ou seniores: o treinador cria uma conta
+A Squadcall Coach destina-se a adultos que treinam equipas de formação ou seniores: o treinador cria uma conta
 e regista as suas equipas, jogadores, jogos e treinos. As crianças não usam a app nem podem criar uma conta.
 
 ## 2. Os dados que recolhemos
@@ -123,7 +123,7 @@ cláusulas contratuais-tipo da Comissão Europeia ou o Quadro de Privacidade de 
 ## 6. Os teus direitos
 
 Podes **ver e corrigir** os dados da tua conta na app (Conta) e **apagar a tua conta e os seus dados** na app
-a qualquer momento. Podes também escrever-nos para **squadify.support@gmail.com** para:
+a qualquer momento. Podes também escrever-nos para **support@squadcallapp.com** para:
 
 - receber uma cópia dos teus dados, ou que sejam enviados para outro serviço;
 - corrigi-los ou apagá-los, ou pedir que deixemos de os usar ou que limitemos o seu uso;

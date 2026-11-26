@@ -220,7 +220,7 @@ object ServerConfig {
      * A Firebase service-account key (the raw JSON content, not a file path -- there's no reliable
      * place to mount a file on Railway, which is why the env var takes priority) used by
      * [com.sportssoftw.squadcall.data.service.FirebaseAdminPushNotificationService] to send push
-     * notifications through the same Firebase project (squadcall-958d3) already registered for Android
+     * notifications through the same Firebase project already registered for Android
      * -- see TECHNICAL_DECISIONS.md's push-notifications section. Same best-effort posture as
      * [resendApiKey]: push is a notification, not a security-critical value, so a missing/blank
      * credential degrades to that service logging and skipping the send rather than refusing to start.

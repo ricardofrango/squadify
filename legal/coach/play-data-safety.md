@@ -1,6 +1,6 @@
-# Squadify Coach — Google Play data safety answers
+# Squadcall Coach — Google Play data safety answers
 
-What to fill in Play Console → App content for the coach app (`com.sportssoftw.squadify.coach`), as the app
+What to fill in Play Console → App content for the coach app (`com.sportssoftw.squadcall.coach`), as the app
 is built (2026-11-07). Keep it in step with `privacy-policy.en.md`; a change to what the app collects changes
 both.
 
@@ -14,7 +14,7 @@ both.
 | Target audience | **18 and over** only. Including under-13s brings Google's Families policy (stricter ad rules, no advertising ID for children) |
 | App access | Sign-in required: give the reviewers a test account (a Free space with an age group, a player and a game) |
 | Content rating | Fill the questionnaire: no violence, no user-to-user chat, ads present |
-| Account deletion | In the app (Account → Delete account) **and** a web URL where people can ask for it without the app: required. A page with the steps and `squadify.support@gmail.com` is enough |
+| Account deletion | In the app (Account → Delete account) **and** a web URL where people can ask for it without the app: required. A page with the steps and `support@squadcallapp.com` is enough |
 
 ## Data safety form
 

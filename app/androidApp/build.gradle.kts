@@ -117,7 +117,7 @@ android {
     // scopes a token by package name + project + signing cert, not by build variant), letting a push
     // triggered on one environment's server land on a device someone only meant to test another
     // environment on. google-services.json is registered for all three resulting package names under
-    // the one Firebase project (squadcall-958d3) -- see TECHNICAL_DECISIONS.md's push-notifications
+    // the one Firebase project -- see TECHNICAL_DECISIONS.md's push-notifications
     // section and "Environment-Based App Config" section. resValue app_name distinguishes the three on
     // a device's launcher/recents now that all three can be installed side by side.
     // dev = LAN address for physical-device testing against a local server. staging = what Firebase App
