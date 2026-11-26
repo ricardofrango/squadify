@@ -33,3 +33,7 @@ legal/coach/dist/
 
 # Play Store screenshots and graphics (local only, not in the repo)
 /play-screens/
+
+# Any service-account key and any upload keystore, whatever their names (the rename had left old names unignored).
+*service-account*.json
+keystore/*.jks
