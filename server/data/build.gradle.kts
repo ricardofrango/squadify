@@ -9,7 +9,7 @@ plugins {
     `java-test-fixtures`
 }
 
-group = "com.sportssoftw.squadify"
+group = "com.sportssoftw.squadcall"
 
 dependencies {
     api(project(":server:core"))

@@ -1,5 +1,5 @@
 <resources>
-    <!-- Notifications, for both apps (app/shared's Android code: SquadifyMessagingService and the
+    <!-- Notifications, for both apps (app/shared's Android code: SquadcallMessagingService and the
          channels in PushNotifications). -->
     <string name="notification_channel_default_name">General</string>
     <string name="notification_channel_default_description">Anything that doesn\'t fit another category</string>
@@ -10,7 +10,7 @@
     <string name="notification_channel_invites_name">Invites</string>
     <string name="notification_channel_invites_description">Club and team invitations</string>
 
-    <!-- Push notification bodies, resolved by SquadifyMessagingService from the FCM message's own
+    <!-- Push notification bodies, resolved by SquadcallMessagingService from the FCM message's own
          body_loc_key (matching this resource's name) + body_loc_args, never from literal text the
          server sends: see TECHNICAL_DECISIONS.md's push-notifications section. Args always arrive
          as strings, so every placeholder here must be %N$s, even for numbers (match scores). -->

@@ -1,0 +1,74 @@
+package com.sportssoftw.squadcall
+
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.sportssoftw.squadcall.presentation.ui.splash.LaunchSplash
+import android.os.SystemClock
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import com.sportssoftw.squadcall.presentation.navigation.PushLinkInbox
+import com.sportssoftw.squadcall.push.PushNotifications
+import com.sportssoftw.squadcall.push.RequestAppPermissions
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
+class MainActivity : ComponentActivity(), KoinComponent {
+
+    private val pushLinkInbox: PushLinkInbox by inject()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // One splash, the system's: it stays until the app's own splash (the session check) has gone,
+        // so the app opens straight onto Login or Home. Not after a rotation or a process restore, which
+        // don't start at the splash; and never longer than the session check's HTTP timeout (15s) and a
+        // margin, whatever happens.
+        val splash = installSplashScreen()
+        if (savedInstanceState == null) {
+            LaunchSplash.start()
+            val until = SystemClock.uptimeMillis() + SPLASH_LIMIT_MILLIS
+            splash.setKeepOnScreenCondition {
+                LaunchSplash.isShowing.value && SystemClock.uptimeMillis() < until
+            }
+        }
+        enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
+        // Not after a rotation or process restore: the intent is the same one, already opened.
+        if (savedInstanceState == null) PushNotifications.takePushLink(intent, pushLinkInbox)
+
+        setContent {
+            RequestAppPermissions()
+            // The keyboard resizes the app instead of sliding the window up (adjustResize in the
+            // manifest; without it Android panned the whole window, pushing the top bar under the status
+            // bar and re-panning on every new field): everything is laid out above the keyboard. The
+            // full keyboard height: it covers the navigation bar, and consuming it here means a screen's
+            // navigationBarsPadding() and imePadding() add nothing more while it's open (consumed insets
+            // are counted per side, not per type, so leaving the navigation bar out here left pinned bars
+            // a navigation bar's height under the keyboard).
+            Box(Modifier.fillMaxSize().imePadding()) {
+                App()
+            }
+        }
+    }
+
+    // singleTop: a notification tapped while the app is open comes here instead of a second activity.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        PushNotifications.takePushLink(intent, pushLinkInbox)
+    }
+
+}
+
+@Preview
+@Composable
+fun AppAndroidPreview() {
+    App()
+}
+
+private const val SPLASH_LIMIT_MILLIS = 20_000L

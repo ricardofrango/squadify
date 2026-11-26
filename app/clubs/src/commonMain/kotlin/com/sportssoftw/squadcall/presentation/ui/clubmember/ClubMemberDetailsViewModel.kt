@@ -1,0 +1,192 @@
+package com.sportssoftw.squadcall.presentation.ui.clubmember
+
+import com.sportssoftw.squadcall.data.cache.ForceRefresh
+import com.sportssoftw.squadcall.presentation.refresh.RefreshFlag
+import squadcall.app.shared.generated.resources.msg_remove_staff_failed
+import squadcall.app.shared.generated.resources.msg_staff_removed
+import com.sportssoftw.squadcall.model.MemberAgeGroupRole
+import com.sportssoftw.squadcall.domain.usecase.RemoveStaffFromAgeGroupUseCase
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.sportssoftw.squadcall.domain.usecase.CancelClubInviteUseCase
+import com.sportssoftw.squadcall.domain.usecase.GetClubMembersOverviewUseCase
+import com.sportssoftw.squadcall.domain.usecase.RemoveClubMemberUseCase
+import com.sportssoftw.squadcall.domain.usecase.ResendClubInviteUseCase
+import com.sportssoftw.squadcall.domain.usecase.UpdateClubMemberRoleUseCase
+import com.sportssoftw.squadcall.model.ClubRole
+import com.sportssoftw.squadcall.presentation.ui.editclub.labelRes
+import com.sportssoftw.squadcall.presentation.errorMessage
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
+import squadcall.app.shared.generated.resources.Res
+import squadcall.app.shared.generated.resources.member_now_role
+import squadcall.app.shared.generated.resources.member_remove_failed
+import squadcall.app.shared.generated.resources.member_removed
+import squadcall.app.shared.generated.resources.member_role_failed
+import squadcall.app.shared.generated.resources.member_you_now_role
+import squadcall.app.shared.generated.resources.members_action_failed
+import squadcall.app.shared.generated.resources.members_invite_cancelled
+import squadcall.app.shared.generated.resources.members_invite_resent
+
+/**
+ * Club member details (design 35): one member or one pending invite, picked out of the club's members
+ * overview -- the same payload as the Members tab, so the two can't disagree.
+ */
+class ClubMemberDetailsViewModel(
+    private val getClubMembersOverviewUseCase: GetClubMembersOverviewUseCase,
+    private val updateClubMemberRoleUseCase: UpdateClubMemberRoleUseCase,
+    private val resendClubInviteUseCase: ResendClubInviteUseCase,
+    private val cancelClubInviteUseCase: CancelClubInviteUseCase,
+    private val removeClubMemberUseCase: RemoveClubMemberUseCase,
+    private val removeStaffFromAgeGroupUseCase: RemoveStaffFromAgeGroupUseCase
+) : ViewModel() {
+
+    private val _state = MutableStateFlow<ClubMemberDetailsUiState>(ClubMemberDetailsUiState.Loading)
+    val state: StateFlow<ClubMemberDetailsUiState> = _state.asStateFlow()
+
+    private val _events = MutableSharedFlow<ClubMemberDetailsEvent>(extraBufferCapacity = 4)
+    val events: SharedFlow<ClubMemberDetailsEvent> = _events.asSharedFlow()
+
+    private var loadedKey: String? = null
+
+    private val refreshFlag = RefreshFlag()
+
+    /** Up while a pull-to-refresh reads the member again; the card stays on screen meanwhile. */
+    val isRefreshing: StateFlow<Boolean> = refreshFlag.running
+
+    private var target: Triple<String, String?, String?>? = null
+
+    fun load(clubId: String, userId: String?, inviteId: String?, force: Boolean = false) {
+        val key = "$clubId/$userId/$inviteId"
+        if (!force && loadedKey == key) return
+        loadedKey = key
+        target = Triple(clubId, userId, inviteId)
+        viewModelScope.launch {
+            _state.value = ClubMemberDetailsUiState.Loading
+            fetch(clubId, userId, inviteId)
+        }
+    }
+
+    /** A pull-to-refresh: the server, not the cache; the card stays on screen while it runs. */
+    fun refreshContent() {
+        val (clubId, userId, inviteId) = target ?: return
+        viewModelScope.launch(ForceRefresh) { refreshFlag.during { fetch(clubId, userId, inviteId) } }
+    }
+
+    private suspend fun fetch(clubId: String, userId: String?, inviteId: String?) {
+        _state.value = try {
+            // Just this member, or (for an invite) the pending invites, which always come whole.
+            val overview = if (userId != null) getClubMembersOverviewUseCase(clubId, userId = userId)
+            else getClubMembersOverviewUseCase(clubId, limit = 1)
+            val member = userId?.let { id -> overview.members.firstOrNull { it.userId == id } }
+            val invite = inviteId?.let { id -> overview.pendingInvites.firstOrNull { it.inviteId == id } }
+            when {
+                member != null -> ClubMemberDetailsUiState.Member(overview, member)
+                invite != null -> ClubMemberDetailsUiState.Invite(overview, invite)
+                else -> ClubMemberDetailsUiState.Error
+            }
+        } catch (e: Exception) {
+            ClubMemberDetailsUiState.Error
+        }
+    }
+
+    fun selectRole(role: ClubRole) {
+        _state.update { (it as? ClubMemberDetailsUiState.Member)?.takeIf { m -> !m.saving }?.copy(selectedRole = role) ?: it }
+    }
+
+    fun saveRole(clubId: String) {
+        val current = _state.value as? ClubMemberDetailsUiState.Member ?: return
+        if (!current.canSave) return
+        val role = current.selectedRole
+        _state.value = current.copy(saving = true)
+        viewModelScope.launch {
+            try {
+                updateClubMemberRoleUseCase(clubId, current.member.userId, role)
+                val roleName = getString(role.labelRes())
+                if (current.isYou) {
+                    // No reload: as a Member you can no longer read this list. Show the new role and leave.
+                    _state.value = ClubMemberDetailsUiState.Member(current.overview, current.member.copy(role = role))
+                    _events.emit(ClubMemberDetailsEvent.LeftSettings(getString(Res.string.member_you_now_role, roleName)))
+                    return@launch
+                }
+                // Refresh from the server: admin counts and the viewer's own role may have changed.
+                val overview = getClubMembersOverviewUseCase(clubId, userId = current.member.userId)
+                val member = overview.members.firstOrNull { it.userId == current.member.userId } ?: current.member.copy(role = role)
+                _state.value = ClubMemberDetailsUiState.Member(overview, member)
+                _events.emit(ClubMemberDetailsEvent.Message(getString(Res.string.member_now_role, "${member.firstName} ${member.lastName}", roleName)))
+            } catch (e: Exception) {
+                _state.value = current.copy(saving = false)
+                _events.emit(ClubMemberDetailsEvent.Message(errorMessage(e, Res.string.member_role_failed)))
+            }
+        }
+    }
+
+    /** Remove from club (design 35): back to the list, which says so. */
+    fun removeMember(clubId: String) {
+        val current = _state.value as? ClubMemberDetailsUiState.Member ?: return
+        if (!current.canRemove) return
+        _state.value = current.copy(saving = true)
+        viewModelScope.launch {
+            try {
+                removeClubMemberUseCase(clubId, current.member.userId)
+                _events.emit(ClubMemberDetailsEvent.Closed(getString(Res.string.member_removed, "${current.member.firstName} ${current.member.lastName}")))
+            } catch (e: Exception) {
+                _state.value = current.copy(saving = false)
+                _events.emit(ClubMemberDetailsEvent.Message(errorMessage(e, Res.string.member_remove_failed)))
+            }
+        }
+    }
+
+    /** Off one of their age groups, staying in the club: the card reloads without it, and a snackbar says so. */
+    fun removeFromAgeGroup(clubId: String, role: MemberAgeGroupRole) {
+        val current = _state.value as? ClubMemberDetailsUiState.Member ?: return
+        if (!current.canRemoveFromAgeGroups || current.saving) return
+        _state.value = current.copy(saving = true)
+        viewModelScope.launch {
+            try {
+                removeStaffFromAgeGroupUseCase(role.ageGroupId, current.member.userId)
+                _state.value = current.copy(member = current.member.copy(ageGroupRoles = current.member.ageGroupRoles - role))
+                _events.emit(ClubMemberDetailsEvent.Message(getString(Res.string.msg_staff_removed, "${current.member.firstName} ${current.member.lastName}", role.ageGroupName)))
+            } catch (e: Exception) {
+                _state.value = current.copy(saving = false)
+                _events.emit(ClubMemberDetailsEvent.Message(errorMessage(e, Res.string.msg_remove_staff_failed)))
+            }
+        }
+    }
+
+    fun resendInvite(clubId: String) {
+        val current = _state.value as? ClubMemberDetailsUiState.Invite ?: return
+        _state.value = current.copy(busy = true)
+        viewModelScope.launch {
+            try {
+                resendClubInviteUseCase(clubId, current.invite.inviteId)
+                _events.emit(ClubMemberDetailsEvent.Message(getString(Res.string.members_invite_resent, current.invite.email)))
+            } catch (e: Exception) {
+                _events.emit(ClubMemberDetailsEvent.Message(errorMessage(e, Res.string.members_action_failed)))
+            } finally {
+                _state.value = current.copy(busy = false)
+            }
+        }
+    }
+
+    fun cancelInvite(clubId: String) {
+        val current = _state.value as? ClubMemberDetailsUiState.Invite ?: return
+        _state.value = current.copy(busy = true)
+        viewModelScope.launch {
+            try {
+                cancelClubInviteUseCase(clubId, current.invite.inviteId)
+                _events.emit(ClubMemberDetailsEvent.Closed(getString(Res.string.members_invite_cancelled, current.invite.email)))
+            } catch (e: Exception) {
+                _state.value = current.copy(busy = false)
+                _events.emit(ClubMemberDetailsEvent.Message(errorMessage(e, Res.string.members_action_failed)))
+            }
+        }
+    }
+}

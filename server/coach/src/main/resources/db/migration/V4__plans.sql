@@ -1,4 +1,4 @@
--- Squadify for Coaches' plans (REQUIREMENTS §5c, TECHNICAL_DECISIONS §72).
+-- Squadcall for Coaches' plans (REQUIREMENTS §5c, TECHNICAL_DECISIONS §72).
 
 -- When an age group was created (shared with the clubs server, its V31): the first ones created stay
 -- in use when a space goes down a plan. Existing rows get the migration's time.

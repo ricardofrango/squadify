@@ -1,7 +1,7 @@
 name: Release coach Android
 
-# Squadify for Coaches on Google Play: builds app/coachAndroidApp's `prod` flavor as a signed App Bundle
-# (com.sportssoftw.squadify.coach) and releases it to the Play internal testing track (production is held until
+# Squadcall for Coaches on Google Play: builds app/coachAndroidApp's `prod` flavor as a signed App Bundle
+# (com.sportssoftw.squadcall.coach) and releases it to the Play internal testing track (production is held until
 # Play allows it). It runs on every merge
 # of develop into main (the production release); merges to develop only build and distribute through
 # Firebase (deploy-staging-coach.yml), as before.
@@ -52,8 +52,8 @@ jobs:
         run: |
           mkdir -p keystore
           printf '%s' "$ANDROID_KEYSTORE_PROPERTIES" > keystore/keystore.properties
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > keystore/squadify-keystore.jks
-          if [ ! -s keystore/keystore.properties ] || [ ! -s keystore/squadify-keystore.jks ]; then
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > keystore/squadcall-keystore.jks
+          if [ ! -s keystore/keystore.properties ] || [ ! -s keystore/squadcall-keystore.jks ]; then
             echo "::error::ANDROID_KEYSTORE_PROPERTIES or ANDROID_KEYSTORE_BASE64 secret is empty or not set"
             exit 1
           fi
@@ -78,7 +78,7 @@ jobs:
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.sportssoftw.squadify.coach
+          packageName: com.sportssoftw.squadcall.coach
           releaseFiles: app/coachAndroidApp/build/outputs/bundle/prodRelease/*.aab
           track: internal
           status: completed

@@ -1,0 +1,37 @@
+package com.sportssoftw.squadcall.domain.usecase
+
+import com.sportssoftw.squadcall.domain.repository.AuthRepository
+import com.sportssoftw.squadcall.domain.repository.SessionRepository
+import com.sportssoftw.squadcall.model.LoginRequest
+import com.sportssoftw.squadcall.model.LoginResponse
+import io.ktor.client.HttpClient
+import com.sportssoftw.squadcall.data.cache.clearResponseCache
+import io.ktor.client.plugins.auth.clearAuthTokens
+
+class LoginUseCase(
+    private val authRepository: AuthRepository,
+    private val sessionRepository: SessionRepository,
+    private val httpClient: HttpClient
+) {
+    suspend operator fun invoke(email: String, password: String): LoginResponse {
+        if (email.isBlank() || password.isBlank()) {
+            throw Exception("Email and password cannot be empty")
+        }
+
+        val response = authRepository.login(LoginRequest(email, password))
+
+        // Save session tokens
+        sessionRepository.saveToken(response.accessToken)
+        sessionRepository.saveRefreshToken(response.refreshToken)
+
+        // The authenticated client's Auth/bearer provider caches whatever loadTokens() returned the
+        // first time it ran, for the life of the client instance -- without this, logging in again on
+        // the same still-running app process (e.g. right after a logout) would keep sending whichever
+        // tokens were cached from *before* this login, not the ones just saved above.
+        httpClient.clearAuthTokens()
+        // Whatever was kept belongs to whoever was signed in before (§83).
+        httpClient.clearResponseCache()
+
+        return response
+    }
+}

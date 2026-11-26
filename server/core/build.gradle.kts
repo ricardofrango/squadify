@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.kotlinJvm)
 }
 
-group = "com.sportssoftw.squadify"
+group = "com.sportssoftw.squadcall"
 
 dependencies {
     api(project(":common"))

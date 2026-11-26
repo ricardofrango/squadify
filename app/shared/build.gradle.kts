@@ -26,7 +26,7 @@ kotlin {
     }
     
     android {
-       namespace = "com.sportssoftw.squadify.app.shared"
+       namespace = "com.sportssoftw.squadcall.app.shared"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
        minSdk = libs.versions.android.minSdk.get().toInt()
     
@@ -61,7 +61,7 @@ kotlin {
             // (CredentialStore.android.kt). play-services-auth is what serves it on Android 13 and below.
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.playServicesAuth)
-            // Push notifications for both apps (com.sportssoftw.squadify.push): receiving them, the
+            // Push notifications for both apps (com.sportssoftw.squadcall.push): receiving them, the
             // device's token, and asking for the permission.
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.messaging)
@@ -136,5 +136,5 @@ dependencies {
 // Res class is public; its package stays the one every import already uses.
 compose.resources {
     publicResClass = true
-    packageOfResClass = "squadify.app.shared.generated.resources"
+    packageOfResClass = "squadcall.app.shared.generated.resources"
 }

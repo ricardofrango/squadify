@@ -1,0 +1,77 @@
+package com.sportssoftw.squadcall.domain.usecase
+
+import com.sportssoftw.squadcall.domain.access.AccessPolicy
+import com.sportssoftw.squadcall.domain.access.GameScope
+import com.sportssoftw.squadcall.domain.repository.AgeGroupRepository
+import com.sportssoftw.squadcall.domain.repository.MatchEventRepository
+import com.sportssoftw.squadcall.domain.repository.MatchPlayerStatsRepository
+import com.sportssoftw.squadcall.domain.repository.MatchReportRepository
+import com.sportssoftw.squadcall.domain.repository.MatchRepository
+import com.sportssoftw.squadcall.domain.repository.OpponentRepository
+import com.sportssoftw.squadcall.domain.repository.PlayerRepository
+import com.sportssoftw.squadcall.domain.repository.SeasonRepository
+import com.sportssoftw.squadcall.domain.repository.TeamRepository
+import com.sportssoftw.squadcall.domain.service.TransactionManager
+import com.sportssoftw.squadcall.exception.ForbiddenException
+import com.sportssoftw.squadcall.exception.NotFoundException
+import com.sportssoftw.squadcall.model.AgeGroupSeasonRecord
+
+/**
+ * Age Group Details' Stats and Members data (design 33): every team's season record (see
+ * [buildTeamSeasonRecord]) plus the age group's pool. Results by team, the combined record, minutes
+ * across the pool and each member's apps/minutes/teams are derived client-side (`SeasonStats.kt`).
+ * Same read gate as Age Group Details. Ratings (only the team cards' averages use them) follow the
+ * match report's gate -- coordinators/admins and this age group's staff -- and are stripped otherwise.
+ */
+class GetAgeGroupSeasonRecordUseCase(
+    private val ageGroupRepository: AgeGroupRepository,
+    private val teamRepository: TeamRepository,
+    private val seasonRepository: SeasonRepository,
+    private val matchRepository: MatchRepository,
+    private val matchEventRepository: MatchEventRepository,
+    private val matchPlayerStatsRepository: MatchPlayerStatsRepository,
+    private val matchReportRepository: MatchReportRepository,
+    private val opponentRepository: OpponentRepository,
+    private val playerRepository: PlayerRepository,
+    private val accessPolicy: AccessPolicy,
+    private val transactionManager: TransactionManager
+) {
+    suspend operator fun invoke(userId: String, ageGroupId: String): AgeGroupSeasonRecord = transactionManager.runInTransaction {
+        val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
+
+        accessPolicy.requireViewGames(userId, GameScope(ageGroup.clubId, ageGroupId = ageGroupId))
+        accessPolicy.requireStatsInPlan(ageGroup.clubId)
+
+        val canSeeRatings = try {
+            accessPolicy.requireSeeRatings(userId, GameScope(ageGroup.clubId, ageGroupId = ageGroupId))
+            true
+        } catch (e: ForbiddenException) {
+            false
+        }
+
+        val season = seasonRepository.getSeasonById(ageGroup.seasonId) ?: throw NotFoundException("Season not found")
+        val opponentsById = opponentRepository.getOpponentsByClub(ageGroup.clubId).associateBy { it.id }
+        val teams = teamRepository.getTeamsByClub(ageGroup.clubId)
+            .filter { it.ageGroupId == ageGroupId }
+            .sortedBy { it.name }
+
+        AgeGroupSeasonRecord(
+            ageGroupId = ageGroupId,
+            teams = teams.map { team ->
+                buildTeamSeasonRecord(
+                    team = team,
+                    season = season,
+                    canSeeRatings = canSeeRatings,
+                    opponentsById = opponentsById,
+                    matchRepository = matchRepository,
+                    matchEventRepository = matchEventRepository,
+                    matchPlayerStatsRepository = matchPlayerStatsRepository,
+                    matchReportRepository = matchReportRepository,
+                    playerRepository = playerRepository
+                )
+            },
+            pool = playerRepository.getPlayersByAgeGroup(ageGroupId).map { it.toSeasonPlayer() },
+            canSeeRatings = canSeeRatings
+        )
+    }
+}

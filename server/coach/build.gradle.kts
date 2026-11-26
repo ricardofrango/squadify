@@ -1,4 +1,4 @@
-// The Squadify for Coaches server (TECHNICAL_DECISIONS §72): its own Ktor service and Postgres database,
+// The Squadcall for Coaches server (TECHNICAL_DECISIONS §72): its own Ktor service and Postgres database,
 // on the code shared with the clubs server (:server:core's use cases, :server:data's tables and
 // repositories, :server:web's Ktor setup). Deployed as its own Railway service from server/coach/Dockerfile.
 plugins {
@@ -8,10 +8,10 @@ plugins {
     application
 }
 
-group = "com.sportssoftw.squadify"
+group = "com.sportssoftw.squadcall"
 version = (project.findProperty("VERSION_NAME") as? String) ?: "1.1.0"
 application {
-    mainClass = "com.sportssoftw.squadify.coach.ApplicationKt"
+    mainClass = "com.sportssoftw.squadcall.coach.ApplicationKt"
 }
 
 dependencies {
@@ -45,13 +45,13 @@ dependencies {
 }
 
 // The tests start the whole server, which signs up accounts and sets up spaces: on their own database,
-// created when missing, never the dev one (`squadify_coach_dev`), and dropped once they've run.
-val testDatabase = "squadify_coach_test"
+// created when missing, never the dev one (`squadcall_coach_dev`), and dropped once they've run.
+val testDatabase = "squadcall_coach_test"
 
 val dropTestDatabase by tasks.registering(JavaExec::class) {
     description = "Drops the coach tests' database ($testDatabase)."
     classpath = sourceSets.test.get().runtimeClasspath
-    mainClass = "com.sportssoftw.squadify.coach.DropTestDatabaseKt"
+    mainClass = "com.sportssoftw.squadcall.coach.DropTestDatabaseKt"
     environment("DATABASE_NAME", testDatabase)
 }
 

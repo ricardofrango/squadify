@@ -1,0 +1,50 @@
+package com.sportssoftw.squadcall.presentation.routes
+
+import com.sportssoftw.squadcall.domain.usecase.RegisterFcmTokenUseCase
+import com.sportssoftw.squadcall.domain.usecase.RemoveFcmTokenUseCase
+import com.sportssoftw.squadcall.model.ErrorResponse
+import com.sportssoftw.squadcall.model.RegisterFcmTokenRequest
+import com.sportssoftw.squadcall.model.RemoveFcmTokenRequest
+import com.sportssoftw.squadcall.security.userId
+import io.ktor.http.*
+import io.ktor.server.auth.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
+
+/** This device's push token, registered after sign-in and removed on sign-out: on both servers (TECHNICAL_DECISIONS §72). */
+fun Route.fcmTokenRoutes() {
+    val registerFcmTokenUseCase by inject<RegisterFcmTokenUseCase>()
+    val removeFcmTokenUseCase by inject<RemoveFcmTokenUseCase>()
+
+    authenticate("auth-jwt") {
+        route("/fcm-tokens") {
+            post {
+                val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val request = call.receive<RegisterFcmTokenRequest>()
+
+                val success = registerFcmTokenUseCase(currentUserId, request.token)
+                if (success) {
+                    call.respond(HttpStatusCode.NoContent)
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to register push token"))
+                }
+            }
+
+            // Token travels in the body, not the path -- FCM tokens are opaque strings up to ~4096
+            // chars, not idiomatic (or necessarily URL-safe) as a path segment.
+            delete {
+                val currentUserId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                val request = call.receive<RemoveFcmTokenRequest>()
+
+                val success = removeFcmTokenUseCase(currentUserId, request.token)
+                if (success) {
+                    call.respond(HttpStatusCode.NoContent)
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to remove push token"))
+                }
+            }
+        }
+    }
+}

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Squadify</string>
+    <string name="app_name">Squadcall</string>
 
     <!-- Shared error messages -->
     <string name="msg_permission_denied">You don't have permission to do this. Ask a club coordinator or admin if you think this is wrong.</string>
@@ -577,7 +577,7 @@
     <string name="msg_report_no_permission_body">Match reports are only visible to this age group’s coaches and staff. Ask a coordinator if you need access.</string>
     <string name="report_back_to_match">Back to match</string>
     <string name="report_no_stats_title">No player stats for this match.</string>
-    <string name="report_no_stats_body">It was played before Squadify recorded minutes, goals and cards, so there’s nothing to rate. You can still write the analysis.</string>
+    <string name="report_no_stats_body">It was played before Squadcall recorded minutes, goals and cards, so there’s nothing to rate. You can still write the analysis.</string>
     <string name="report_status_line_completed">Last updated %1$s by %2$s</string>
     <string name="report_status_line_completed_today">Last updated today by %1$s</string>
     <string name="report_status_line_draft">Not completed yet · saved %1$s by %2$s</string>
@@ -720,8 +720,8 @@
         <item quantity="other">Includes %1$d older matches with no type — shown only under All.</item>
     </plurals>
     <plurals name="stats_pre_stats_body">
-        <item quantity="one">%2$s played %1$d match in %3$s, before Squadify recorded minutes, goals or ratings.</item>
-        <item quantity="other">%2$s played %1$d matches in %3$s, before Squadify recorded minutes, goals or ratings.</item>
+        <item quantity="one">%2$s played %1$d match in %3$s, before Squadcall recorded minutes, goals or ratings.</item>
+        <item quantity="other">%2$s played %1$d matches in %3$s, before Squadcall recorded minutes, goals or ratings.</item>
     </plurals>
 
     <!-- Team Details tabs (design 32) -->
@@ -977,7 +977,7 @@
     <string name="more_account_settings_sub">Name, phone, password</string>
     <string name="more_switch_club">Switch club</string>
     <string name="more_log_out">Log out</string>
-    <string name="more_log_out_title">Log out of Squadify?</string>
+    <string name="more_log_out_title">Log out of Squadcall?</string>
     <string name="more_log_out_body">You'll need your email and password to sign in again on this device.</string>
     <string name="more_role_admin">Admin</string>
     <string name="more_role_coordinator">Coordinator</string>
@@ -986,7 +986,7 @@
     <string name="more_role_member">Member</string>
     <string name="more_pick_hint">Choose one of your age groups.</string>
     <string name="more_continue">Continue</string>
-    <string name="more_version">Squadify %1$s</string>
+    <string name="more_version">Squadcall %1$s</string>
     <plurals name="more_clubs_count">
         <item quantity="one">%1$d club</item>
         <item quantity="other">%1$d clubs</item>
@@ -1045,7 +1045,7 @@
     <string name="msg_check_connection">Check your connection and try again.</string>
     <string name="startup_needs_connection_title">No connection</string>
     <string name="startup_update_title">Update needed</string>
-    <string name="startup_update_body">This version of the app is out of date. Update it to keep using Squadify.</string>
+    <string name="startup_update_body">This version of the app is out of date. Update it to keep using Squadcall.</string>
     <string name="more_opponents">Opponents</string>
     <!-- Create / Edit opponent (design 38e) -->
     <string name="title_create_opponent">Create opponent</string>
@@ -1412,7 +1412,7 @@
     <string name="msg_logo_remove_failed">Couldn't remove the logo. Try again.</string>
     <!-- Club colours (Club settings > Details) -->
     <string name="label_club_colours_section">CLUB COLOURS</string>
-    <string name="msg_club_colours_none">Using Squadify's colours. Pick two for your club: a strong main colour and a lighter second one.</string>
+    <string name="msg_club_colours_none">Using Squadcall's colours. Pick two for your club: a strong main colour and a lighter second one.</string>
     <string name="btn_choose_club_colours">Choose club colours</string>
     <string name="label_main_colour">Main colour</string>
     <string name="label_second_colour">Second colour</string>
@@ -1664,8 +1664,8 @@
     <string name="msg_opponent_delete_failed">Couldn't delete the opponent. Try again.</string>
     <string name="msg_cannot_be_undone">This can't be undone.</string>
     <string name="export_consent_title">Allow a copy of an age group?</string>
-    <string name="export_consent_body">The other Squadify app will copy the age group you choose from here, with its teams, players, matches and training. Nothing is changed here.</string>
-    <string name="export_consent_failed">Couldn't allow it. Sign in to Squadify in this app and try again.</string>
+    <string name="export_consent_body">The other Squadcall app will copy the age group you choose from here, with its teams, players, matches and training. Nothing is changed here.</string>
+    <string name="export_consent_failed">Couldn't allow it. Sign in to Squadcall in this app and try again.</string>
     <string name="btn_export_allow">Allow</string>
     <string name="import_dialog_title">Import an age group</string>
     <string name="import_dialog_hint">Choose one to copy with its teams, players, matches and training.</string>

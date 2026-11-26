@@ -16,7 +16,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.sportssoftw.squadify.baselineprofile"
+    namespace = "com.sportssoftw.squadcall.baselineprofile"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
@@ -38,7 +38,7 @@ android {
         create("dev") {
             dimension = "environment"
             // The app the generator starts (the clubs app's dev id).
-            testInstrumentationRunnerArguments["targetAppId"] = "com.sportssoftw.squadify.club.dev"
+            testInstrumentationRunnerArguments["targetAppId"] = "com.sportssoftw.squadcall.club.dev"
         }
         create("staging") { dimension = "environment" }
         create("prod") { dimension = "environment" }

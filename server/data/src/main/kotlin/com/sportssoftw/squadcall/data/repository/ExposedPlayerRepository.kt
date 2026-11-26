@@ -1,0 +1,234 @@
+package com.sportssoftw.squadcall.data.repository
+
+import com.sportssoftw.squadcall.data.database.AgeGroupPlayers
+import com.sportssoftw.squadcall.domain.repository.PlayerListFilter
+import com.sportssoftw.squadcall.data.database.Players
+import com.sportssoftw.squadcall.data.database.UserPlayers
+import com.sportssoftw.squadcall.domain.repository.PlayerRepository
+import com.sportssoftw.squadcall.exception.DatabaseException
+import com.sportssoftw.squadcall.model.AgeGroupPlayer
+import com.sportssoftw.squadcall.model.Player
+import com.sportssoftw.squadcall.model.UserPlayerRelationship
+import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.count
+import org.jetbrains.exposed.v1.core.inSubQuery
+import org.jetbrains.exposed.v1.core.notInSubQuery
+import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
+import kotlinx.datetime.LocalDate
+import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.jdbc.batchInsert
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
+import kotlin.uuid.Uuid
+import com.sportssoftw.squadcall.util.toUuid
+
+class ExposedPlayerRepository : PlayerRepository {
+
+    override suspend fun getPlayersByClub(clubId: String): List<Player> =
+        Players.selectAll().where { Players.clubId eq clubId.toUuid() }
+            .map(::toPlayer)
+
+    override suspend fun getPlayersPage(clubId: String, filter: PlayerListFilter, limit: Int, offset: Int): List<Player> =
+        Players.selectAll()
+            .where { playersMatching(clubId, filter) }
+            .orderBy(Players.active to SortOrder.DESC, Players.firstName to SortOrder.ASC, Players.lastName to SortOrder.ASC, Players.id to SortOrder.ASC)
+            .limit(limit)
+            .offset(offset.toLong())
+            .map(::toPlayer)
+
+    override suspend fun hasPlayers(clubId: String, filter: PlayerListFilter): Boolean =
+        !Players.selectAll()
+            .where { playersMatching(clubId, filter) }
+            .limit(1)
+            .empty()
+
+    override suspend fun countPlayersByAgeGroup(clubId: String): Map<String, Int> {
+        val count = AgeGroupPlayers.playerId.count()
+        return (AgeGroupPlayers innerJoin Players)
+            .select(AgeGroupPlayers.ageGroupId, count)
+            .where { Players.clubId eq clubId.toUuid() }
+            .groupBy(AgeGroupPlayers.ageGroupId)
+            .associate { it[AgeGroupPlayers.ageGroupId].toString() to it[count].toInt() }
+    }
+
+    private fun playersMatching(clubId: String, filter: PlayerListFilter): Op<Boolean> {
+        fun inPools(ageGroupIds: Set<String>) = Players.id inSubQuery AgeGroupPlayers.select(AgeGroupPlayers.playerId)
+            .where { AgeGroupPlayers.ageGroupId inList ageGroupIds.map { it.toUuid() } }
+
+        var op: Op<Boolean> = Players.clubId eq clubId.toUuid()
+        filter.visibleAgeGroupIds?.let { op = op and inPools(it) }
+        filter.ageGroupId?.let { op = op and inPools(setOf(it)) }
+        filter.seasonAgeGroupIds?.let {
+            op = op and (inPools(it) or (Players.id notInSubQuery AgeGroupPlayers.select(AgeGroupPlayers.playerId)))
+        }
+        filter.search?.takeIf { it.isNotEmpty() }?.let { op = op and searchKeyOf(Players.firstName, Players.lastName).containsSearch(it) }
+        filter.notInAgeGroupId?.let {
+            op = op and (Players.id notInSubQuery AgeGroupPlayers.select(AgeGroupPlayers.playerId).where { AgeGroupPlayers.ageGroupId eq it.toUuid() })
+        }
+        filter.bornFromYear?.let { op = op and (Players.birthDate greaterEq LocalDate(it, 1, 1)) }
+        if (filter.activeOnly) op = op and (Players.active eq true)
+        return op
+    }
+
+    override suspend fun createPlayer(player: Player): Player =
+        Players.insert {
+            it[id] = player.id.toUuid()
+            it[clubId] = player.clubId.toUuid()
+            it[firstName] = player.firstName
+            it[lastName] = player.lastName
+            it[birthDate] = player.birthDate
+            it[shirtNumber] = player.shirtNumber
+            it[photoUrl] = player.photoUrl
+            it[active] = player.active
+            it[position] = player.position
+            it[heightCm] = player.heightCm
+            it[weightKg] = player.weightKg
+            it[emergencyContact] = player.emergencyContact
+        }.resultedValues?.singleOrNull()?.let(::toPlayer)
+            ?: throw DatabaseException("Failed to create player")
+
+    override suspend fun createPlayers(players: List<Player>): List<Player> =
+        Players.batchInsert(players) {
+            this[Players.id] = it.id.toUuid()
+            this[Players.clubId] = it.clubId.toUuid()
+            this[Players.firstName] = it.firstName
+            this[Players.lastName] = it.lastName
+            this[Players.birthDate] = it.birthDate
+            this[Players.shirtNumber] = it.shirtNumber
+            this[Players.photoUrl] = it.photoUrl
+            this[Players.active] = it.active
+            this[Players.position] = it.position
+            this[Players.heightCm] = it.heightCm
+            this[Players.weightKg] = it.weightKg
+            this[Players.emergencyContact] = it.emergencyContact
+        }.map(::toPlayer)
+
+    override suspend fun updatePhotoUrl(playerId: String, photoUrl: String?): Boolean =
+        Players.update({ Players.id eq playerId.toUuid() }) { it[Players.photoUrl] = photoUrl } > 0
+
+    override suspend fun getPlayerById(id: String): Player? =
+        Players.selectAll().where { Players.id eq id.toUuid() }
+            .map(::toPlayer)
+            .singleOrNull()
+
+    // The photo is left alone: only updatePhotoUrl changes it, so saving the other fields can't undo an upload.
+    override suspend fun updatePlayer(player: Player): Boolean =
+        Players.update({ Players.id eq player.id.toUuid() }) {
+            it[firstName] = player.firstName
+            it[lastName] = player.lastName
+            it[birthDate] = player.birthDate
+            it[shirtNumber] = player.shirtNumber
+            it[active] = player.active
+            it[position] = player.position
+            it[heightCm] = player.heightCm
+            it[weightKg] = player.weightKg
+            it[emergencyContact] = player.emergencyContact
+        } > 0
+
+    override suspend fun getPlayersData(playerIds: List<String>): List<Player> =
+        Players.selectAll()
+            .where { Players.id inList playerIds.map(String::toUuid) }
+            .map(::toPlayer)
+
+    override suspend fun addPlayersToAgeGroup(links: List<AgeGroupPlayer>): List<AgeGroupPlayer> =
+        AgeGroupPlayers.batchInsert(links) {
+            this[AgeGroupPlayers.id] = it.id.toUuid()
+            this[AgeGroupPlayers.ageGroupId] = it.ageGroupId.toUuid()
+            this[AgeGroupPlayers.playerId] = it.playerId.toUuid()
+        }.map(::toAgeGroupPlayer)
+
+    override suspend fun getPlayersByAgeGroup(ageGroupId: String): List<Player> =
+        (Players innerJoin AgeGroupPlayers).selectAll()
+            .where { AgeGroupPlayers.ageGroupId eq ageGroupId.toUuid() }
+            .map(::toPlayer)
+
+    override suspend fun updateActiveStatus(playerId: String, active: Boolean): Boolean =
+        Players.update({ Players.id eq playerId.toUuid() }) {
+            it[Players.active] = active
+        } > 0
+
+    override suspend fun removePlayerFromAgeGroup(ageGroupId: String, playerId: String): Boolean =
+        AgeGroupPlayers.deleteWhere {
+            (AgeGroupPlayers.ageGroupId eq ageGroupId.toUuid()) and (AgeGroupPlayers.playerId eq playerId.toUuid())
+        } > 0
+
+    override suspend fun createUserPlayer(
+        userId: String,
+        playerId: String,
+        relationship: UserPlayerRelationship
+    ) {
+        UserPlayers.insert {
+            it[id] = Uuid.random()
+            it[UserPlayers.userId] = userId.toUuid()
+            it[UserPlayers.playerId] = playerId.toUuid()
+            it[UserPlayers.relationship] = relationship
+        }
+    }
+
+    override suspend fun createUserPlayers(userPlayers: List<Triple<String, String, UserPlayerRelationship>>) {
+        UserPlayers.batchInsert(userPlayers) { (userId, playerId, rel) ->
+            this[UserPlayers.id] = Uuid.random()
+            this[UserPlayers.userId] = userId.toUuid()
+            this[UserPlayers.playerId] = playerId.toUuid()
+            this[UserPlayers.relationship] = rel
+        }
+    }
+
+    override suspend fun deleteUserPlayersByPlayer(playerId: String) {
+        UserPlayers.deleteWhere { UserPlayers.playerId eq playerId.toUuid() }
+    }
+
+    override suspend fun countPlayersByClub(clubId: String): Long =
+        Players.selectAll().where { Players.clubId eq clubId.toUuid() }.count()
+
+    override suspend fun getPlayersByUser(userId: String): List<Player> =
+        (Players innerJoin UserPlayers).selectAll()
+            .where { UserPlayers.userId eq userId.toUuid() }
+            .map(::toPlayer)
+
+    override suspend fun getUserPlayerLinksByClub(clubId: String): List<Triple<String, Player, UserPlayerRelationship>> =
+        (Players innerJoin UserPlayers).selectAll()
+            .where { Players.clubId eq clubId.toUuid() }
+            .map { Triple(it[UserPlayers.userId].toString(), toPlayer(it), it[UserPlayers.relationship]) }
+
+    override suspend fun getAgeGroupPlayersByClub(clubId: String): List<AgeGroupPlayer> =
+        (AgeGroupPlayers innerJoin Players).selectAll()
+            .where { Players.clubId eq clubId.toUuid() }
+            .map(::toAgeGroupPlayer)
+
+    override suspend fun countGuardiansByPlayer(playerId: String): Long =
+        UserPlayers.selectAll().where { UserPlayers.playerId eq playerId.toUuid() }.count()
+
+    override suspend fun getAgeGroupIdsByPlayer(playerId: String): List<String> =
+        AgeGroupPlayers.selectAll().where { AgeGroupPlayers.playerId eq playerId.toUuid() }
+            .map { it[AgeGroupPlayers.ageGroupId].toString() }
+
+    private fun toAgeGroupPlayer(row: ResultRow): AgeGroupPlayer = AgeGroupPlayer(
+        id = row[AgeGroupPlayers.id].toString(),
+        ageGroupId = row[AgeGroupPlayers.ageGroupId].toString(),
+        playerId = row[AgeGroupPlayers.playerId].toString()
+    )
+
+    private fun toPlayer(row: ResultRow): Player = Player(
+        id = row[Players.id].toString(),
+        clubId = row[Players.clubId].toString(),
+        firstName = row[Players.firstName],
+        lastName = row[Players.lastName],
+        birthDate = row[Players.birthDate],
+        shirtNumber = row[Players.shirtNumber],
+        photoUrl = row[Players.photoUrl],
+        active = row[Players.active],
+        position = row[Players.position],
+        heightCm = row[Players.heightCm],
+        weightKg = row[Players.weightKg],
+        emergencyContact = row[Players.emergencyContact]
+    )
+}

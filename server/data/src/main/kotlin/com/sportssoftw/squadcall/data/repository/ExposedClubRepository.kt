@@ -1,0 +1,228 @@
+package com.sportssoftw.squadcall.data.repository
+
+import com.sportssoftw.squadcall.model.Country
+import com.sportssoftw.squadcall.data.database.ClubMembers
+import com.sportssoftw.squadcall.data.database.Clubs
+import com.sportssoftw.squadcall.data.database.Players
+import com.sportssoftw.squadcall.data.database.UserPlayers
+import com.sportssoftw.squadcall.data.database.Users
+import com.sportssoftw.squadcall.domain.repository.ClubMemberAccount
+import com.sportssoftw.squadcall.domain.repository.ClubRepository
+import com.sportssoftw.squadcall.domain.repository.MemberListFilter
+import com.sportssoftw.squadcall.exception.DatabaseException
+import com.sportssoftw.squadcall.model.Club
+import com.sportssoftw.squadcall.model.ClubTheme
+import com.sportssoftw.squadcall.model.ClubMemberSummary
+import com.sportssoftw.squadcall.model.ClubRole
+import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.case
+import org.jetbrains.exposed.v1.core.count
+import org.jetbrains.exposed.v1.core.intLiteral
+import org.jetbrains.exposed.v1.core.lowerCase
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.exists
+import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.jdbc.batchInsert
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.insertIgnore
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
+import kotlin.uuid.Uuid
+import com.sportssoftw.squadcall.util.toUuid
+
+class ExposedClubRepository : ClubRepository {
+
+    override suspend fun getAllClubs(): List<Club> =
+        Clubs.selectAll().map(::toClub)
+
+    override suspend fun getClubsByUser(userId: String): List<Club> {
+        val userUuid = userId.toUuid()
+
+        // One row per club, via two correlated EXISTS conditions (member OR parent of a player in
+        // the club). A LEFT JOIN + withDistinct() version was tried but fans out: when the same user
+        // is both a member and a linked parent, the join yields several wide rows for the one club
+        // that DISTINCT can't collapse, so the club came back duplicated.
+        return Clubs.selectAll().where {
+            exists(
+                ClubMembers.selectAll().where {
+                    (ClubMembers.clubId eq Clubs.id) and (ClubMembers.userId eq userUuid)
+                }
+            ) or exists(
+                (Players innerJoin UserPlayers).selectAll().where {
+                    (Players.clubId eq Clubs.id) and (UserPlayers.userId eq userUuid)
+                }
+            )
+        }.map(::toClub)
+    }
+
+    override suspend fun getMemberships(userId: String): List<Pair<Club, ClubRole>> =
+        (Clubs innerJoin ClubMembers).selectAll()
+            .where { ClubMembers.userId eq userId.toUuid() }
+            .orderBy(Clubs.createdAt to SortOrder.ASC)
+            .map { toClub(it) to it[ClubMembers.role] }
+
+    override suspend fun createClub(club: Club): Club =
+        Clubs.insert {
+            it[id] = club.id.toUuid()
+            it[name] = club.name
+            it[shortName] = club.shortName
+            it[logoUrl] = club.logoUrl
+            it[email] = club.email
+            it[phone] = club.phone
+            it[address] = club.address
+            it[stadiumLocation] = club.stadiumLocation
+            it[country] = club.country.code
+            it[status] = club.status
+            it[sport] = club.sport
+            it[createdAt] = club.createdAt
+            it[themePrimaryColor] = club.theme?.primaryColor
+            it[themeSecondaryColor] = club.theme?.secondaryColor
+        }.resultedValues?.singleOrNull()?.let(::toClub)
+            ?: throw DatabaseException("Failed to create club")
+
+    override suspend fun getClubById(id: String): Club? =
+        Clubs.selectAll().where { Clubs.id eq id.toUuid() }
+            .map(::toClub)
+            .singleOrNull()
+
+    override suspend fun updateClub(club: Club): Boolean =
+        Clubs.update({ Clubs.id eq club.id.toUuid() }) {
+            it[name] = club.name
+            it[shortName] = club.shortName
+            it[logoUrl] = club.logoUrl
+            it[email] = club.email
+            it[phone] = club.phone
+            it[address] = club.address
+            it[stadiumLocation] = club.stadiumLocation
+            it[country] = club.country.code
+            it[status] = club.status
+            it[themePrimaryColor] = club.theme?.primaryColor
+            it[themeSecondaryColor] = club.theme?.secondaryColor
+        } > 0
+
+    override suspend fun updateLogoUrl(clubId: String, logoUrl: String?): Boolean =
+        Clubs.update({ Clubs.id eq clubId.toUuid() }) { it[Clubs.logoUrl] = logoUrl } > 0
+
+    // Both add-member methods skip a (club_id, user_id) pair that already has a membership
+    // (ON CONFLICT DO NOTHING on unique_club_member) rather than failing or duplicating it. The existing
+    // row, and its role, is left untouched, so re-adding someone never downgrades them.
+    override suspend fun addMember(clubId: String, userId: String, role: ClubRole): Boolean =
+        ClubMembers.insertIgnore {
+            it[id] = Uuid.random()
+            it[this.clubId] = clubId.toUuid()
+            it[this.userId] = userId.toUuid()
+            it[this.role] = role
+            it[active] = true
+        }.insertedCount > 0
+
+    override suspend fun addMembers(clubId: String, userIds: List<Pair<String, ClubRole>>): Boolean {
+        ClubMembers.batchInsert(userIds, ignore = true) { (uId, role) ->
+            this[ClubMembers.id] = Uuid.random()
+            this[ClubMembers.clubId] = clubId.toUuid()
+            this[ClubMembers.userId] = uId.toUuid()
+            this[ClubMembers.role] = role
+            this[ClubMembers.active] = true
+        }
+        // Skipped pairs aren't failures -- every requested user ends up a member either way.
+        return true
+    }
+
+    override suspend fun getClubMembers(clubId: String): List<ClubMemberSummary> =
+        (ClubMembers innerJoin Users).selectAll()
+            .where { (ClubMembers.clubId eq clubId.toUuid()) and (ClubMembers.active eq true) }
+            .orderBy(Users.firstName)
+            .map {
+                ClubMemberSummary(
+                    userId = it[Users.id].toString(),
+                    firstName = it[Users.firstName],
+                    lastName = it[Users.lastName],
+                    email = it[Users.email],
+                    role = it[ClubMembers.role],
+                    avatarUrl = it[Users.avatarUrl]
+                )
+            }
+
+    override suspend fun getClubMembersPage(clubId: String, filter: MemberListFilter, limit: Int, offset: Int): List<ClubMemberAccount> {
+        // Admins, then coordinators, then members.
+        val roleRank = case()
+            .When(ClubMembers.role eq ClubRole.CLUB_ADMIN, intLiteral(0))
+            .When(ClubMembers.role eq ClubRole.COORDINATOR, intLiteral(1))
+            .Else(intLiteral(2))
+        return (ClubMembers innerJoin Users).selectAll()
+            .where { membersMatching(clubId, filter) }
+            .orderBy(roleRank to SortOrder.ASC, Users.firstName to SortOrder.ASC, Users.lastName to SortOrder.ASC, Users.id to SortOrder.ASC)
+            .limit(limit)
+            .offset(offset.toLong())
+            .map {
+                ClubMemberAccount(
+                    userId = it[Users.id].toString(),
+                    firstName = it[Users.firstName],
+                    lastName = it[Users.lastName],
+                    email = it[Users.email],
+                    phone = it[Users.phone],
+                    role = it[ClubMembers.role],
+                    accountCreatedAt = it[Users.createdAt],
+                    avatarUrl = it[Users.avatarUrl]
+                )
+            }
+    }
+
+    override suspend fun countClubMembersByRole(clubId: String, search: String?): Map<ClubRole, Int> {
+        val count = ClubMembers.id.count()
+        return (ClubMembers innerJoin Users)
+            .select(ClubMembers.role, count)
+            .where { membersMatching(clubId, MemberListFilter(search = search)) }
+            .groupBy(ClubMembers.role)
+            .associate { it[ClubMembers.role] to it[count].toInt() }
+    }
+
+    private fun membersMatching(clubId: String, filter: MemberListFilter): Op<Boolean> {
+        var op: Op<Boolean> = (ClubMembers.clubId eq clubId.toUuid()) and (ClubMembers.active eq true)
+        filter.role?.let { op = op and (ClubMembers.role eq it) }
+        filter.userId?.let { op = op and (ClubMembers.userId eq it.toUuid()) }
+        filter.search?.takeIf { it.isNotEmpty() }?.let {
+            op = op and (searchKeyOf(Users.firstName, Users.lastName).containsSearch(it) or Users.email.lowerCase().containsSearch(it))
+        }
+        return op
+    }
+
+    override suspend fun updateMemberRole(clubId: String, userId: String, role: ClubRole): Boolean =
+        ClubMembers.update({ (ClubMembers.clubId eq clubId.toUuid()) and (ClubMembers.userId eq userId.toUuid()) }) {
+            it[this.role] = role
+        } > 0
+
+    override suspend fun removeMember(clubId: String, userId: String): Boolean =
+        ClubMembers.deleteWhere { (ClubMembers.clubId eq clubId.toUuid()) and (ClubMembers.userId eq userId.toUuid()) } > 0
+
+    override suspend fun countAllClubs(): Long =
+        Clubs.selectAll().count()
+
+    override suspend fun getRecentClubs(limit: Int): List<Club> =
+        Clubs.selectAll()
+            .orderBy(Clubs.createdAt, SortOrder.DESC)
+            .limit(limit)
+            .map(::toClub)
+
+    private fun toClub(row: ResultRow): Club = Club(
+        id = row[Clubs.id].toString(),
+        name = row[Clubs.name],
+        shortName = row[Clubs.shortName],
+        logoUrl = row[Clubs.logoUrl],
+        email = row[Clubs.email],
+        phone = row[Clubs.phone],
+        address = row[Clubs.address],
+        stadiumLocation = row[Clubs.stadiumLocation],
+        country = Country.fromCode(row[Clubs.country]),
+        status = row[Clubs.status],
+        createdAt = row[Clubs.createdAt],
+        sport = row[Clubs.sport],
+        theme = row[Clubs.themePrimaryColor]?.let { primary ->
+            row[Clubs.themeSecondaryColor]?.let { ClubTheme(primary, it) }
+        }
+    )
+}

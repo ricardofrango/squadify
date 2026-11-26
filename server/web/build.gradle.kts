@@ -3,13 +3,13 @@
 // account routes (accountRoutes), the push token routes (fcmTokenRoutes), the image routes (imageRoutes,
 // publicImageRoutes), sending email through Resend (ResendSender) and pushes through Firebase
 // (FirebaseAdminPushNotificationService), and storing images (S3ImageStorage, LocalImageStorage).
-// Kept out of :server:core, which has no Ktor; each server calls installSquadifyApi with its own
+// Kept out of :server:core, which has no Ktor; each server calls installSquadcallApi with its own
 // tokens, mounts gameRoutes with them, and adds its own routes.
 plugins {
     alias(libs.plugins.kotlinJvm)
 }
 
-group = "com.sportssoftw.squadify"
+group = "com.sportssoftw.squadcall"
 
 dependencies {
     api(project(":server:core"))

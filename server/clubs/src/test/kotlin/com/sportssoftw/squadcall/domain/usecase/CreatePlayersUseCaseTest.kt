@@ -1,0 +1,197 @@
+package com.sportssoftw.squadcall.domain.usecase
+
+import com.sportssoftw.squadcall.domain.access.ClubAccessPolicy
+import com.sportssoftw.squadcall.domain.repository.AgeGroupRepository
+import com.sportssoftw.squadcall.domain.repository.ClubRepository
+import com.sportssoftw.squadcall.domain.repository.InviteRepository
+import com.sportssoftw.squadcall.domain.repository.PlayerRepository
+import com.sportssoftw.squadcall.domain.repository.TeamRepository
+import com.sportssoftw.squadcall.domain.repository.UserRepository
+import com.sportssoftw.squadcall.domain.repository.ClubPermissionRepository
+import com.sportssoftw.squadcall.domain.service.TransactionManager
+import com.sportssoftw.squadcall.exception.ForbiddenException
+import com.sportssoftw.squadcall.exception.NotFoundException
+import com.sportssoftw.squadcall.exception.ValidationException
+import com.sportssoftw.squadcall.model.AgeGroup
+import com.sportssoftw.squadcall.model.AgeGroupPlayer
+import com.sportssoftw.squadcall.model.ClubRole
+import com.sportssoftw.squadcall.model.CreatePlayer
+import com.sportssoftw.squadcall.model.CreatePlayersRequest
+import com.sportssoftw.squadcall.model.Player
+import com.sportssoftw.squadcall.model.AgeGroupRole
+import com.sportssoftw.squadcall.model.User
+import com.sportssoftw.squadcall.model.UserStatus
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
+import org.junit.Test
+import kotlin.test.assertFailsWith
+import kotlin.time.Instant
+
+/**
+ * Minimal first coverage for this previously-untested use case -- focused on the age-group-scoped
+ * coach path added alongside the club-wide coordinator gate (see PERMISSION_TEST_MATRIX.md).
+ */
+class CreatePlayersUseCaseTest {
+
+    private val playerRepository = mockk<PlayerRepository>(relaxed = true)
+    private val userRepository = mockk<UserRepository>()
+    private val inviteRepository = mockk<InviteRepository>(relaxed = true)
+    private val clubRepository = mockk<ClubRepository>(relaxed = true)
+    private val ageGroupRepository = mockk<AgeGroupRepository>()
+    private val teamRepository = mockk<TeamRepository>()
+    private val transactionManager = object : TransactionManager {
+        override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
+    }
+    private val clubPermissionRepository = mockk<ClubPermissionRepository>(relaxed = true)
+    init { coEvery { clubPermissionRepository.getOverride(any(), any()) } returns null }
+    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
+        userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
+    )
+    private val useCase = CreatePlayersUseCase(
+        playerRepository, ageGroupRepository, transactionManager, ClubAccessPolicy(checkUserPermissionUseCase),
+        ClubPlayerContacts(playerRepository, userRepository, inviteRepository, clubRepository)
+    )
+
+    private val clubId = "club-1"
+    private val ag1 = "ag-1"
+
+    private fun coach() = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
+
+    private fun request(
+        ageGroupId: String? = null,
+        addToAgeGroup: Boolean = false,
+        birthDate: LocalDate = LocalDate(2012, 1, 1)
+    ) = CreatePlayersRequest(
+        clubId = clubId,
+        players = listOf(CreatePlayer(firstName = "First", lastName = "Last", birthDate = birthDate)),
+        ageGroupId = ageGroupId,
+        addToAgeGroup = addToAgeGroup
+    )
+
+    // The age group's own coach, the 2013 group (born 2013 or later).
+    private fun coachOfAg1(): User {
+        val coach = coach()
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns null
+        coEvery { ageGroupRepository.getAgeGroupById(ag1) } returns AgeGroup(ag1, clubId, "U12", "s-1", 2013, 2013)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
+        coEvery { userRepository.findByEmails(emptyList()) } returns emptyList()
+        coEvery { playerRepository.createPlayers(any()) } answers { firstArg() }
+        return coach
+    }
+
+    @Test
+    fun anAgeGroupCoachWithNoClubRoleCanCreatePlayersForTheirOwnAgeGroup() = runBlocking {
+        val coach = coach()
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns null
+        coEvery { ageGroupRepository.getAgeGroupById(ag1) } returns AgeGroup(ag1, clubId, "U12", "s-1", 2013, 2013)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
+        coEvery { userRepository.findByEmails(emptyList()) } returns emptyList()
+        coEvery { playerRepository.createPlayers(any()) } answers { firstArg() }
+
+        val result = useCase(coach.id, request(ageGroupId = ag1))
+
+        kotlin.test.assertEquals(1, result.size)
+    }
+
+    @Test
+    fun aCoachOfADifferentAgeGroupIsDenied() = runBlocking {
+        val coach = coach()
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns null
+        coEvery { ageGroupRepository.getAgeGroupById(ag1) } returns AgeGroup(ag1, clubId, "U12", "s-1", 2013, 2013)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns null
+
+        assertFailsWith<ForbiddenException> { useCase(coach.id, request(ageGroupId = ag1)) }
+        Unit
+    }
+
+    @Test
+    fun aCoachCannotCreatePlayersClubWideWithoutAnAgeGroupContext() = runBlocking {
+        // No ageGroupId supplied -- the club-wide/standalone entry point stays coordinator-only, even
+        // for someone who coaches an age group somewhere in this club.
+        val coach = coach()
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns null
+
+        assertFailsWith<ForbiddenException> { useCase(coach.id, request(ageGroupId = null)) }
+        Unit
+    }
+
+    @Test
+    fun anAgeGroupFromAnotherClubIsRejected() = runBlocking {
+        val coach = coach()
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { ageGroupRepository.getAgeGroupById(ag1) } returns AgeGroup(ag1, "other-club", "U12", "s-1", 2013, 2013)
+
+        assertFailsWith<ForbiddenException> { useCase(coach.id, request(ageGroupId = ag1)) }
+        Unit
+    }
+
+    @Test
+    fun aNonexistentAgeGroupIsNotFound() = runBlocking {
+        val coach = coach()
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { ageGroupRepository.getAgeGroupById("no-such-ag") } returns null
+
+        assertFailsWith<NotFoundException> { useCase(coach.id, request(ageGroupId = "no-such-ag")) }
+        Unit
+    }
+
+    @Test
+    fun coordinatorCanCreatePlayersClubWide() = runBlocking {
+        val coordinator = User("p2-coordinator", "c@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubId) } returns ClubRole.COORDINATOR
+        coEvery { userRepository.findByEmails(emptyList()) } returns emptyList()
+        coEvery { playerRepository.createPlayers(any()) } answers { firstArg() }
+
+        val result = useCase(coordinator.id, request(ageGroupId = null))
+
+        kotlin.test.assertEquals(1, result.size)
+        coVerify(exactly = 0) { ageGroupRepository.getAgeGroupById(any()) }
+    }
+
+    @Test
+    fun addToAgeGroupPutsTheNewPlayersInItsPool() = runBlocking {
+        val coach = coachOfAg1()
+
+        val created = useCase(coach.id, request(ageGroupId = ag1, addToAgeGroup = true, birthDate = LocalDate(2014, 6, 1))).single()
+
+        coVerify { playerRepository.addPlayersToAgeGroup(match<List<AgeGroupPlayer>> { links -> links.single().let { it.ageGroupId == ag1 && it.playerId == created.id } }) }
+    }
+
+    @Test
+    fun addToAgeGroupRefusesAPlayerTooOldAndCreatesNothing() = runBlocking {
+        val coach = coachOfAg1()
+
+        assertFailsWith<ValidationException> {
+            useCase(coach.id, request(ageGroupId = ag1, addToAgeGroup = true, birthDate = LocalDate(2012, 12, 31)))
+        }
+        coVerify(exactly = 0) { playerRepository.createPlayers(any()) }
+        coVerify(exactly = 0) { playerRepository.addPlayersToAgeGroup(any()) }
+    }
+
+    @Test
+    fun withoutAddToAgeGroupThePlayersOnlyJoinTheClub() = runBlocking {
+        val coach = coachOfAg1()
+
+        // Older than the group: fine when they're only created in the club (the clubs app).
+        useCase(coach.id, request(ageGroupId = ag1, birthDate = LocalDate(2010, 1, 1)))
+
+        coVerify(exactly = 0) { playerRepository.addPlayersToAgeGroup(any()) }
+    }
+
+    @Test
+    fun addToAgeGroupNeedsAnAgeGroup() = runBlocking {
+        val coach = coach()
+        coEvery { userRepository.findById(coach.id) } returns coach
+
+        assertFailsWith<ValidationException> { useCase(coach.id, request(addToAgeGroup = true)) }
+        Unit
+    }
+}

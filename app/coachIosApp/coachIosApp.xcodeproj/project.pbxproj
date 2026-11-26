@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		A45FA5DF3BEEC96F95EA7B1E /* SquadifyCoach.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SquadifyCoach.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A45FA5DF3BEEC96F95EA7B1E /* SquadcallCoach.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SquadcallCoach.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -50,7 +50,7 @@
 		B1A6A3015DCBCAA4425476C4 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A45FA5DF3BEEC96F95EA7B1E /* SquadifyCoach.app */,
+				A45FA5DF3BEEC96F95EA7B1E /* SquadcallCoach.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -87,7 +87,7 @@
 			packageProductDependencies = (
 			);
 			productName = coachIosApp;
-			productReference = A45FA5DF3BEEC96F95EA7B1E /* SquadifyCoach.app */;
+			productReference = A45FA5DF3BEEC96F95EA7B1E /* SquadcallCoach.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -181,7 +181,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = coachIosApp/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Squadify Coach Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "Squadcall Coach Dev";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -192,7 +192,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.sportssoftw.squadify.coach.dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.sportssoftw.squadcall.coach.dev";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -336,7 +336,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = coachIosApp/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Squadify Coach";
+				INFOPLIST_KEY_CFBundleDisplayName = "Squadcall Coach";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -347,7 +347,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.sportssoftw.squadify.coach";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.sportssoftw.squadcall.coach";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -427,7 +427,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = coachIosApp/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Squadify Coach Stg";
+				INFOPLIST_KEY_CFBundleDisplayName = "Squadcall Coach Stg";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -439,7 +439,7 @@
 				);
 				KOTLIN_FRAMEWORK_BUILD_TYPE = release;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.sportssoftw.squadify.coach.stg";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.sportssoftw.squadcall.coach.stg";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

@@ -23,7 +23,7 @@ kotlin {
     }
     
     android {
-       namespace = "com.sportssoftw.squadify.core"
+       namespace = "com.sportssoftw.squadcall.core"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
        minSdk = libs.versions.android.minSdk.get().toInt()
     
