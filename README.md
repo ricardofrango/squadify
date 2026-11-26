@@ -3,9 +3,9 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM
 * [/app/iosApp](./app/iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform,
   you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
 
-* [/app/clubs](./app/clubs/src) is Squadify for Clubs: its navigation, Koin setup, iOS entry and the screens only clubs have (TECHNICAL_DECISIONS.md §72). Every clubs entry point (Android, iOS, web, desktop) starts it.
+* [/app/clubs](./app/clubs/src) is Squadcall for Clubs: its navigation, Koin setup, iOS entry and the screens only clubs have (TECHNICAL_DECISIONS.md §72). Every clubs entry point (Android, iOS, web, desktop) starts it.
 
-* [/app/coach](./app/coach/src) is Squadify for Coaches: its navigation, Koin setup, strings and the screens only the coach app has (the home with every age group, setting up their own space, joining with a code, inviting staff). [/app/coachAndroidApp](./app/coachAndroidApp) is its Android app, [/app/coachIosApp](./app/coachIosApp) its iOS app.
+* [/app/coach](./app/coach/src) is Squadcall for Coaches: its navigation, Koin setup, strings and the screens only the coach app has (the home with every age group, setting up their own space, joining with a code, inviting staff). [/app/coachAndroidApp](./app/coachAndroidApp) is its Android app, [/app/coachIosApp](./app/coachIosApp) its iOS app.
 
 * [/app/shared](./app/shared/src) is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:
@@ -27,7 +27,7 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM
 Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:
 
 - Android app: `./gradlew :app:androidApp:assembleDebug`
-- Coach Android app (Squadify for Coaches): `./gradlew :app:coachAndroidApp:assembleDevDebug`, or its run configuration. The dev flavor talks to the coach server on this machine (port 8090), so start it first (below). It installs next to the clubs app.
+- Coach Android app (Squadcall for Coaches): `./gradlew :app:coachAndroidApp:assembleDevDebug`, or its run configuration. The dev flavor talks to the coach server on this machine (port 8090), so start it first (below). It installs next to the clubs app.
 - Desktop app:
   - Hot reload: `./gradlew :app:desktopApp:hotRun --auto`
   - Standard run: `./gradlew :app:desktopApp:run`
@@ -35,7 +35,7 @@ Use the run configurations provided by the run widget in your IDE's toolbar. You
   - `./gradlew :server:clubs:run` runs the server (port 8080, or `SERVER_PORT`). Stop it with Ctrl+C.
   - `./gradlew -t :server:clubs:classes` compiles on every save; the running server reloads the new code by itself (see `TECHNICAL_DECISIONS.md` §59).
   - Don't use `./gradlew -t :server:clubs:run`: it never reloads, and it can leave a server holding port 8080 after Ctrl+C. To free the port: `lsof -ti tcp:8080 | xargs kill`.
-- Coach server (Squadify for Coaches): `./gradlew :server:coach:run` (port 8090, or `SERVER_PORT`). It creates its own local database, `squadify_coach_dev`, on the same Postgres the first time.
+- Coach server (Squadcall for Coaches): `./gradlew :server:coach:run` (port 8090, or `SERVER_PORT`). It creates its own local database, `squadcall_coach_dev`, on the same Postgres the first time.
 - Web app:
   - Wasm target (faster, modern browsers): `./gradlew :app:webApp:wasmJsBrowserDevelopmentRun`
   - JS target (slower, supports older browsers): `./gradlew :app:webApp:jsBrowserDevelopmentRun`
@@ -51,7 +51,7 @@ Each server reads its settings from environment variables (on Railway: the servi
 | `APP_ENV` | both | `production` or `staging`, on Railway; unset is local development. The clubs server runs with the development settings unless it is `production`, but `staging` counts as deployed for the seed account. |
 | `SERVER_PORT` | both | The port; 8080 (clubs) or 8090 (coach) by default. |
 | `DATABASE_HOST`, `DATABASE_PASSWORD` | both | Required when deployed. Locally `localhost` and `postgres`. |
-| `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_NAME` | both | 5432, `postgres`, and `squadify_dev` / `squadify_production` (clubs) or `squadify_coach_dev` / `squadify_coach_production` (coach). |
+| `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_NAME` | both | 5432, `postgres`, and `squadcall_dev` / `squadcall_production` (clubs) or `squadcall_coach_dev` / `squadcall_coach_production` (coach). |
 | `JWT_SECRET` | both | Required when deployed. Each server has its own: a token from one is refused by the other. |
 | `RESEND_API_KEY`, `RESEND_FROM_ADDRESS` | both | Emails. Optional: without a key the server logs and skips each email. |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | both | The raw JSON of the service account for pushes (the coach server's own Firebase project). Optional: without it each push is logged and skipped. |
@@ -77,7 +77,7 @@ Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
 - Clubs app tests: `./gradlew :app:clubs:testAndroidHostTest` (or `:app:clubs:jvmTest`)
 - Desktop tests: `./gradlew :app:shared:jvmTest`
 - Server tests: `./gradlew :server:core:test :server:data:test :server:web:test :server:clubs:test :server:coach:test`
-  - The coach server's tests run on their own database, `squadify_coach_test`, dropped when they finish, so `squadify_coach_dev` keeps only what you create.
+  - The coach server's tests run on their own database, `squadcall_coach_test`, dropped when they finish, so `squadcall_coach_dev` keeps only what you create.
 - Web tests:
   - Wasm target: `./gradlew :app:shared:wasmJsTest`
   - JS target: `./gradlew :app:shared:jsTest`
