@@ -3804,7 +3804,7 @@ server still refuses its actions while someone else manages the game, and it sho
 
 **Hosts.** Production clubs API `club-api.squadcallapp.com`, clubs staging `stg-club-api.squadcallapp.com`, coach API `coach-api.squadcallapp.com`, coach staging `stg-coach-api.squadcallapp.com`. The clubs web app is `app.squadcallapp.com` (`WEBAPP_BASE_URL`). Email uses `no-reply@squadcallapp.com` and `support@squadcallapp.com`. The legal pages are served from `squadcall.pages.dev`.
 
-**Firebase.** Two Firebase projects, as before (clubs and coach), each new and with its own id. Their `google-services.json` files and service accounts are added to the repo and to the GitHub secrets. The Play release service account lives in the coach Firebase project's Google Cloud, so re-create it for the new Play app.
+**Firebase.** Two Firebase projects, as before (clubs and coach), each new and with its own id. Their `google-services.json` files and service accounts are added to the repo and to the GitHub secrets. The Play release service account is in the clubs Firebase project's Google Cloud, so create it again for the new Play app.
 
 **Play.** The release workflow now uploads to package `com.sportssoftw.squadcall.coach`, which is a new Play app. Merging to `main` before that app exists fails the release; the first bundle is uploaded by hand in Play Console.
 

@@ -1,5 +1,5 @@
 -- A club's two colours (ClubTheme), as "#RRGGBB". Both or neither: a club either has its own colours
--- or uses Squadcall's. The contrast rules (a strong primary, a clearly lighter secondary) are checked in
+-- or uses Squadify's. The contrast rules (a strong primary, a clearly lighter secondary) are checked in
 -- UpdateClubUseCase, since they need maths the database shouldn't own.
 
 ALTER TABLE public.clubs

@@ -1,4 +1,4 @@
--- Squadcall for Coaches: the codes an owner shares so someone joins an age group as staff
+-- Squadify for Coaches: the codes an owner shares so someone joins an age group as staff
 -- (TECHNICAL_DECISIONS §72). Single-use; they go with their age group.
 CREATE TABLE staff_invites (
     id UUID PRIMARY KEY,
