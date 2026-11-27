@@ -94,6 +94,7 @@ jobs:
           cp -r app/webApp/build/dist/composeWebCompatibility/productionExecutable web-deploy/dist
           cp app/webApp/nginx.conf web-deploy/nginx.conf
           cp app/webApp/prebuilt/Dockerfile web-deploy/Dockerfile
+          cp app/webApp/prebuilt/40-squadcall-config.sh web-deploy/40-squadcall-config.sh
           cp app/webApp/prebuilt/Dockerfile web-deploy/app/webApp/Dockerfile
           test -f web-deploy/dist/index.html
       - uses: actions/upload-artifact@v4
