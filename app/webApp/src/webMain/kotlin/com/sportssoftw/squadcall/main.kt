@@ -7,8 +7,9 @@ import com.sportssoftw.squadcall.di.initKoin
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
+    // The container's API_BASE_URL wins; the build's address is the fallback (e.g. local development).
     val appConfig = DefaultAppConfig(
-        baseUrl = SquadcallBuildConfig.BASE_URL,
+        baseUrl = runtimeApiBaseUrl()?.takeIf { it.isNotBlank() } ?: SquadcallBuildConfig.BASE_URL,
         isDebug = SquadcallBuildConfig.IS_DEBUG
     )
     initKoin(appConfig = appConfig)

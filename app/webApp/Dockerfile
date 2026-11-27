@@ -67,5 +67,8 @@ RUN ./gradlew :app:webApp:composeCompatibilityBrowserDistribution -PsquadcallEnv
 FROM nginx:alpine
 COPY app/webApp/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/app/webApp/build/dist/composeWebCompatibility/productionExecutable /usr/share/nginx/html
+# Writes config.js from API_BASE_URL at container start (see the script's header).
+COPY app/webApp/prebuilt/40-squadcall-config.sh /docker-entrypoint.d/40-squadcall-config.sh
+RUN chmod 755 /docker-entrypoint.d/40-squadcall-config.sh
 
 EXPOSE 8080

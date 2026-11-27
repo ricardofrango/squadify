@@ -422,6 +422,15 @@ existing directory is not allowed"), regardless of `--configure-on-demand`.
   webpack, with Node at 4 GB), one task at a time, on 4 GB of added swap. `app/webApp/webpack.config.d/production.js`
   also drops the production source maps (16 MB that nothing on the deployed site reads) and runs terser
   on one thread.
+- **Runtime API address** (2026-11-27): the server each build calls is no longer only compiled in. The
+  container's start script (`app/webApp/prebuilt/40-squadcall-config.sh`, run by the nginx image from
+  `/docker-entrypoint.d/`) writes `config.js` from the `API_BASE_URL` variable on the Railway web service
+  (e.g. `https://stg-club-api.squadcallapp.com/v1`). `index.html` loads it first, and `main.kt` uses
+  `window.SQUADCALL_CONFIG.apiBaseUrl` when set (`runtimeApiBaseUrl()`, an `expect` with a JS and a Wasm
+  `actual`), falling back to the build's `SquadcallBuildConfig.BASE_URL`. So the server changes with a
+  restart, not a rebuild. `config.js` is served with `no-store`. The script refuses a value that isn't an
+  http(s) URL or that has quotes, spaces, backslashes or angle brackets, so a bad value stops the container
+  instead of breaking the page. Desktop, Android and iOS still have the address compiled in.
 
 ## 14. Association Notification Email: EmailService + Resend
 
