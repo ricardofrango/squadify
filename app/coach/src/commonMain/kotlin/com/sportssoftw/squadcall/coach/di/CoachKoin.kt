@@ -57,7 +57,7 @@ val coachModule = module {
     factory { GetAccountDeletionSummaryUseCase(get()) }
     factory { DeleteAccountUseCase(get()) }
     single { OwnSpacePlan() }
-    single { CoachAds() }
+    single { CoachAds(remoteBannerUnitId = { get<FeatureFlagsStore>().flags.value.adBannerUnitIdAndroid }) }
     factory { GetSpacesUseCase(get(), get(), get(), get(), plansEnabled = { get<FeatureFlagsStore>().flags.value.plansEnabled }) }
     factory { DeleteSpaceUseCase(get()) }
     factory { LeaveSpaceUseCase(get()) }

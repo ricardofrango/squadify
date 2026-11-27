@@ -29,6 +29,12 @@ object CoachConfig {
      */
     val plansEnabled: Boolean = System.getenv("PLANS_ENABLED")?.trim()?.lowercase() == "true"
 
+    /**
+     * The Free plan's banner ad unit on Android, served with the feature flags so the app picks it up without a
+     * release. Unset: the app keeps its build's unit. The AdMob app id stays in the APK (the ads SDK reads it at start).
+     */
+    val adBannerUnitIdAndroid: String? = env("AD_BANNER_UNIT_ID_ANDROID")
+
     /** The oldest Android build the app may use (MIN_ANDROID_BUILD, the CI run number; TECHNICAL_DECISIONS §85). 0: no minimum. */
     val minimumAndroidBuild: Int = System.getenv("MIN_ANDROID_BUILD")?.trim()?.toIntOrNull()?.coerceAtLeast(0) ?: 0
 

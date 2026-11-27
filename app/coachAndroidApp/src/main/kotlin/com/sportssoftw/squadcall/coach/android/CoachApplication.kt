@@ -23,8 +23,8 @@ class CoachApplication : Application() {
         initCoachKoin(appConfig = appConfig, pushTokenProvider = FirebasePushTokenProvider()) {
             androidContext(this@CoachApplication)
         }
-        // The Free plan's banner unit, this build's (CoachAds).
-        KoinPlatform.getKoin().get<CoachAds>().bannerUnitId = BuildConfig.ADMOB_BANNER_ID
+        // The Free plan's banner unit from this build: the feature flags' unit (AD_BANNER_UNIT_ID_ANDROID) wins (CoachAds).
+        KoinPlatform.getKoin().get<CoachAds>().buildBannerUnitId = BuildConfig.ADMOB_BANNER_ID
         // Pushes from the coach server: a tap opens CoachActivity, which hands the link to the navigation.
         PushNotifications.configure(this, CoachActivity::class.java, R.drawable.ic_notification)
     }
