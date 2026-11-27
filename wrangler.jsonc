@@ -1,0 +1,11 @@
+{
+  // Cloudflare Worker that serves the coach app's legal pages (privacy policy, account deletion).
+  // Cloudflare's build runs `python legal/coach/build.py`, which writes the pages to legal/coach/dist;
+  // this file makes `wrangler deploy` serve that folder as static assets. See legal/coach/build.py.
+  "name": "squadcall",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./legal/coach/dist",
+    "not_found_handling": "404-page"
+  }
+}
