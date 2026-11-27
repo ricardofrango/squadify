@@ -126,8 +126,8 @@ android {
             buildConfigField("String", "BASE_URL", "\"https://coach-api.squadcallapp.com/v1\"")
             resValue("string", "app_name", "Squadcall Coach")
             // The developer's AdMob app and its Free-plan banner (the only build that serves real ads).
-            manifestPlaceholders["adMobAppId"] = "ca-app-pub-3440435107955103~9995919178"
-            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3440435107955103/1056910189\"")
+            manifestPlaceholders["adMobAppId"] = "ca-app-pub-3440435107955103~3537164483"
+            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3440435107955103/6563103870\"")
         }
     }
     signingConfigs {
