@@ -10,7 +10,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * Ads only load once the consent form has been answered and the ads SDK has started ([canRequestAds]),
  * which the platform sets (`AdsConsentEffect`); the form is only asked for once a space has ads.
  */
-class CoachAds {
+class CoachAds(
+    /** The unit the server's feature flags give (the app's FeatureFlagsStore), or null. */
+    private val remoteBannerUnitId: () -> String? = { null },
+) {
     /** The spaces whose screens show a banner. */
     val spacesWithAds = MutableStateFlow<Set<String>>(emptySet())
 
@@ -23,8 +26,12 @@ class CoachAds {
     /** Whether the user must be able to change their consent (the EU and UK): the menu's Privacy options. */
     val privacyOptionsRequired = MutableStateFlow(false)
 
-    /** The banner's ad unit, from the app's build (Google's test unit until the real one). */
-    var bannerUnitId: String? = null
+    /** The banner's ad unit set by the app's build (Google's test unit until the real one), used when the flags give none. */
+    var buildBannerUnitId: String? = null
+
+    /** The Free plan's banner unit: the server's, from the feature flags, else this build's. */
+    val bannerUnitId: String?
+        get() = remoteBannerUnitId()?.takeIf { it.isNotBlank() } ?: buildBannerUnitId
 
     fun remember(spaces: List<SpaceAgeGroups>) {
         spacesWithAds.value = spaces.filter { it.showsAds }.map { it.space.id }.toSet()
