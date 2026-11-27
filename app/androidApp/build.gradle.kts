@@ -25,14 +25,14 @@ val keystoreProperties = Properties().apply {
 
 // The dev flavor talks to a server on this machine, so it needs this machine's LAN address -- which
 // DHCP changes from time to time (a hardcoded 192.168.1.84 silently stopped working when it did).
-// Resolved at build time: `squadify.devHost` in local.properties wins (e.g. a different network
+// Resolved at build time: `squadcall.devHost` in local.properties wins (e.g. a different network
 // interface, or a server on another machine); otherwise the first site-local IPv4 address of an up,
 // non-loopback interface; otherwise the emulator's host loopback, 10.0.2.2.
 val devHost: String = run {
     val localProps = Properties().apply {
         rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
     }
-    localProps.getProperty("squadify.devHost")?.trim()?.takeIf { it.isNotEmpty() }
+    localProps.getProperty("squadcall.devHost")?.trim()?.takeIf { it.isNotEmpty() }
         ?: NetworkInterface.getNetworkInterfaces().asSequence()
             .filter { it.isUp && !it.isLoopback && !it.isVirtual }
             .flatMap { it.inetAddresses.asSequence() }
@@ -95,11 +95,11 @@ val versionNameProp = (project.findProperty("VERSION_NAME") as? String) ?: "1.0.
 val ciBuildNumber = (project.findProperty("versionCode") as? String)?.toIntOrNull()
 
 android {
-    namespace = "com.sportssoftw.squadify"
+    namespace = "com.sportssoftw.squadcall"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.sportssoftw.squadify.club"
+        applicationId = "com.sportssoftw.squadcall.club"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = ciBuildNumber ?: 1
@@ -117,7 +117,7 @@ android {
     // scopes a token by package name + project + signing cert, not by build variant), letting a push
     // triggered on one environment's server land on a device someone only meant to test another
     // environment on. google-services.json is registered for all three resulting package names under
-    // the one Firebase project (squadify-958d3) -- see TECHNICAL_DECISIONS.md's push-notifications
+    // the one Firebase project -- see TECHNICAL_DECISIONS.md's push-notifications
     // section and "Environment-Based App Config" section. resValue app_name distinguishes the three on
     // a device's launcher/recents now that all three can be installed side by side.
     // dev = LAN address for physical-device testing against a local server. staging = what Firebase App
@@ -128,15 +128,14 @@ android {
             dimension = "environment"
             applicationIdSuffix = ".dev"
             buildConfigField("String", "BASE_URL", "\"http://$devHost:8080/v1\"")
-            resValue("string", "app_name", "Squadify Dev")
+            resValue("string", "app_name", "Squadcall Dev")
         }
         create("staging") {
             dimension = "environment"
             applicationIdSuffix = ".stg"
-            // Railway-generated domain for the staging server -- swap for stg-api.squadify.pt once that
-            // custom domain is set up (see ISSUES TO FIX.md).
-            buildConfigField("String", "BASE_URL", "\"https://squadify-staging.up.railway.app/v1\"")
-            resValue("string", "app_name", "Squadify Stg")
+            // Staging clubs server: its Railway domain, until stg-club-api.squadcallapp.com is live.
+            buildConfigField("String", "BASE_URL", "\"https://squadcall-club-staging.up.railway.app/v1\"")
+            resValue("string", "app_name", "Squadcall Stg")
             // This is the flavor redeployed on every merge to develop (deploy-staging.yml) -- without a
             // per-build suffix, every install shows the identical versionName no matter how many times
             // it's been redeployed, which was the whole original problem (see TECHNICAL_DECISIONS.md's
@@ -146,14 +145,14 @@ android {
         create("prod") {
             dimension = "environment"
             // TODO placeholder -- swap once Railway production is rebuilt (see ISSUES TO FIX.md).
-            buildConfigField("String", "BASE_URL", "\"https://api.squadify.pt/v1\"")
-            resValue("string", "app_name", "Squadify")
+            buildConfigField("String", "BASE_URL", "\"https://club-api.squadcallapp.com/v1\"")
+            resValue("string", "app_name", "Squadcall")
         }
     }
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
             create("release") {
-                storeFile = rootProject.file("keystore/squadify-keystore.jks")
+                storeFile = rootProject.file("keystore/squadcall-keystore.jks")
                 storePassword = keystoreProperties.getProperty("password")
                 keyAlias = keystoreProperties.getProperty("alias")
                 keyPassword = keystoreProperties.getProperty("alias-password")
@@ -182,7 +181,7 @@ android {
                 // Local-only file, gitignored -- never committed. Lets `appDistributionUploadRelease`
                 // authenticate non-interactively via a service account instead of `firebase login`.
                 serviceCredentialsFile = "$projectDir/firebase-service-account.json"
-                groups = "squadify-testers"
+                groups = "squadcall-testers"
             }
         }
     }

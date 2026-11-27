@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-// Squadify for Clubs (TECHNICAL_DECISIONS §72): the clubs app on top of :app:shared. Its own top-level
+// Squadcall for Clubs (TECHNICAL_DECISIONS §72): the clubs app on top of :app:shared. Its own top-level
 // navigation (AppNavigation), Koin assembly (initKoin) and the screens only clubs have: the club list,
 // the club's home, its settings, members and seasons, and adding staff from the club's members. Every
 // platform's clubs entry point (androidApp, iosApp, webApp, desktopApp) starts it.
@@ -37,7 +37,7 @@ kotlin {
     }
 
     android {
-        namespace = "com.sportssoftw.squadify.app.clubs"
+        namespace = "com.sportssoftw.squadcall.app.clubs"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

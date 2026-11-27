@@ -1,4 +1,4 @@
-# Builds and runs the Squadify for Clubs Ktor server (:server:clubs). See TECHNICAL_DECISIONS.md / ISSUES
+# Builds and runs the Squadcall for Clubs Ktor server (:server:clubs). See TECHNICAL_DECISIONS.md / ISSUES
 # TO FIX.md for the app config (client base URL) and env vars (APP_ENV, JWT_SECRET, DATABASE_*) this
 # expects at runtime.
 #

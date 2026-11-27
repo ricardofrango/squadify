@@ -1,0 +1,91 @@
+package com.sportssoftw.squadcall.presentation
+
+import com.sportssoftw.squadcall.model.ClubMemberEntry
+import com.sportssoftw.squadcall.model.ClubMembersOverview
+import com.sportssoftw.squadcall.model.ClubRole
+import com.sportssoftw.squadcall.presentation.ui.clubmember.ClubMemberDetailsUiState
+import com.sportssoftw.squadcall.presentation.ui.clubmember.RoleLock
+import com.sportssoftw.squadcall.presentation.ui.clubmember.canRemove
+import com.sportssoftw.squadcall.presentation.ui.clubmember.roleLock
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import kotlin.test.assertNull
+import kotlin.time.Instant
+
+// The Member details role options (design 35) lock with the same rules the server enforces.
+class RoleLockTest {
+    private fun member(id: String, role: ClubRole) =
+        ClubMemberEntry(id, "F$id", "L$id", "$id@x.pt", null, role, accountCreatedAt = Instant.parse("2026-01-01T00:00:00Z"))
+
+    private fun overview(viewerRole: ClubRole, vararg members: ClubMemberEntry) =
+        ClubMembersOverview(members.toList(), emptyList(), viewerUserId = members.first().userId, viewerRole = viewerRole)
+
+    @Test
+    fun theCurrentRoleIsNeverLocked() {
+        val me = member("a", ClubRole.CLUB_ADMIN)
+        assertNull(roleLock(overview(ClubRole.CLUB_ADMIN, me), me, ClubRole.CLUB_ADMIN))
+    }
+
+    @Test
+    fun theOnlyAdminCannotBeDemoted() {
+        val me = member("a", ClubRole.CLUB_ADMIN)
+        val o = overview(ClubRole.CLUB_ADMIN, me, member("b", ClubRole.MEMBER))
+        assertEquals(RoleLock.LAST_ADMIN, roleLock(o, me, ClubRole.COORDINATOR))
+        assertEquals(RoleLock.LAST_ADMIN, roleLock(o, me, ClubRole.MEMBER))
+    }
+
+    @Test
+    fun anAdminCanStepDownWhenAnotherAdminExists() {
+        val me = member("a", ClubRole.CLUB_ADMIN)
+        val o = overview(ClubRole.CLUB_ADMIN, me, member("b", ClubRole.CLUB_ADMIN))
+        assertNull(roleLock(o, me, ClubRole.MEMBER))
+    }
+
+    @Test
+    fun coordinatorsCanSwitchMemberAndCoordinatorButNotTouchAdmin() {
+        val me = member("c", ClubRole.COORDINATOR)
+        val target = member("m", ClubRole.MEMBER)
+        val admin = member("a", ClubRole.CLUB_ADMIN)
+        val o = overview(ClubRole.COORDINATOR, me, target, admin)
+        assertNull(roleLock(o, target, ClubRole.COORDINATOR))
+        assertEquals(RoleLock.ADMIN_ONLY, roleLock(o, target, ClubRole.CLUB_ADMIN))
+        assertEquals(RoleLock.ADMIN_ONLY, roleLock(o, admin, ClubRole.MEMBER))
+        assertEquals(RoleLock.ADMIN_ONLY, roleLock(o, me, ClubRole.CLUB_ADMIN))
+    }
+
+    // "Remove from club" (design 35) shows only where RemoveClubMemberUseCase would allow it.
+    @Test
+    fun removeIsNeverOfferedOnYourself() {
+        val me = member("a", ClubRole.CLUB_ADMIN)
+        assertFalse(canRemove(overview(ClubRole.CLUB_ADMIN, me, member("b", ClubRole.CLUB_ADMIN)), me))
+    }
+
+    @Test
+    fun coordinatorsCanRemoveMembersButNotAdmins() {
+        val me = member("c", ClubRole.COORDINATOR)
+        val o = overview(ClubRole.COORDINATOR, me, member("m", ClubRole.MEMBER), member("a", ClubRole.CLUB_ADMIN), member("a2", ClubRole.CLUB_ADMIN))
+        assertTrue(canRemove(o, member("m", ClubRole.MEMBER)))
+        assertFalse(canRemove(o, member("a", ClubRole.CLUB_ADMIN)))
+    }
+
+    @Test
+    fun anAdminCanRemoveAnotherAdminButNeverTheLastOne() {
+        val me = member("a", ClubRole.CLUB_ADMIN)
+        assertTrue(canRemove(overview(ClubRole.CLUB_ADMIN, me, member("a2", ClubRole.CLUB_ADMIN)), member("a2", ClubRole.CLUB_ADMIN)))
+        // A platform admin viewing a club with one admin.
+        val o = ClubMembersOverview(listOf(member("a", ClubRole.CLUB_ADMIN)), emptyList(), viewerUserId = "p", viewerRole = ClubRole.CLUB_ADMIN)
+        assertFalse(canRemove(o, member("a", ClubRole.CLUB_ADMIN)))
+    }
+
+    // Taking someone off an age group, from their details: admins and coordinators, as the server allows.
+    @Test
+    fun onlyAdminsAndCoordinatorsCanTakeSomeoneOffAnAgeGroup() {
+        val target = member("m", ClubRole.MEMBER)
+        for ((role, allowed) in listOf(ClubRole.CLUB_ADMIN to true, ClubRole.COORDINATOR to true, ClubRole.MEMBER to false)) {
+            val state = ClubMemberDetailsUiState.Member(overview(role, member("v", role), target), target)
+            assertEquals(allowed, state.canRemoveFromAgeGroups, "viewer $role")
+        }
+    }
+}

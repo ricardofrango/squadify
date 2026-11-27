@@ -13,10 +13,10 @@ struct iOSApp: App {
         #if DEBUG
         KoinHelperKt.startCoachKoinIOS(baseUrl: "http://localhost:8090/v1", isDebug: true, appVersion: version, buildNumber: buildNumber)
         #elseif STAGING
-        KoinHelperKt.startCoachKoinIOS(baseUrl: "https://squadify-for-coach-staging.up.railway.app/v1", isDebug: false, appVersion: version, buildNumber: buildNumber)
+        KoinHelperKt.startCoachKoinIOS(baseUrl: "https://squadcall-coach-staging.up.railway.app/v1", isDebug: false, appVersion: version, buildNumber: buildNumber)
         #else
         // TODO placeholder: the coach server has no production service yet (it comes with the coach app's launch).
-        KoinHelperKt.startCoachKoinIOS(baseUrl: "https://coach-api.squadify.pt/v1", isDebug: false, appVersion: version, buildNumber: buildNumber)
+        KoinHelperKt.startCoachKoinIOS(baseUrl: "https://coach-api.squadcallapp.com/v1", isDebug: false, appVersion: version, buildNumber: buildNumber)
         #endif
     }
 

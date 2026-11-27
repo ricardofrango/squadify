@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "435522049821",
-    "project_id": "squadify-958d3",
-    "storage_bucket": "squadify-958d3.firebasestorage.app"
+    "project_number": "353029161120",
+    "project_id": "squadcall-club",
+    "storage_bucket": "squadcall-club.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:435522049821:android:fca9f5b6a1c2f8c9d6b3f4",
+        "mobilesdk_app_id": "1:353029161120:android:511290b25880933fd849c5",
         "android_client_info": {
-          "package_name": "com.sportssoftw.squadify.club"
+          "package_name": "com.sportssoftw.squadcall.club"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCV47oB07nSpLqoVT3IqUfKC2qbbXCnZOw"
+          "current_key": "AIzaSyCd0D74SvDva4JtHb4p6G88XJokLBDNAug"
         }
       ],
       "services": {
@@ -26,15 +26,15 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:435522049821:android:4d1a7c4c0b7072e6d6b3f4",
+        "mobilesdk_app_id": "1:353029161120:android:65fceaa5b1647e07d849c5",
         "android_client_info": {
-          "package_name": "com.sportssoftw.squadify.club.dev"
+          "package_name": "com.sportssoftw.squadcall.club.dev"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCV47oB07nSpLqoVT3IqUfKC2qbbXCnZOw"
+          "current_key": "AIzaSyCd0D74SvDva4JtHb4p6G88XJokLBDNAug"
         }
       ],
       "services": {
@@ -45,15 +45,15 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:435522049821:android:3fa4017302185f5dd6b3f4",
+        "mobilesdk_app_id": "1:353029161120:android:851f4d5d3166d664d849c5",
         "android_client_info": {
-          "package_name": "com.sportssoftw.squadify.club.stg"
+          "package_name": "com.sportssoftw.squadcall.club.stg"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCV47oB07nSpLqoVT3IqUfKC2qbbXCnZOw"
+          "current_key": "AIzaSyCd0D74SvDva4JtHb4p6G88XJokLBDNAug"
         }
       ],
       "services": {

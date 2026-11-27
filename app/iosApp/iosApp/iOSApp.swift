@@ -12,8 +12,8 @@ struct iOSApp: App {
         #if DEBUG
         KoinHelperKt.startKoinIOS(baseUrl: "http://localhost:8080/v1", isDebug: true, buildNumber: buildNumber)
         #else
-        // TODO placeholder -- see ISSUES TO FIX.md.
-        KoinHelperKt.startKoinIOS(baseUrl: "https://api.squadify.pt/v1", isDebug: false, buildNumber: buildNumber)
+        .
+        KoinHelperKt.startKoinIOS(baseUrl: "https://club-api.squadcallapp.com/v1", isDebug: false, buildNumber: buildNumber)
         #endif
     }
 

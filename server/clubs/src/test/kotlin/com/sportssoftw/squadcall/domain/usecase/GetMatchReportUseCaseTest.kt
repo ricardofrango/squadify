@@ -1,0 +1,131 @@
+package com.sportssoftw.squadcall.domain.usecase
+
+import com.sportssoftw.squadcall.domain.access.ClubAccessPolicy
+import com.sportssoftw.squadcall.domain.repository.AgeGroupRepository
+import com.sportssoftw.squadcall.domain.repository.ClubPermissionRepository
+import com.sportssoftw.squadcall.domain.repository.MatchPlayerStatsRepository
+import com.sportssoftw.squadcall.domain.repository.MatchReportRepository
+import com.sportssoftw.squadcall.domain.repository.MatchRepository
+import com.sportssoftw.squadcall.domain.repository.OpponentRepository
+import com.sportssoftw.squadcall.domain.repository.PlayerRepository
+import com.sportssoftw.squadcall.domain.repository.TeamRepository
+import com.sportssoftw.squadcall.domain.repository.UserRepository
+import com.sportssoftw.squadcall.domain.service.TransactionManager
+import com.sportssoftw.squadcall.exception.ForbiddenException
+import com.sportssoftw.squadcall.exception.ValidationException
+import com.sportssoftw.squadcall.model.CallUpStatus
+import com.sportssoftw.squadcall.model.ClubRole
+import com.sportssoftw.squadcall.model.Match
+import com.sportssoftw.squadcall.model.MatchCallUp
+import com.sportssoftw.squadcall.model.MatchCallUpWithPlayer
+import com.sportssoftw.squadcall.model.MatchPlayerStats
+import com.sportssoftw.squadcall.model.MatchStatus
+import com.sportssoftw.squadcall.model.Opponent
+import com.sportssoftw.squadcall.model.Player
+import com.sportssoftw.squadcall.model.Team
+import com.sportssoftw.squadcall.model.AgeGroupRole
+import com.sportssoftw.squadcall.model.User
+import com.sportssoftw.squadcall.model.UserStatus
+import io.mockk.coEvery
+import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
+import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.time.Instant
+
+/** Reading the report: coordinators and age-group staff only (never players/parents), finished matches only. */
+class GetMatchReportUseCaseTest {
+
+    private val matchRepository = mockk<MatchRepository>()
+    private val matchReportRepository = mockk<MatchReportRepository>()
+    private val matchPlayerStatsRepository = mockk<MatchPlayerStatsRepository>()
+    private val teamRepository = mockk<TeamRepository>()
+    private val playerRepository = mockk<PlayerRepository>()
+    private val ageGroupRepository = mockk<AgeGroupRepository>()
+    private val userRepository = mockk<UserRepository>()
+    private val opponentRepository = mockk<OpponentRepository>()
+    init { coEvery { opponentRepository.getOpponentById("opp-1") } returns Opponent("opp-1", "club-1", "Associação Desportiva de Fontelas", "AD Fontelas", null) }
+    private val transactionManager = object : TransactionManager {
+        override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
+    }
+    private val clubPermissionRepository = mockk<ClubPermissionRepository>(relaxed = true)
+    init { coEvery { clubPermissionRepository.getOverride(any(), any()) } returns null }
+    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
+        userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
+    )
+    private val useCase = GetMatchReportUseCase(
+        matchRepository, matchReportRepository, matchPlayerStatsRepository, userRepository, teamRepository, opponentRepository,
+        ClubAccessPolicy(checkUserPermissionUseCase), transactionManager
+    )
+
+    private val clubId = "club-1"
+    private val matchId = "m-1"
+    private val teamId = "t-1"
+    private val ag1 = "ag-1"
+    private val finished = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.FINISHED)
+    private val player = Player("p1", clubId, "Ana", "Costa", LocalDate(2011, 1, 1), active = true)
+
+    private fun stubRole(role: AgeGroupRole?): User {
+        val user = User("u-${role?.name}", "u@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
+        coEvery { userRepository.findById(user.id) } returns user
+        coEvery { userRepository.getUserRoleInClub(user.id, clubId) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(user.id, ag1) } returns role
+        coEvery { teamRepository.getTeamById(teamId) } returns Team(teamId, clubId, ag1, "s-1", "Sub-15 A", "A", active = true)
+        return user
+    }
+
+    private fun stubData() {
+        coEvery { matchRepository.getMatchById(matchId) } returns finished
+        coEvery { matchRepository.getCallUpsForMatch(matchId) } returns
+            listOf(MatchCallUpWithPlayer(MatchCallUp("cu", matchId, "p1", CallUpStatus.CALLED_UP, isStarting = true), player))
+        coEvery { matchPlayerStatsRepository.getByMatch(matchId) } returns
+            listOf(MatchPlayerStats(matchId, "p1", true, 90, 1, 0, 0, 0, 0, rating = 7))
+        coEvery { matchReportRepository.getByMatch(matchId) } returns null
+    }
+
+    @Test
+    fun aCoachReadsTheStatsWithPlayersAndCanEdit() = runBlocking {
+        val coach = stubRole(AgeGroupRole.COACH)
+        stubData()
+
+        val details = useCase(coach.id, matchId)
+
+        assertNull(details.report)
+        assertEquals("Ana", details.playerStats.single().player.firstName)
+        assertEquals(7, details.playerStats.single().stats.rating)
+        assertTrue(details.canEdit)
+        assertEquals("Sub-15 A", details.teamName)
+        assertEquals("AD Fontelas", details.opponentName)
+    }
+
+    @Test
+    fun ageGroupStaffCanReadButNotEditByDefault() = runBlocking {
+        val staff = stubRole(AgeGroupRole.STAFF)
+        stubData()
+
+        assertFalse(useCase(staff.id, matchId).canEdit)
+    }
+
+    @Test
+    fun aPlainMemberOrParentCannotReadIt() = runBlocking {
+        val member = stubRole(null)
+        stubData()
+
+        assertFailsWith<ForbiddenException> { useCase(member.id, matchId) }
+        Unit
+    }
+
+    @Test
+    fun anUnfinishedMatchHasNoReport() = runBlocking {
+        val coach = stubRole(AgeGroupRole.COACH)
+        coEvery { matchRepository.getMatchById(matchId) } returns finished.copy(status = MatchStatus.LIVE)
+
+        assertFailsWith<ValidationException> { useCase(coach.id, matchId) }
+        Unit
+    }
+}

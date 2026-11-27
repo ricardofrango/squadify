@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-// Squadify for Coaches (TECHNICAL_DECISIONS §72): the coach app on top of :app:shared. Its own top-level
+// Squadcall for Coaches (TECHNICAL_DECISIONS §72): the coach app on top of :app:shared. Its own top-level
 // navigation (CoachNavigation), Koin assembly (initCoachKoin), strings, and the screens only the coach
 // app has: the space's first setup and its home. Android and iOS only; the Android app is
 // :app:coachAndroidApp, the iOS app app/coachIosApp.
@@ -25,7 +25,7 @@ kotlin {
     }
 
     android {
-        namespace = "com.sportssoftw.squadify.app.coach"
+        namespace = "com.sportssoftw.squadcall.app.coach"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 
@@ -88,7 +88,7 @@ kotlin {
 
 // The coach app's own strings (values, values-pt), in their own Res class.
 compose.resources {
-    packageOfResClass = "squadify.app.coach.generated.resources"
+    packageOfResClass = "squadcall.app.coach.generated.resources"
 }
 
 dependencies {

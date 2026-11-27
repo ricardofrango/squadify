@@ -1,4 +1,4 @@
-# Builds and serves the Squadify web client -- Compose Multiplatform for Web, built as a Wasm-with-JS-
+# Builds and serves the Squadcall web client -- Compose Multiplatform for Web, built as a Wasm-with-JS-
 # fallback bundle (composeCompatibilityBrowserDistribution) so it runs in any modern browser.
 #
 # Railway no longer runs this: its build ran out of time there. Deploys build the bundle in GitHub
@@ -52,16 +52,16 @@ COPY app ./app
 
 # Which backend this build points at (dev/staging/production) -- see app/webApp/build.gradle.kts and
 # TECHNICAL_DECISIONS.md's "Environment-Based App Config" section. Defaults to production since that's
-# what gets deployed most; override with `docker build --build-arg SQUADIFY_ENV=staging` for a staging
+# what gets deployed most; override with `docker build --build-arg SQUADCALL_ENV=staging` for a staging
 # deploy.
-ARG SQUADIFY_ENV=production
+ARG SQUADCALL_ENV=production
 
 # --configure-on-demand is deliberately NOT used here -- Gradle itself warns that the js/wasmJs
 # targets don't support it ("may lead to unpredictable and inconsistent behaviour").
 # --max-workers=1 avoids running the js and wasmJs Kotlin compile daemons concurrently, each of which
 # can claim up to kotlin.daemon.jvmargs' -Xmx3072M -- in parallel that's enough to exceed a
 # memory-constrained build host (hit locally: "Not enough memory to run compilation").
-RUN ./gradlew :app:webApp:composeCompatibilityBrowserDistribution -PsquadifyEnv=$SQUADIFY_ENV --no-daemon --max-workers=1
+RUN ./gradlew :app:webApp:composeCompatibilityBrowserDistribution -PsquadcallEnv=$SQUADCALL_ENV --no-daemon --max-workers=1
 
 # ---- Runtime stage: nginx serving the static bundle -- no JDK, no Gradle, no Android SDK, no Node ----
 FROM nginx:alpine

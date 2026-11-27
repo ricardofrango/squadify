@@ -1,7 +1,7 @@
 TEAM_ID=
 
-PRODUCT_NAME=Squadify
-PRODUCT_BUNDLE_IDENTIFIER=com.sportssoftw.squadify.club
+PRODUCT_NAME=Squadcall
+PRODUCT_BUNDLE_IDENTIFIER=com.sportssoftw.squadcall.club
 
 CURRENT_PROJECT_VERSION=1
 MARKETING_VERSION=1.0

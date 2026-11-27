@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Squadify for Coaches: the coach app's own text. Shared screens use app/shared's strings. -->
+    <!-- Squadcall for Coaches: the coach app's own text. Shared screens use app/shared's strings. -->
 
     <!-- First setup -->
     <string name="space_setup_title">Configura a tua equipa</string>
@@ -17,7 +17,7 @@
     <string name="btn_space_setup_creating">A criar…</string>
     <string name="msg_space_setup_failed">Não foi possível configurar. Verifica a ligação e tenta outra vez.</string>
 
-    <string name="coach_app_name">Squadify Coach</string>
+    <string name="coach_app_name">Squadcall Coach</string>
 
     <!-- The home: every age group the coach has -->
     <string name="coach_home_title">Os meus espaços</string>
@@ -42,11 +42,11 @@
     <string name="msg_join_failed">Não foi possível entrar. Verifica a ligação e tenta outra vez.</string>
 
     <!-- Inviting staff to an age group -->
-    <string name="invite_intro">Cria um código e envia-o a quem queres em %1$s. Essa pessoa regista-se no Squadify Coach e escreve-o. Cada código funciona uma vez, durante 7 dias.</string>
+    <string name="invite_intro">Cria um código e envia-o a quem queres em %1$s. Essa pessoa regista-se no Squadcall Coach e escreve-o. Cada código funciona uma vez, durante 7 dias.</string>
     <string name="invite_waiting">Códigos por usar (%1$d)</string>
     <string name="invite_none">Não há códigos por usar.</string>
     <string name="invite_valid_until">Válido até %1$s</string>
-    <string name="invite_share_text">Foste convidado para o staff de %1$s (%2$s) no Squadify Coach. Instala a app, regista-te e escreve o código %3$s. Funciona uma vez, até %4$s.</string>
+    <string name="invite_share_text">Foste convidado para o staff de %1$s (%2$s) no Squadcall Coach. Instala a app, regista-te e escreve o código %3$s. Funciona uma vez, até %4$s.</string>
     <string name="btn_invite_create">Criar código</string>
     <string name="btn_invite_creating">A criar…</string>
     <string name="btn_invite_share">Partilhar</string>

@@ -5,11 +5,11 @@
     <!-- A short vibration when a player is picked up to drag on the pitch (PickUpHaptic.android.kt). -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- The other Squadify app, to copy an age group from it (TECHNICAL_DECISIONS §81). -->
+    <!-- The other Squadcall app, to copy an age group from it (TECHNICAL_DECISIONS §81). -->
     <queries>
-        <package android:name="com.sportssoftw.squadify.club" />
-        <package android:name="com.sportssoftw.squadify.club.stg" />
-        <package android:name="com.sportssoftw.squadify.club.dev" />
+        <package android:name="com.sportssoftw.squadcall.club" />
+        <package android:name="com.sportssoftw.squadcall.club.stg" />
+        <package android:name="com.sportssoftw.squadcall.club.dev" />
     </queries>
 
     <application
@@ -19,7 +19,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SquadifyCoach.Starting">
+        android:theme="@style/Theme.SquadcallCoach.Starting">
         <!-- AdMob's app id (ads on the Free plan); the ads SDK stops the app without it. Per build, from
              build.gradle.kts. -->
         <meta-data
@@ -38,7 +38,7 @@
         </activity>
         <!-- Allows the other app's copy of an age group: asks for consent, then returns a grant (only started explicitly). -->
         <activity
-            android:name="com.sportssoftw.squadify.presentation.agegroupimport.ExportAgeGroupsActivity"
+            android:name="com.sportssoftw.squadcall.presentation.agegroupimport.ExportAgeGroupsActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />

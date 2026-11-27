@@ -48,7 +48,7 @@ concurrency:
   cancel-in-progress: ${{ (inputs.environment || 'staging') == 'staging' }}
 
 env:
-  SQUADIFY_ENV: ${{ inputs.environment || 'staging' }}
+  SQUADCALL_ENV: ${{ inputs.environment || 'staging' }}
 
 jobs:
   build:
@@ -79,14 +79,14 @@ jobs:
       - name: Compile
         run: >-
           ./gradlew :app:webApp:compileProductionExecutableKotlinJs :app:webApp:compileProductionExecutableKotlinWasmJs
-          -PsquadifyEnv="$SQUADIFY_ENV" --no-daemon --max-workers=1
+          -PsquadcallEnv="$SQUADCALL_ENV" --no-daemon --max-workers=1
           -Pkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs="-Xmx5g -Dfile.encoding=UTF-8"
       - name: Bundle
         env:
           NODE_OPTIONS: --max-old-space-size=4096
         run: >-
           ./gradlew :app:webApp:composeCompatibilityBrowserDistribution
-          -PsquadifyEnv="$SQUADIFY_ENV" --no-daemon --max-workers=1
+          -PsquadcallEnv="$SQUADCALL_ENV" --no-daemon --max-workers=1
           -Pkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs="-Xmx1g -Dfile.encoding=UTF-8"
       - name: Assemble the upload
         run: |
@@ -120,11 +120,11 @@ jobs:
       - name: Check the token and service
         run: |
           if [ -z "$RAILWAY_TOKEN" ]; then
-            echo "::error::The Railway token for $SQUADIFY_ENV isn't set (RAILWAY_STAGING_TOKEN / RAILWAY_TOKEN)"
+            echo "::error::The Railway token for $SQUADCALL_ENV isn't set (RAILWAY_STAGING_TOKEN / RAILWAY_TOKEN)"
             exit 1
           fi
           if [ -z "$RAILWAY_WEB_SERVICE" ]; then
-            echo "::error::The web service's Railway ID for $SQUADIFY_ENV isn't set (variable RAILWAY_WEB_SERVICE_STAGING / RAILWAY_WEB_SERVICE_PRODUCTION)"
+            echo "::error::The web service's Railway ID for $SQUADCALL_ENV isn't set (variable RAILWAY_WEB_SERVICE_STAGING / RAILWAY_WEB_SERVICE_PRODUCTION)"
             exit 1
           fi
       # --path-as-root: the upload's root is web-deploy/, not the repo. --service takes the service's

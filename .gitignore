@@ -19,13 +19,13 @@ captures
 node_modules/
 kotlin-js-store/
 firebase-service-account.json
-# The coach server's Firebase key (squadify-for-coach), for local runs. Never committed.
+# The coach server's Firebase key, for local runs. Never committed.
 firebase-coach-service-account.json
-squadify-coach-release-service-account.json
+squadcall-coach-release-service-account.json
 # Club logos stored on disk in development (LocalImageStorage)
 server/clubs/uploads/
 keystore/keystore.properties
-keystore/squadify-keystore.jks
+keystore/squadcall-keystore.jks
 
 # Images stored on disk by the coach server in development (LocalImageStorage)
 server/coach/uploads/
@@ -33,3 +33,7 @@ legal/coach/dist/
 
 # Play Store screenshots and graphics (local only, not in the repo)
 /play-screens/
+
+# Any service-account key and any upload keystore, whatever their names (the rename had left old names unignored).
+*service-account*.json
+keystore/*.jks

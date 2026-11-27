@@ -7,30 +7,30 @@ plugins {
 }
 
 // No build-variant system for Kotlin/JS or Wasm, so the same dev/staging/production split is done via a
-// Gradle property instead: server/clubs/Dockerfile equivalents pass `-PsquadifyEnv=staging|production` when
+// Gradle property instead: server/clubs/Dockerfile equivalents pass `-PsquadcallEnv=staging|production` when
 // building for deployment. Defaults to "dev" (localhost) for local `jsBrowserDevelopmentRun`. See
 // TECHNICAL_DECISIONS.md's "Environment-Based App Config" section.
-val squadifyEnv = (findProperty("squadifyEnv") as String?) ?: "dev"
-val squadifyBaseUrl = when (squadifyEnv) {
-    "staging" -> "https://squadify-staging.up.railway.app/v1" // Railway-generated domain -- swap for stg-api.squadify.pt once that custom domain is set up
-    "production" -> "https://api.squadify.pt/v1" // TODO placeholder -- see ISSUES TO FIX.md
+val squadcallEnv = (findProperty("squadcallEnv") as String?) ?: "dev"
+val squadcallBaseUrl = when (squadcallEnv) {
+    "staging" -> "https://squadcall-club-staging.up.railway.app/v1"
+    "production" -> "https://club-api.squadcallapp.com/v1" 
     else -> "http://localhost:8080/v1"
 }
 
-val generatedSquadifyConfigDir = layout.buildDirectory.dir("generated/squadifyConfig/kotlin")
-val generateSquadifyConfig = tasks.register("generateSquadifyConfig") {
-    val outputDir = generatedSquadifyConfigDir
-    val baseUrl = squadifyBaseUrl
-    val isDev = squadifyEnv == "dev"
+val generatedSquadcallConfigDir = layout.buildDirectory.dir("generated/squadcallConfig/kotlin")
+val generateSquadcallConfig = tasks.register("generateSquadcallConfig") {
+    val outputDir = generatedSquadcallConfigDir
+    val baseUrl = squadcallBaseUrl
+    val isDev = squadcallEnv == "dev"
     outputs.dir(outputDir)
     doLast {
-        val file = outputDir.get().file("SquadifyBuildConfig.kt").asFile
+        val file = outputDir.get().file("SquadcallBuildConfig.kt").asFile
         file.parentFile.mkdirs()
         file.writeText(
             """
-            package com.sportssoftw.squadify
+            package com.sportssoftw.squadcall
 
-            internal object SquadifyBuildConfig {
+            internal object SquadcallBuildConfig {
                 const val BASE_URL = "$baseUrl"
                 const val IS_DEBUG = $isDev
             }
@@ -58,7 +58,7 @@ kotlin {
             implementation(libs.compose.ui)
         }
         commonMain {
-            kotlin.srcDir(generateSquadifyConfig)
+            kotlin.srcDir(generateSquadcallConfig)
         }
     }
 }

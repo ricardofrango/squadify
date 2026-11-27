@@ -1,8 +1,8 @@
 name: Deploy coach staging
 
-# Squadify for Coaches on Android: builds app/coachAndroidApp's `staging` flavor (against the coach-server
-# staging service on Railway) and sends it to the squadify-coach-testers group through Firebase App
-# Distribution, in the coach's own Firebase project (squadify-for-coach). The clubs app has its own
+# Squadcall for Coaches on Android: builds app/coachAndroidApp's `staging` flavor (against the coach-server
+# staging service on Railway) and sends it to the squadcall-coach-testers group through Firebase App
+# Distribution, in the coach's own Firebase project. The clubs app has its own
 # workflow, deploy-staging.yml; Railway deploys both servers on its own.
 
 on:
@@ -47,7 +47,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - uses: android-actions/setup-android@v4
 
-      # The squadify-for-coach service account (gitignored), written where
+      # The coach Firebase service account (gitignored), written where
       # app/coachAndroidApp/build.gradle.kts expects it, as in deploy-staging.yml.
       - name: Write Firebase service account
         env:
@@ -67,8 +67,8 @@ jobs:
         run: |
           mkdir -p keystore
           printf '%s' "$ANDROID_KEYSTORE_PROPERTIES" > keystore/keystore.properties
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > keystore/squadify-keystore.jks
-          if [ ! -s keystore/keystore.properties ] || [ ! -s keystore/squadify-keystore.jks ]; then
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > keystore/squadcall-keystore.jks
+          if [ ! -s keystore/keystore.properties ] || [ ! -s keystore/squadcall-keystore.jks ]; then
             echo "::error::ANDROID_KEYSTORE_PROPERTIES or ANDROID_KEYSTORE_BASE64 secret is empty or not set"
             exit 1
           fi

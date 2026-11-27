@@ -1,0 +1,81 @@
+package com.sportssoftw.squadcall.domain.usecase
+
+import com.sportssoftw.squadcall.domain.access.AccessPolicy
+import com.sportssoftw.squadcall.domain.access.scope
+import com.sportssoftw.squadcall.domain.repository.MatchPlayerStatsRepository
+import com.sportssoftw.squadcall.domain.repository.MatchReportRepository
+import com.sportssoftw.squadcall.domain.repository.MatchRepository
+import com.sportssoftw.squadcall.domain.service.TransactionManager
+import com.sportssoftw.squadcall.exception.NotFoundException
+import com.sportssoftw.squadcall.exception.ValidationException
+import com.sportssoftw.squadcall.model.MatchReport
+import com.sportssoftw.squadcall.model.MatchStatus
+import com.sportssoftw.squadcall.model.SaveMatchReportRequest
+import kotlin.time.Clock
+
+/**
+ * Saves a finished match's report text and the per-player ratings (0-10) in one write.
+ *
+ * Gated by MANAGE_MATCH, the same configurable permission as scheduling and editing the match
+ * (Coach by default), with the usual coordinator/admin floor. Blank text is stored as null.
+ * `complete = true` marks the report done, taking it off the Home tab's to-do. A completed report
+ * stays completed and can still be edited.
+ */
+class SaveMatchReportUseCase(
+    private val matchRepository: MatchRepository,
+    private val matchReportRepository: MatchReportRepository,
+    private val matchPlayerStatsRepository: MatchPlayerStatsRepository,
+    private val accessPolicy: AccessPolicy,
+    private val transactionManager: TransactionManager
+) {
+    suspend operator fun invoke(userId: String, matchId: String, request: SaveMatchReportRequest): MatchReport =
+        transactionManager.runInTransaction {
+            val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
+
+            accessPolicy.requireManageMatch(userId, match.scope, "Only admins, coordinators, or this team's coaches can write the match report")
+
+            if (match.status != MatchStatus.FINISHED) {
+                throw ValidationException("A match report can only be written once the match has finished")
+            }
+
+            val ratedIds = request.ratings.map { it.playerId }
+            if (ratedIds.size != ratedIds.toSet().size) {
+                throw ValidationException("Each player can only be rated once")
+            }
+            if (request.ratings.any { r -> r.rating != null && r.rating !in 0..10 }) {
+                throw ValidationException("Ratings must be between 0 and 10")
+            }
+            if (ratedIds.isNotEmpty()) {
+                val statsPlayerIds = matchPlayerStatsRepository.getByMatch(matchId).map { it.playerId }.toSet()
+                if (!statsPlayerIds.containsAll(ratedIds)) {
+                    throw ValidationException("Only players called up for this match can be rated")
+                }
+            }
+
+            val existing = matchReportRepository.getByMatch(matchId)
+            val now = Clock.System.now()
+            val report = MatchReport(
+                matchId = matchId,
+                tactic = request.tactic.clean(),
+                positiveAspects = request.positiveAspects.clean(),
+                lessPositiveAspects = request.lessPositiveAspects.clean(),
+                aspectsToImprove = request.aspectsToImprove.clean(),
+                teamNotes = request.teamNotes.clean(),
+                opponentTactic = request.opponentTactic.clean(),
+                opponentStrengths = request.opponentStrengths.clean(),
+                opponentWeaknesses = request.opponentWeaknesses.clean(),
+                opponentBestPlayers = request.opponentBestPlayers.clean(),
+                opponentAdditionalInfo = request.opponentAdditionalInfo.clean(),
+                completedAt = existing?.completedAt ?: if (request.complete) now else null,
+                updatedAt = now,
+                updatedByUserId = userId
+            )
+            matchReportRepository.upsert(report)
+            if (request.ratings.isNotEmpty()) {
+                matchPlayerStatsRepository.updateRatings(matchId, request.ratings.associate { it.playerId to it.rating })
+            }
+            report
+        }
+
+    private fun String?.clean(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
+}

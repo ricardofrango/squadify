@@ -1,0 +1,70 @@
+package com.sportssoftw.squadcall.data.remote
+
+import com.sportssoftw.squadcall.data.cache.cachedGet
+import com.sportssoftw.squadcall.domain.config.AppConfig
+import com.sportssoftw.squadcall.domain.repository.OpponentRepository
+import com.sportssoftw.squadcall.model.CreateOpponentRequest
+import com.sportssoftw.squadcall.model.LogoResponse
+import com.sportssoftw.squadcall.model.Opponent
+import com.sportssoftw.squadcall.model.OpponentDetails
+import com.sportssoftw.squadcall.model.OpponentList
+import com.sportssoftw.squadcall.model.UpdateOpponentRequest
+import io.ktor.client.*
+import io.ktor.client.request.*
+import io.ktor.http.*
+import io.ktor.http.content.ByteArrayContent
+
+class OpponentRepositoryImpl(
+    private val httpClient: HttpClient,
+    private val appConfig: AppConfig
+) : OpponentRepository {
+
+    override suspend fun getOpponents(clubId: String, ageGroupId: String?): List<Opponent> =
+        httpClient.cachedGet("${appConfig.baseUrl}/opponents") {
+            parameter("clubId", clubId)
+            ageGroupId?.let { parameter("ageGroupId", it) }
+        }
+
+    override suspend fun getOpponentList(clubId: String, ageGroupId: String?, query: String, offset: Int, limit: Int?): OpponentList =
+        httpClient.cachedGet("${appConfig.baseUrl}/opponents/list") {
+            parameter("clubId", clubId)
+            ageGroupId?.let { parameter("ageGroupId", it) }
+            query.trim().takeIf { it.isNotEmpty() }?.let { parameter("q", it) }
+            limit?.let {
+                parameter("limit", it)
+                parameter("offset", offset)
+            }
+        }
+
+    override suspend fun getOpponentDetails(opponentId: String): OpponentDetails =
+        httpClient.cachedGet("${appConfig.baseUrl}/opponents/$opponentId")
+
+    override suspend fun createOpponent(clubId: String, request: CreateOpponentRequest): Opponent =
+        httpClient.post("${appConfig.baseUrl}/opponents") {
+            parameter("clubId", clubId)
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse()
+
+    override suspend fun updateOpponent(opponentId: String, request: UpdateOpponentRequest) =
+        httpClient.patch("${appConfig.baseUrl}/opponents/$opponentId") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse<Unit>()
+
+    override suspend fun deleteOpponent(opponentId: String) {
+        httpClient.delete("${appConfig.baseUrl}/opponents/$opponentId").handleResponse<Unit>()
+    }
+
+    override suspend fun uploadOpponentLogo(opponentId: String, ageGroupId: String?, bytes: ByteArray): String =
+        httpClient.put("${appConfig.baseUrl}/opponents/$opponentId/logo") {
+            ageGroupId?.let { parameter("ageGroupId", it) }
+            setBody(ByteArrayContent(bytes, ContentType.Application.OctetStream))
+        }.handleResponse<LogoResponse>().logoUrl
+
+    override suspend fun deleteOpponentLogo(opponentId: String, ageGroupId: String?) {
+        httpClient.delete("${appConfig.baseUrl}/opponents/$opponentId/logo") {
+            ageGroupId?.let { parameter("ageGroupId", it) }
+        }.handleResponse<Unit>()
+    }
+}

@@ -4,8 +4,8 @@ import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.util.Properties
 
-// Squadify for Coaches on Android (TECHNICAL_DECISIONS §72): starts :app:coach against the coach server.
-// Its own app id, so it installs next to the clubs app. Its own Firebase project, squadify-for-coach
+// Squadcall for Coaches on Android (TECHNICAL_DECISIONS §72): starts :app:coach against the coach server.
+// Its own app id, so it installs next to the clubs app. Its own Firebase project, coach Firebase project
 // (google-services.json): Crashlytics, pushes from the coach server (app/shared's push code), and
 // staging builds to testers through App Distribution (deploy-staging-coach.yml).
 plugins {
@@ -26,13 +26,13 @@ val keystoreProperties = Properties().apply {
 }
 
 // The dev flavor talks to the coach server on this machine (port 8090), at this machine's LAN address,
-// resolved as in the clubs app: `squadify.devHost` in local.properties, else the first site-local IPv4
+// resolved as in the clubs app: `squadcall.devHost` in local.properties, else the first site-local IPv4
 // address, else the emulator's host loopback.
 val devHost: String = run {
     val localProps = Properties().apply {
         rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
     }
-    localProps.getProperty("squadify.devHost")?.trim()?.takeIf { it.isNotEmpty() }
+    localProps.getProperty("squadcall.devHost")?.trim()?.takeIf { it.isNotEmpty() }
         ?: NetworkInterface.getNetworkInterfaces().asSequence()
             .filter { it.isUp && !it.isLoopback && !it.isVirtual }
             .flatMap { it.inetAddresses.asSequence() }
@@ -81,11 +81,11 @@ val versionNameProp = "1.0.1"
 val ciBuildNumber = (project.findProperty("versionCode") as? String)?.toIntOrNull()
 
 android {
-    namespace = "com.sportssoftw.squadify.coach.android"
+    namespace = "com.sportssoftw.squadcall.coach.android"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.sportssoftw.squadify.coach"
+        applicationId = "com.sportssoftw.squadcall.coach"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = ciBuildNumber ?: 1
@@ -110,30 +110,30 @@ android {
             dimension = "environment"
             applicationIdSuffix = ".dev"
             buildConfigField("String", "BASE_URL", "\"http://$devHost:8090/v1\"")
-            resValue("string", "app_name", "Squadify Coach Dev")
+            resValue("string", "app_name", "Squadcall Coach Dev")
         }
         create("staging") {
             dimension = "environment"
             applicationIdSuffix = ".stg"
             // The coach-server service's Railway domain on staging.
-            buildConfigField("String", "BASE_URL", "\"https://squadify-for-coach-staging.up.railway.app/v1\"")
-            resValue("string", "app_name", "Squadify Coach Stg")
+            buildConfigField("String", "BASE_URL", "\"https://squadcall-coach-staging.up.railway.app/v1\"")
+            resValue("string", "app_name", "Squadcall Coach Stg")
             versionNameSuffix = "-stg.${ciBuildNumber ?: "local"}"
         }
         create("prod") {
             dimension = "environment"
             // The coach server's production service on Railway (its public domain).
-            buildConfigField("String", "BASE_URL", "\"https://squadify-production.up.railway.app/v1\"")
-            resValue("string", "app_name", "Squadify Coach")
+            buildConfigField("String", "BASE_URL", "\"https://coach-api.squadcallapp.com/v1\"")
+            resValue("string", "app_name", "Squadcall Coach")
             // The developer's AdMob app and its Free-plan banner (the only build that serves real ads).
-            manifestPlaceholders["adMobAppId"] = "ca-app-pub-3440435107955103~9995919178"
-            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3440435107955103/1056910189\"")
+            manifestPlaceholders["adMobAppId"] = "ca-app-pub-3440435107955103~3537164483"
+            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3440435107955103/6563103870\"")
         }
     }
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
             create("release") {
-                storeFile = rootProject.file("keystore/squadify-keystore.jks")
+                storeFile = rootProject.file("keystore/squadcall-keystore.jks")
                 storePassword = keystoreProperties.getProperty("password")
                 keyAlias = keystoreProperties.getProperty("alias")
                 keyPassword = keystoreProperties.getProperty("alias-password")
@@ -158,10 +158,10 @@ android {
                 debugSymbolLevel = "FULL"
             }
             firebaseAppDistribution {
-                // The squadify-for-coach service account, gitignored at the repo root; CI writes it
+                // The coach Firebase service account, gitignored at the repo root; CI writes it
                 // from the FIREBASE_COACH_SERVICE_ACCOUNT_JSON secret.
                 serviceCredentialsFile = rootProject.file("firebase-coach-service-account.json").path
-                groups = "squadify-coach-testers"
+                groups = "squadcall-coach-testers"
             }
         }
     }

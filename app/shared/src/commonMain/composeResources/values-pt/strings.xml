@@ -574,7 +574,7 @@
     <string name="msg_report_no_permission_body">Os relatórios só são visíveis para os treinadores e staff deste escalão. Peça acesso a um coordenador.</string>
     <string name="report_back_to_match">Voltar ao jogo</string>
     <string name="report_no_stats_title">Sem estatísticas dos jogadores neste jogo.</string>
-    <string name="report_no_stats_body">Foi jogado antes de o Squadify registar minutos, golos e cartões, por isso não há nada para avaliar. Pode escrever a análise na mesma.</string>
+    <string name="report_no_stats_body">Foi jogado antes de o Squadcall registar minutos, golos e cartões, por isso não há nada para avaliar. Pode escrever a análise na mesma.</string>
     <string name="report_status_line_completed">Atualizado a %1$s por %2$s</string>
     <string name="report_status_line_completed_today">Atualizado hoje por %1$s</string>
     <string name="report_status_line_draft">Ainda não concluído · guardado a %1$s por %2$s</string>
@@ -717,8 +717,8 @@
         <item quantity="other">Inclui %1$d jogos antigos sem tipo — só aparecem em Todos.</item>
     </plurals>
     <plurals name="stats_pre_stats_body">
-        <item quantity="one">%2$s jogou %1$d jogo em %3$s, antes de o Squadify registar minutos, golos ou avaliações.</item>
-        <item quantity="other">%2$s jogou %1$d jogos em %3$s, antes de o Squadify registar minutos, golos ou avaliações.</item>
+        <item quantity="one">%2$s jogou %1$d jogo em %3$s, antes de o Squadcall registar minutos, golos ou avaliações.</item>
+        <item quantity="other">%2$s jogou %1$d jogos em %3$s, antes de o Squadcall registar minutos, golos ou avaliações.</item>
     </plurals>
 
     <!-- Team Details tabs (design 32) -->
@@ -974,7 +974,7 @@
     <string name="more_account_settings_sub">Nome, telefone, palavra-passe</string>
     <string name="more_switch_club">Mudar de clube</string>
     <string name="more_log_out">Terminar sessão</string>
-    <string name="more_log_out_title">Terminar sessão no Squadify?</string>
+    <string name="more_log_out_title">Terminar sessão no Squadcall?</string>
     <string name="more_log_out_body">Vai precisar do email e da palavra-passe para voltar a entrar neste dispositivo.</string>
     <string name="more_role_admin">Admin</string>
     <string name="more_role_coordinator">Coordenador(a)</string>
@@ -983,7 +983,7 @@
     <string name="more_role_member">Membro</string>
     <string name="more_pick_hint">Escolha um dos seus escalões.</string>
     <string name="more_continue">Continuar</string>
-    <string name="more_version">Squadify %1$s</string>
+    <string name="more_version">Squadcall %1$s</string>
     <plurals name="more_clubs_count">
         <item quantity="one">%1$d clube</item>
         <item quantity="other">%1$d clubes</item>
@@ -1042,7 +1042,7 @@
     <string name="msg_check_connection">Verifique a sua ligação e tente novamente.</string>
     <string name="startup_needs_connection_title">Sem ligação</string>
     <string name="startup_update_title">Atualização necessária</string>
-    <string name="startup_update_body">Esta versão da app está desatualizada. Atualize-a para continuar a usar o Squadify.</string>
+    <string name="startup_update_body">Esta versão da app está desatualizada. Atualize-a para continuar a usar o Squadcall.</string>
     <string name="more_opponents">Adversários</string>
     <!-- Create / Edit opponent (design 38e) -->
     <string name="title_create_opponent">Criar adversário</string>
@@ -1409,7 +1409,7 @@
     <string name="msg_logo_remove_failed">Não foi possível remover o logótipo. Tente novamente.</string>
     <!-- Club colours (Club settings > Details) -->
     <string name="label_club_colours_section">CORES DO CLUBE</string>
-    <string name="msg_club_colours_none">A usar as cores do Squadify. Escolha duas para o seu clube: uma cor principal forte e uma segunda mais clara.</string>
+    <string name="msg_club_colours_none">A usar as cores do Squadcall. Escolha duas para o seu clube: uma cor principal forte e uma segunda mais clara.</string>
     <string name="btn_choose_club_colours">Escolher cores do clube</string>
     <string name="label_main_colour">Cor principal</string>
     <string name="label_second_colour">Segunda cor</string>
@@ -1661,8 +1661,8 @@
     <string name="msg_opponent_delete_failed">Não foi possível apagar o adversário. Tenta outra vez.</string>
     <string name="msg_cannot_be_undone">Não pode ser desfeito.</string>
     <string name="export_consent_title">Permitir uma cópia de um escalão?</string>
-    <string name="export_consent_body">A outra app Squadify vai copiar o escalão que escolheres daqui, com as suas equipas, jogadores, jogos e treinos. Nada é alterado aqui.</string>
-    <string name="export_consent_failed">Não foi possível permitir. Entra na Squadify nesta app e tenta outra vez.</string>
+    <string name="export_consent_body">A outra app Squadcall vai copiar o escalão que escolheres daqui, com as suas equipas, jogadores, jogos e treinos. Nada é alterado aqui.</string>
+    <string name="export_consent_failed">Não foi possível permitir. Entra na Squadcall nesta app e tenta outra vez.</string>
     <string name="btn_export_allow">Permitir</string>
     <string name="import_dialog_title">Importar um escalão</string>
     <string name="import_dialog_hint">Escolhe um para copiar com as suas equipas, jogadores, jogos e treinos.</string>

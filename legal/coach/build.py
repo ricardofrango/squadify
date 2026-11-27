@@ -36,14 +36,14 @@ PAGE = """<!doctype html>
 </html>
 """
 
-EMAIL = "squadify.support@gmail.com"
+EMAIL = "support@squadcallapp.com"
 
 DELETE_EN = f"""
-<h1>Delete your Squadify Coach account</h1>
+<h1>Delete your Squadcall Coach account</h1>
 <p>You can delete your account and everything in it without the app.</p>
 <h2>From the app</h2>
 <ol>
-  <li>Open Squadify Coach and sign in.</li>
+  <li>Open Squadcall Coach and sign in.</li>
   <li>Go to <strong>Account</strong> and choose <strong>Delete account</strong>.</li>
   <li>Enter your password and confirm.</li>
 </ol>
@@ -56,11 +56,11 @@ training and opponents. What stays: nothing of yours. See the <a href="/privacy"
 """
 
 DELETE_PT = f"""
-<h1>Eliminar a tua conta da Squadify Coach</h1>
+<h1>Eliminar a tua conta da Squadcall Coach</h1>
 <p>Podes eliminar a tua conta e tudo o que tem sem usar a app.</p>
 <h2>Na app</h2>
 <ol>
-  <li>Abre a Squadify Coach e entra na tua conta.</li>
+  <li>Abre a Squadcall Coach e entra na tua conta.</li>
   <li>Vai a <strong>Conta</strong> e escolhe <strong>Eliminar conta</strong>.</li>
   <li>Escreve a tua palavra-passe e confirma.</li>
 </ol>
@@ -84,14 +84,14 @@ def main() -> None:
     DIST.mkdir(parents=True)
 
     for lang, source, out, title, delete in [
-        ("en", "privacy-policy.en.md", "privacy", "Squadify Coach — Privacy Policy", DELETE_EN),
-        ("pt", "privacy-policy.pt.md", "pt/privacy", "Squadify Coach — Política de Privacidade", DELETE_PT),
+        ("en", "privacy-policy.en.md", "privacy", "Squadcall Coach — Privacy Policy", DELETE_EN),
+        ("pt", "privacy-policy.pt.md", "pt/privacy", "Squadcall Coach — Política de Privacidade", DELETE_PT),
     ]:
         text = (HERE / source).read_text(encoding="utf-8")
         body = markdown.markdown(text, extensions=["tables"])
         write(DIST / out / "index.html", title, lang, body)
         write(DIST / ("delete-account" if lang == "en" else "pt/delete-account") / "index.html",
-              "Squadify Coach — Delete account" if lang == "en" else "Squadify Coach — Eliminar conta",
+              "Squadcall Coach — Delete account" if lang == "en" else "Squadcall Coach — Eliminar conta",
               lang, delete)
 
     # The root goes to the English policy.

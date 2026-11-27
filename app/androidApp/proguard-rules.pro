@@ -1,4 +1,4 @@
-# R8 rules for Squadify's (clubs) release build (TECHNICAL_DECISIONS.md §11.7).
+# R8 rules for Squadcall's (clubs) release build (TECHNICAL_DECISIONS.md §11.7).
 #
 # The libraries the app uses ship their own consumer rules (kotlinx.serialization for the @Serializable
 # models and the Navigation 3 screens, Ktor, Koin, Firebase, Play Billing, Compose), so nothing of ours

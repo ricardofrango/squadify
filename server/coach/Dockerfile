@@ -1,4 +1,4 @@
-# Builds and runs the Squadify for Coaches Ktor server (:server:coach, TECHNICAL_DECISIONS.md §72). Same
+# Builds and runs the Squadcall for Coaches Ktor server (:server:coach, TECHNICAL_DECISIONS.md §72). Same
 # shape as server/clubs/Dockerfile: the build context is the REPO ROOT
 # (`docker build -f server/coach/Dockerfile .`), and --configure-on-demand only configures what
 # :server:coach:buildFatJar needs (:common, :server:core, :server:data, :server:web, :server:coach) -- no

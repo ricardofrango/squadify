@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Push notifications, for both apps (com.sportssoftw.squadify.push). -->
+    <!-- Push notifications, for both apps (com.sportssoftw.squadcall.push). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Retries the server's feature flags when a connection comes back (presentation/ui/startup). -->
@@ -9,7 +9,7 @@
 
     <application>
         <service
-            android:name="com.sportssoftw.squadify.push.SquadifyMessagingService"
+            android:name="com.sportssoftw.squadcall.push.SquadcallMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
