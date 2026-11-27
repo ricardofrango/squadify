@@ -375,7 +375,7 @@ existing:
   Admin role), so `./gradlew app:androidApp:appDistributionUploadRelease` builds and uploads a release with
   no login step. The `release` build type's `firebaseAppDistribution { serviceCredentialsFile = ... }` block
   points at `app/androidApp/firebase-service-account.json` -- a local-only file, gitignored, never committed.
-  Releases go to the `squadcall-clubs-testers` group (`groups = "squadcall-clubs-testers"` in the same block) -- manage
+  Releases go to the `squadcall-club-testers` group (`groups = "squadcall-club-testers"` in the same block) -- manage
   membership in the Firebase console under App Distribution -> Testers & Groups.
 
 ## 13. Web Client Deployment: Docker + nginx
