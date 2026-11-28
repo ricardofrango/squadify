@@ -3488,7 +3488,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
     - **Steps:** the app tests (`:app:shared:testAndroidHostTest`, `:app:coach:testAndroidHostTest`) as a gate, then `:app:coachAndroidApp:assembleStagingRelease` and `appDistributionUploadStagingRelease` with the run number as `versionCode` (`-stg.<n>`, as in §30).
     - **Credentials:** the `the coach Firebase project` service account, the same key as the coach server's (`firebase-coach-service-account.json` at the repo root, gitignored), from the GitHub secret `FIREBASE_COACH_SERVICE_ACCOUNT_JSON`. It needs the *Firebase App Distribution Admin* role. The release keystore is the clubs app's (the same two secrets).
     - **Testers:** the `squadcall-coach-testers` group in the `the coach Firebase project` project.
-    - **Server:** the staging flavor talks to `https://the coach Firebase project-staging.up.railway.app/v1`, the coach-server service on Railway staging.
+    - **Server:** the staging flavor talks to `https://stg-coach-api.squadcallapp.com/v1`, the coach-server service on Railway staging.
 - **Production:** `deploy-production.yml` deploys both servers on a release, like the web app (§13).
 
 **Shared services:**
@@ -3687,7 +3687,7 @@ server still refuses its actions while someone else manages the game, and it sho
 
 **Left out.** Staff (accounts differ between the apps). A match in progress (the next update brings it, finished). iOS (Android first).
 
-**Configuration (age group import).** Each server accepts imports only from the addresses in `IMPORT_SOURCES` (comma-separated origins, e.g. `https://squadcall-staging.up.railway.app`), and imports from an address in `IMPORT_SOURCES_CROSS_ENVIRONMENT` only by a platform admin. The clubs server's platform admins are the users with `is_platform_admin`; the coach server's are `PLATFORM_ADMIN_EMAILS` and the same flag. The consent screen (`ExportAgeGroupsActivity`) answers only the Squadcall apps' packages (`CLUBS_APP_PACKAGES`, `COACH_APP_PACKAGES`); every other app is refused at once.
+**Configuration (age group import).** Each server accepts imports only from the addresses in `IMPORT_SOURCES` (comma-separated origins, e.g. `https://stg-club-api.squadcallapp.com`), and imports from an address in `IMPORT_SOURCES_CROSS_ENVIRONMENT` only by a platform admin. The clubs server's platform admins are the users with `is_platform_admin`; the coach server's are `PLATFORM_ADMIN_EMAILS` and the same flag. The consent screen (`ExportAgeGroupsActivity`) answers only the Squadcall apps' packages (`CLUBS_APP_PACKAGES`, `COACH_APP_PACKAGES`); every other app is refused at once.
 
 ## 82. Feature Flags
 
