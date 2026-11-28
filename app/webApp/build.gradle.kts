@@ -12,7 +12,7 @@ plugins {
 // TECHNICAL_DECISIONS.md's "Environment-Based App Config" section.
 val squadcallEnv = (findProperty("squadcallEnv") as String?) ?: "dev"
 val squadcallBaseUrl = when (squadcallEnv) {
-    "staging" -> "https://squadcall-club-staging.up.railway.app/v1"
+    "staging" -> "https://stg-club-api.squadcallapp.com/v1"
     "production" -> "https://club-api.squadcallapp.com/v1" 
     else -> "http://localhost:8080/v1"
 }
