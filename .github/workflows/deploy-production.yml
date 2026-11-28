@@ -1,7 +1,7 @@
 name: Deploy production
 
 # Runs on every push to main, which is a merge of develop into main (the production release). Deploys the
-# clubs server, the coach server and the web client to Railway's production environment via the Railway
+# coach server and the web client to Railway's production environment via the Railway
 # CLI (the web client built here first, by deploy-web.yml). Merges to develop deploy to staging, as before.
 # The coach Android app goes to Google Play from release-coach-android.yml on the same push.
 #
@@ -51,9 +51,6 @@ jobs:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy clubs server
-        run: railway up --service server --ci
-
       - name: Deploy coach server
         run: railway up --service "Squadcall Coach BE" --ci
 
