@@ -3819,4 +3819,4 @@ server still refuses its actions while someone else manages the game, and it sho
 
 **Keystore.** A new upload key, `keystore/squadcall-keystore.jks`. The new fingerprints go into both Firebase projects; the old key stays until the old app is unpublished.
 
-**Not yet done.** The baseline profiles were renamed by text and must be re-recorded on a device. The clubs and coach `google-services.json` files still name the old packages until their replacements are committed.
+**Not yet done.** The baseline profiles were renamed by text and must be re-recorded: `:app:coachAndroidApp:generateBaselineProfile` (and the clubs counterpart) runs on a USB-connected phone, as their modules set `useConnectedDevices`. The clubs and coach `google-services.json` files name the new packages (`3b548f09`).
